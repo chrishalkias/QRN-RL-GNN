@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
+
 """
 Created on Thu 6 Mar 2025
+The QuantumNetworkEnv class is a container for the RepeaterNetwork class, which
+implements the gym.Env class. It is a reinforcement learning environment that
+can be used for training and testing reinforcement learning algorithms on the
+quantum network task.
 """
+
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt

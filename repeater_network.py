@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+
 """
 Created on Thu 6 Mar 2025
+The class encoding the phyiscal model of the repeater network
 """
+
 import numpy as np
 import itertools
 import matplotlib.pyplot as plt 

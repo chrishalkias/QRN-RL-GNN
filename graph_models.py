@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+
 """
 Created on Thu 6 Mar 2025
 
-Here are the implementations of the GNNPolicy and GATPolicy classes.
+Thimplementations of the GNNPolicy and GATPolicy classes.
 These classes are used to define custom feature extractors for the
 Stable-Baselines3 library. The GNNPolicy uses a simple GNN to extract
 features from the environment graph, while the GATPolicy uses a Graph

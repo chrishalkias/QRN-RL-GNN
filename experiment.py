@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 Created on Thu 6 Mar 2025
 
@@ -20,7 +21,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.logger import configure
 from graph_models import GNNPolicy, GATPolicy
 from stable_baselines3.common.logger import configure
-from stable_baselines3.common.summary import summary
+# from stable_baselines3.common.summary import summary
 from graph_models import GNNPolicy, GATPolicy
 from quantum_network_env import QuantumNetworkEnv
 import os
@@ -186,7 +187,7 @@ class Experiment():
           print(policy.value_net, file=file)
           print('\n>>> Policy Network Architecture <<<', file=file)
           print(env.edge_combinations)
-          print(summary(self.model.policy, input_size=(1,env.edge_combinations)), file=file)
+          # print(summary(self.model.policy, input_size=(1,env.edge_combinations)), file=file)
 
   def random_sample(self, n_samples):
     """Randomly samples actions from the environment"""
