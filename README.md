@@ -32,5 +32,5 @@ The repository consists of the following
 ## Instalation
 
 ```
-git clone https://github.com/chrishalkias/QRN/
+git clone https://github.com/chrishalkias/QRN-RL-GNN
 ```
