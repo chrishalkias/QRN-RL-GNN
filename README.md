@@ -1,4 +1,4 @@
-#  :construction: QRN (Quantum Repeater Network) :construction:
+#  :construction: QRN (Quantum Repeater Network with RL and GNNs) :construction:
 
 
 
