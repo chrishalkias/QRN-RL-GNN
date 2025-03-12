@@ -8,6 +8,6 @@ import experiment as exp
 import numpy as np
 import matplotlib.pyplot as plt
 
-if __name__ == "main":
+if __name__ == "__main__":
     experiment = exp(model = "DQN", n=7, tau=10000, p_entangle=1, p_swap=1)
     experiment.display_info()
