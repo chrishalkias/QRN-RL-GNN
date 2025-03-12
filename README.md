@@ -1,6 +1,6 @@
 #  Quantum Repeater Network with RL and GNNs 
 
-##(QRN-RL-GNN)
+## (QRN-RL-GNN)
 
 
 
