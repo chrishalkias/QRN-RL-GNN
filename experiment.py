@@ -230,7 +230,6 @@ class Experiment():
 
     elif (not loss_callback.cumulative_losses) or (not loss_callback.losses):
       print("no callbacks to print")
-    elif not print: ...
     else: ...
 
   def test_agent(self, max_steps =10, render:bool=False):
