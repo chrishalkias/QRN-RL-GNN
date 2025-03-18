@@ -27,14 +27,13 @@ from quantum_network_env import QuantumNetworkEnv
 import os
 
 class CumulativeLossCallback(BaseCallback):
-  """Uncomment lines for debugging"""
   def __init__(self, verbose=0):
+    """This class is used for loss callbacks during trainning"""
     super(CumulativeLossCallback, self).__init__(verbose)
     self.losses, self.cumulative_losses = [], []
 
   def _on_step(self):
     #print("Logged metrics:", self.model.logger.name_to_value)
-
     if "train/loss" in self.model.logger.name_to_value:
       loss = self.model.logger.name_to_value["train/loss"] #self.env.step()[1]
       self.losses.append(loss)
@@ -46,8 +45,14 @@ class CumulativeLossCallback(BaseCallback):
 
 
 class Experiment():
-  def __init__(self, model="DQN", n=5, directed=False,geometry='chain',
-                     kappa=1, tau=1_000, p_entangle=1, p_swap=1):
+  def __init__(self, model="DQN",
+                n=5,
+                directed=False,
+                geometry='chain',
+                kappa=1,
+                tau=1_000,
+                p_entangle=1,
+                p_swap=1):
     """
          ______                      _                      _
         |  ____|                    (_)                    | |
@@ -198,7 +203,12 @@ class Experiment():
         done = terminated or truncated
         print("Step:", obs, reward, done, info)
 
-  def train_agent(self, total_timesteps=1000, plot=True, callback=False):
+  def train_agent(self,
+                  total_timesteps=1000,
+                  plot=True,
+                  callback=False,
+                  log_dir="./logs/progress.csv"
+                  ):
     """Trains the agent on the environment"""
     log_dir = "./logs/"
     os.makedirs(log_dir, exist_ok=True)
@@ -209,7 +219,7 @@ class Experiment():
                      log_interval=total_timesteps)
     self.model.save(self.net_type.__name__)
     new_logger = configure(log_dir, ["stdout", "csv", "tensorboard"])
-    log_file = "./logs/progress.csv"
+    log_file = log_dir 
     if plot and loss_callback.cumulative_losses and loss_callback.losses:
       fig, axes = plt.subplots(1, 2, figsize=(12, 5))  # 1 row, 2 columns
       axes[0].set_title("Cumulative Training Loss Over Time")
