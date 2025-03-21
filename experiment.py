@@ -11,20 +11,21 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import torch
 import gym
+import os
 from gym import spaces
-from repeater_network import RepeaterNetwork
 from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecFrameStack, VecNormalize, DummyVecEnv
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.logger import configure
-from graph_models import GNNPolicy, GATPolicy
 from stable_baselines3.common.logger import configure
 # from stable_baselines3.common.summary import summary
+
+from graph_models import GNNPolicy, GATPolicy
+from repeater_network import RepeaterNetwork
 from graph_models import GNNPolicy, GATPolicy
 from quantum_network_env import QuantumNetworkEnv
-import os
 
 class CumulativeLossCallback(BaseCallback):
   def __init__(self, verbose=0):
@@ -52,7 +53,8 @@ class Experiment():
                 kappa=1,
                 tau=1_000,
                 p_entangle=1,
-                p_swap=1):
+                p_swap=1,
+                log_dir = "./logs"):
     """
          ______                      _                      _
         |  ____|                    (_)                    | |
@@ -219,27 +221,27 @@ class Experiment():
                      log_interval=total_timesteps)
     self.model.save(self.net_type.__name__)
     new_logger = configure(log_dir, ["stdout", "csv", "tensorboard"])
-    log_file = log_dir 
-    if plot and loss_callback.cumulative_losses and loss_callback.losses:
-      fig, axes = plt.subplots(1, 2, figsize=(12, 5))  # 1 row, 2 columns
-      axes[0].set_title("Cumulative Training Loss Over Time")
-      axes[0].set_xlabel("Training Steps")
-      axes[0].set_ylabel("Cumulative Loss")
-      axes[0].plot(loss_callback.cumulative_losses, label='Cummulative Loss')
-      axes[0].legend()
-      axes[0].set_xscale("log")
-      axes[1].set_title("Training Loss Over Time")
-      axes[1].set_xlabel("Training Steps")
-      axes[1].set_ylabel("Loss")
-      axes[1].plot(loss_callback.losses, label='Loss')
-      axes[1].set_xscale("log")
-      plt.title("Trainng metrics")
-      plt.legend()
-      plt.savefig(f'metrics_{self.net_type}_.png')
-      plt.show()
-
-    elif (not loss_callback.cumulative_losses) or (not loss_callback.losses):
-      print("no callbacks to print")
+    log_file = log_dir + "/progress.csv"
+    if plot and callback:
+      if loss_callback.cumulative_losses and loss_callback.losses:
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5))  # 1 row, 2 columns
+        axes[0].set_title("Cumulative Training Loss Over Time")
+        axes[0].set_xlabel("Training Steps")
+        axes[0].set_ylabel("Cumulative Loss")
+        axes[0].plot(loss_callback.cumulative_losses, label='Cummulative Loss')
+        axes[0].legend()
+        axes[0].set_xscale("log")
+        axes[1].set_title("Training Loss Over Time")
+        axes[1].set_xlabel("Training Steps")
+        axes[1].set_ylabel("Loss")
+        axes[1].plot(loss_callback.losses, label='Loss')
+        axes[1].set_xscale("log")
+        plt.title("Trainng metrics")
+        plt.legend()
+        plt.savefig(f'metrics_{self.net_type}_.png')
+        plt.show()
+      elif (not loss_callback.cumulative_losses) or (not loss_callback.losses):
+        print("no callbacks to print")
     else: ...
 
   def test_agent(self, max_steps =10, render:bool=False):

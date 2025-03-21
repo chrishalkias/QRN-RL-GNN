@@ -5,17 +5,28 @@ Created on Thu 6 Mar 2025
 The main simulation file. 
 Dependencies: experiment.py, quantum_network_env.py, graph_models.py, repeater_network.py
 Author: Chris Chalkias
+Affiliation: Leiden University, Netherlands
+Part of: MSc Thesis titled "Quantum Network Reinforcement Learning"
 """
 
-import experiment as exp
 import numpy as np
 import matplotlib.pyplot as plt
 
+import experiment as exp
+
 N = 7
-TAU = 10000
+TAU = 10_000
 P_ENTANGLE = 1
 P_SWAP = 1
+
+TRAIN_AGENT = True
+TRAIN_STEPS = 10_000
+PLOT_TRAINING_METRICS, PLOT_LOSS = True, True
+TRAIN_LOG_DIR = "./logs/"
 MODEL = "DQN"
+
+EVALUATE_AGENT = False
+RENDER_EVALUATION = False
 FILE_NAME = None
 TRAINING_PLOTS = None
 TRAINNING_PARAMETERS = None
@@ -26,9 +37,15 @@ if __name__ == "__main__":
                     n=N, tau=TAU,
                     p_entangle=P_ENTANGLE,
                     p_swap=P_SWAP,
-                    #file_name=FILE_NAME,
-                    #training_plots=TRAINING_PLOTS,
-                    #training_parameters=TRAINNING_PARAMETERS,
-                    #model_files=MODEL_FILES,
+                    log_dir = TRAIN_LOG_DIR,
                             )
+    
     experiment.display_info()
+
+    if TRAIN_AGENT:
+        experiment.train_agent(total_timesteps=TRAIN_STEPS, plot=PLOT_TRAINING_METRICS, callback=False)
+    if EVALUATE_AGENT:
+        experiment.test_agent(max_steps =10, render=RENDER_EVALUATION)
+    if True:
+        experiment.env.close()
+        print("Program exited with exit code 0")
