@@ -19,7 +19,6 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecFrameStack, VecNormalize, DummyVecEnv
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.logger import configure
-from stable_baselines3.common.logger import configure
 # from stable_baselines3.common.summary import summary
 
 from graph_models import GNNPolicy, GATPolicy

@@ -113,11 +113,13 @@ class RepeaterNetwork():
     edges = [edge_matrix[i][0] for i in combinations]
     self.matrix = {tuple(undirected_matrix[i]): [edges[i], edges[i]]  for i in combinations}
 
+
   def connect(self, geometry='chain', p=0.5, distList=None):
     """
     Connects the graph by creating locality links. The directionality
     of the graph is adjusted and afterwards locality links are filled
     out accorging to the input.
+
     Args:
       geometry (str)        : The type of connectivity to be used
       p        (float)      : For ER only the probability of connection
@@ -138,13 +140,24 @@ class RepeaterNetwork():
       if areNeighbours:
         self.setLink(edge=(key), linkType = 0, newValue=1)
 
+
   def checkEdgeLink(self, edge:tuple, linkType:bool =0):
-    """Check whether in grid and correct linkType (for getLink and setLink)"""
+    """
+    Check whether in grid and correct linkType (for getLink and setLink)
+
+    Args:
+      edge      (tuple) : The edge to be checked
+      linkType  (bool)  : The linkType to be checked
+
+    Returns:
+      assert statements
+    """
     leftBoundary = edge[0] >= 0 and edge[1] >= 0
     rightBoundary = edge[0] <= self.n-1 and edge[1] <= self.n-1
     assert leftBoundary and rightBoundary, f'Edge {edge} out of bounds'
     assert (linkType == 0 or
             linkType == 1), f'Invalid link type (expected 0 or 1 got {linkType}'
+
 
   def getLink(self, edge:tuple, linkType:bool = 0):
     """Get the link (locality/entanglement) from self.matrix"""
@@ -168,6 +181,9 @@ class RepeaterNetwork():
     """
     Checks if node is already doubly entangled and therefore cannot be
     entangled with any more repeaters (used in self.entangle()).
+
+    Args:
+      edge (tuple) : The edge to be checked
     Outputs:
       full_saturation (bool)  : True iff the node is saturated
       pals            (tuple) : The links involved in the saturation
@@ -190,18 +206,51 @@ class RepeaterNetwork():
     """
     Implements the time evolution of the system:
     T timesteps ahead -> age all the links by T*dt (dt=1 by convention)
+
+    Args:
+      T (int)         : The number of timesteps to be evolved
+    Returns:
+      self.time (int) : The current time of the system
+      updates the self.matrix with the new values
     """
     self.time += int(T)
     for key in self.matrix:
       i,j = key # Needs an extra r_ij here
       self.matrix[key][1] *= np.exp(-self.kappa * int(T) / (self.tau * self.c))
 
- #--------------------------------ACTIONS---------------------------------------
+
+  def nodes(self):
+    """
+    Maybe not usefull, another representation of the system instead of self.matrix.
+
+    Returns:
+      nodes (array) : Node description of the form [node, [partners], [ages]]
+    """
+    nodes = {a : [np.zeros((1,self.n)) for _ in range(2)] for a in range(self.n)}
+
+    for keys, values in self.matrix.items():
+      repeater_a, repeater_b = keys[0], keys[1]
+      nodes_are_entangled = (values[1] > 0)
+
+      if nodes_are_entangled:
+        nodes[repeater_a][0][0][repeater_b] = 1
+        nodes[repeater_b][0][0][repeater_a] = 1
+        nodes[repeater_a][1][0][repeater_b] = values[1]
+        nodes[repeater_b][1][0][repeater_a] = values[1]
+    return nodes
+
+ #-----------------------------ACTIONS---------------------------------------
 
   def entangle(self, edge):
     """
     Check if two nodes are adjecent and not saturated and
     entangle them with success probability p_entangle.
+
+    Args:
+      edge (tuple) : The edge to be entangled
+
+    Returns:
+      self.setLink
     """
     self.checkEdgeLink(edge=edge)
 
@@ -228,6 +277,13 @@ class RepeaterNetwork():
     and edge2=(j,k) with probability p_swap. Swap sets the entanglement
      between (i,j) and (j,k) to 0 and the entanglement (i,k) equal to the
     average value of the two previous entanglements.
+
+    Args:
+      edge1 (tuple) : The first edge to be swapped
+      edge2 (tuple) : The second edge to be swapped
+
+    Returns:
+      self.setLink
     """
     swapEficciency = 1
     self.checkEdgeLink(edge=edge1)
@@ -251,9 +307,16 @@ class RepeaterNetwork():
 
 
   def swapAT(self, node): #chain only
-    """Perform the swap operation by specifying a certain node i. Let the system
+    """
+    Perform the swap operation by specifying a certain node i. Let the system
     choose which links get updated depending on the nodes {j} with which i is
     entangled with.
+
+    Args: 
+      node    (int) : The node to swap
+
+    Returns:
+      set.Link
     """
     swapEficciency = 1
     assert node <= self.n-1, f'Node {node} not in system withn={self.n}'
@@ -276,7 +339,15 @@ class RepeaterNetwork():
 
 
   def actions(self, split = False) -> list:
-    """Creates a dict() with all the possible actions"""
+    """
+    Creates a dict() with all the possible actions
+
+    Args:
+      split   (bool) : choice to split the actions into entanglements and swaps
+
+    Returns:
+      actions (dict) : The dict of actions
+    """
     entangles= {f'Entangle {key}': f'self.entangle(edge={key})' for key in self.matrix.keys() if key[0]+1 == key[1]}
     edgeList = list(itertools.combinations(self.matrix.keys(), 2))
     def find_edge_pairs():
@@ -292,12 +363,51 @@ class RepeaterNetwork():
     # return np.array([*(entangles| swaps).values()]) if not split else (entangles, swaps)
     return np.array([*(entangles|swapATs).values()]) if not split else (entangles, swapATs)
 
+
+  def globalActions(self, transformer_output:list) -> list: 
+    """
+    Creates a list with all the possible global actions and then returns the
+    global action (one operation per repeater) as dictated by the transformer.
+
+    Args:
+      transformer_output (list) : The output of the transformer [1, n]
+
+    Returns:
+      global_action (list) : The list of global actions [1,n]
+    """
+    actions         = [_ for _ in range(self.n)]
+    neutral_element = '1' #neutral element can be changed to memory decay
+    entangle_left   = lambda repeater: f'entangle({(repeater-1, repeater)})'
+    entangle_right  = lambda repeater: f'entangle({(repeater, repeater+1)})'
+    swap            = lambda repeater: f'swapAT({repeater})'
+
+    for repeater in range(self.n):
+      actions[repeater] = [neutral_element,   #no action
+                           entangle_left(repeater),
+                           entangle_right(repeater),
+                           swap(repeater)]
+
+      if repeater==0:          #left edge
+        actions[repeater][1] = actions[repeater][2]
+        actions[repeater][3] = neutral_element
+      elif repeater==self.n-1: #right edge
+        actions[repeater][2] = actions[repeater][1]
+        actions[repeater][3] = neutral_element
+
+    action_map = zip(actions, transformer_output)
+    global_action = [sublist[index - 1] for sublist, index in action_map]
+    global_action = ['self.' + action if action !=neutral_element else action for action in global_action]
+    return [*global_action]
+
+
   def actionCount(self) -> int:
     """Returns the number of possible actions"""
     return len(self.actions())
 
+
   def plotActionCounts(self, maxNodes=4):
-    """This function plots the number of possible swaps and the number of
+    """
+    This function plots the number of possible swaps and the number of
     possible entanglements for a chain graph with maxNodes as n
     """
     entangleCount,swapCount=[],[]
@@ -312,14 +422,15 @@ class RepeaterNetwork():
     plt.bar(x, y_dif, bottom=(np.array(entangleCount)), label='Possible actions', width=.2)
     plt.plot(x,x,'x', label='$N$')
     plt.plot(x,x*(x-2)*(x-1),'x', label=r'$Bin(N,3)$')
-    plt.yscale("log")
     plt.title('Number of possible actions as a function of the number of repeaters')
-    plt.xlabel('Number of repeaters')
     plt.ylabel('Number of possible actions')
+    plt.xlabel('Number of repeaters')
     plt.savefig('actionCount.png')
+    plt.yscale("log")
     plt.legend()
     plt.show()
     return
+
 
   def endToEndCheck(self):
     """
@@ -333,8 +444,3 @@ class RepeaterNetwork():
     endToEnd = (self.getLink(edge=linkToRead, linkType=1) > np.random.rand())
     self.global_state = endToEnd
     # self.setLink(edge=(0,self.n-1), linkType=1, newValue = 0)
-
-
-  def shortestPath(self): ...
-    # When graphs become more complex we'll need to find the shortest path first
-    # https://www.geeksforgeeks.org/generate-graph-using-dictionary-python/
