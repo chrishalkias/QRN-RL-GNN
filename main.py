@@ -23,7 +23,6 @@ TRAIN_AGENT = True
 TRAIN_STEPS = 10_000
 PLOT_TRAINING_METRICS, PLOT_LOSS = True, True
 TRAIN_LOG_DIR = "./logs/"
-MODEL = "DQN"
 
 EVALUATE_AGENT = False
 RENDER_EVALUATION = False
@@ -33,8 +32,7 @@ TRAINNING_PARAMETERS = None
 MODEL_FILES = None
 
 if __name__ == "__main__":
-    experiment = exp(model = "DQN",
-                    n=N, tau=TAU,
+    experiment = exp(n=N, tau=TAU,
                     p_entangle=P_ENTANGLE,
                     p_swap=P_SWAP,
                     log_dir = TRAIN_LOG_DIR,

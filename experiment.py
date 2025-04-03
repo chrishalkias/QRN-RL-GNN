@@ -21,9 +21,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.logger import configure
 # from stable_baselines3.common.summary import summary
 
-from graph_models import GNNPolicy, GATPolicy
 from repeater_network import RepeaterNetwork
-from graph_models import GNNPolicy, GATPolicy
 from quantum_network_env import QuantumNetworkEnv
 
 class CumulativeLossCallback(BaseCallback):
@@ -45,7 +43,7 @@ class CumulativeLossCallback(BaseCallback):
 
 
 class Experiment():
-  def __init__(self, model="DQN",
+  def __init__(self,
                 n=5,
                 directed=False,
                 geometry='chain',
@@ -110,48 +108,6 @@ class Experiment():
         verbose=1,
       )
 
-    elif model == 'GNN':
-      self.net_type = GNNPolicy
-      kwarg_dict={
-        "features_extractor_class": self.net_type,
-        "features_extractor_kwargs": {
-            "graph": self.env._get_obs(1),
-            "features_dim": 64}}
-      self.model = PPO(
-        "MlpPolicy",
-        self.env,
-        learning_rate=1e-4,
-        n_steps=2048,
-        batch_size=64,
-        gamma=0.99,
-        gae_lambda=0.95,
-        clip_range=0.2,
-        ent_coef=0.01,
-        verbose=1,
-        policy_kwargs=kwarg_dict)
-
-    elif model == "GAT":
-      self.net_type = GATPolicy
-      kwarg_dict={
-        "features_extractor_class": self.net_type,
-        "features_extractor_kwargs": {
-            "graph": self.env._get_obs(1),
-            "features_dim": 64,
-            "num_heads": 4,
-            "pooling": "mean"}}
-      self.model = PPO(
-        "MlpPolicy",
-        self.env,
-        learning_rate=1e-4,
-        n_steps=2048,
-        batch_size=64,
-        gamma=0.99,
-        gae_lambda=0.95,
-        clip_range=0.2,
-        ent_coef=0.01,
-        verbose=1,
-        policy_kwargs=kwarg_dict)
-
   # self.policy_kwargs = kwarg_dict if kwarg_dict else None
     self.obs, self.info, self.action, self.reward, self.done, \
      self.terminated, self.truncated = (None for _ in range(7))
@@ -181,7 +137,7 @@ class Experiment():
         print(f'ent_coef     : {self.model.ent_coef}', file=file)
         print(f'n_steps      : {self.model.n_steps}', file=file)
 
-        if self.net_type in [GNNPolicy, GATPolicy] and False: #print extra info if PPO
+        if False: #print extra info if PPO
           policy = self.model.policy
           print(line, file=file)
           print('>>> Shared Feature Extractor <<<', file=file)
