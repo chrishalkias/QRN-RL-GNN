@@ -90,23 +90,24 @@ class Experiment():
       test_agent()    : Tests the agent on the environment
 
     """
+    
+    # self.env = QuantumNetworkEnv(n, directed,geometry,kappa, tau, p_entangle, p_swap)
     self.env = QuantumNetworkEnv(n, directed,geometry,kappa, tau, p_entangle, p_swap)
     self.action_size = self.env.actionCount()
+    self.net_type = DQN
 
-    if model == "DQN":
-      self.net_type = DQN
-      self.model = model = PPO(
-        "MlpPolicy",
-        self.env,
-        learning_rate=1e-4,  # Adjust learning rate
-        n_steps=2048,        # Increase number of steps per update
-        batch_size=64,       # Adjust batch size
-        gamma=0.99,          # Discount factor
-        gae_lambda=0.95,     # GAE parameter
-        clip_range=0.2,      # Clip range for policy updates
-        ent_coef=0.1,       # Entropy coefficient (encourage exploration)
-        verbose=1,
-      )
+    self.model = PPO(
+      "MlpPolicy",
+      self.env,
+      learning_rate=1e-4,  # Adjust learning rate
+      n_steps=2048,        # Increase number of steps per update
+      batch_size=64,       # Adjust batch size
+      gamma=0.99,          # Discount factor
+      gae_lambda=0.95,     # GAE parameter
+      clip_range=0.2,      # Clip range for policy updates
+      ent_coef=0.1,       # Entropy coefficient (encourage exploration)
+      verbose=1,
+    )
 
   # self.policy_kwargs = kwarg_dict if kwarg_dict else None
     self.obs, self.info, self.action, self.reward, self.done, \
@@ -174,7 +175,7 @@ class Experiment():
                      callback=loss_callback,
                      progress_bar=True,
                      log_interval=total_timesteps)
-    self.model.save(self.net_type.__name__)
+    self.model.save("DQN_model")
     new_logger = configure(log_dir, ["stdout", "csv", "tensorboard"])
     log_file = log_dir + "/progress.csv"
     if plot and callback:
@@ -193,7 +194,7 @@ class Experiment():
         axes[1].set_xscale("log")
         plt.title("Trainng metrics")
         plt.legend()
-        plt.savefig(f'metrics_{self.net_type}_.png')
+        plt.savefig(f'metrics_DQN_.png')
         plt.show()
       elif (not loss_callback.cumulative_losses) or (not loss_callback.losses):
         print("no callbacks to print")
