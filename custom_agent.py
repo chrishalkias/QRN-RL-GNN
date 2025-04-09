@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from repeater_network import RepeaterNetwork
 from cnn_model import CNN
+
 class AgentCNN():
   def __init__(self, n=4,
                directed = False,
