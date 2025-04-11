@@ -6,30 +6,29 @@ from typing import List, Tuple, Optional, Dict
 class Qonnect:
     def __init__(self, config: dict):
         """Initialize the game with customizable parameters"""
-        # Game configuration
-        self.config = {
-            'grid_size': 5,            # Size of the grid (N x N)
-            'cell_size': 80,           # Size of each cell in pixels
-            'padding': 1,              # Padding between cells
-            'bg_color': (240, 240, 240),  # Background color
-            'grid_color': (200, 200, 200),  # Grid lines color
-            'dot_color': (255, 100, 100),   # Dot color
-            'target_position': (0, 0),      # Will be set to top-right corner
-            'target_color': (100, 255, 100),  # Target cell color
-            'merge_enabled': True,      # Whether merging is allowed
-            'window_title': "Qonnect",
-            'black_cells': [],          # Cells that are always black
-            'grey_cells': [],           # Cells where dots can be placed
-            'diagonal_color': (255, 0, 0),  # Color for the diagonal line
-            'text_color': (0, 0, 0),    # Color for row/column numbers
-            'text_padding': 20,         # Padding for row/column numbers
-            'dot_lifetime': 5,          # Number of actions before dot disappears
-            'title_font_size': 48,      # Size for the Qonnect title
-            'selection_color': (100, 200, 255),  # Color for selected cells
-            'selection_thickness': 5,   # Thickness of selection border
-            'dot_creation_prob': 0.8,   # Probability of creating a dot when placing
-            'dot_merge_prob': 0.8,      # Probability of merging dots
-            'merge_rule': 'matrix'     # New merge rule: 'matrix' or 'standard'
+                                                
+        self.config = {                         # Game configuration
+            'grid_size': 5,                     # Size of the grid (N x N)
+            'cell_size': 80,                    # Size of each cell in pixels
+            'padding': 1,                       # Padding between cells
+            'bg_color': (240, 240, 240),        # Background color
+            'grid_color': (200, 200, 200),      # Grid lines color
+            'dot_color': (255, 100, 100),       # Dot color
+            'target_position': (0, 0),          # Will be set to top-right corner
+            'target_color': (100, 255, 100),    # Target cell color
+            'merge_enabled': True,              # Whether merging is allowed
+            'window_title': "Qonnect",          # Title of the window
+            'black_cells': [],                  # Cells that are always black
+            'grey_cells': [],                   # Cells where dots can be placed
+            'diagonal_color': (255, 0, 0),      # Color for the diagonal line
+            'text_color': (0, 0, 0),            # Color for row/column numbers
+            'text_padding': 20,                 # Padding for row/column numbers
+            'dot_lifetime': 5,                  # Number of actions before dot disappears
+            'title_font_size': 48,              # Size for the Qonnect title
+            'selection_color': (100, 200, 255), # Color for selected cells
+            'selection_thickness': 5,           # Thickness of selection border
+            'dot_creation_prob': 0.8,           # Probability of creating a dot when placing
+            'dot_merge_prob': 0.8,              # Probability of merging dots
         }
 
         self.action_log = []
@@ -363,7 +362,7 @@ class Qonnect:
                     self.dot_timers[(mirror_row, mirror_col)] = self.config['dot_lifetime']
                 
                 # Age all existing dots
-                self.log_action(f"Entangled ({row+1},{col+1})")
+                self.log_action(f"Entangle ({row+1},{col+1})")
                 self.check_win_condition()
                 return True
         return False
@@ -407,7 +406,7 @@ class Qonnect:
                             self.grid[mirror_row][mirror_col] = True
                             self.dot_timers[(mirror_row, mirror_col)] = self.config['dot_lifetime']
                         
-                        self.log_action(f"Swaped ({row1+1},{col1+1}) and ({row2+1},{col2+1})")
+                        self.log_action(f"Swap ({row1+1},{col1+1}) and ({row2+1},{col2+1})")
 
                         # Age all existing dots (including the new ones)
                         
@@ -502,7 +501,7 @@ class Qonnect:
         
         # Draw title
         font = pygame.font.SysFont(None, 24)
-        title = font.render("Game Settings", True, (0, 0, 0))
+        title = font.render("Game Settings:", True, (0, 0, 0))
         self.screen.blit(title, (panel_x + 10, 10))
         
         # Draw current parameters
@@ -568,9 +567,8 @@ game_config = {
     'title_font_size': 36,               # Size for the Qonnect title
     'selection_color': (100, 200, 255),  # Brighter selection color
     'selection_thickness': 6,            # Thicker selection border
-    'dot_creation_prob': .5,              # chance to create a dot when placing
-    'dot_merge_prob': 1,               # Probability of merging dots
-    'merge_rule': 'matrix'               # Use matrix multiplication merge rule
+    'dot_creation_prob': 1,              # chance to create a dot when placing
+    'dot_merge_prob': 1,                 # Probability of merging dots
 }
 
 # Create and run the game
