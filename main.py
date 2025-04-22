@@ -14,7 +14,8 @@ np.set_printoptions(legacy='1.25')
 import matplotlib.pyplot as plt
 
 from experiment import Experiment as exp
-from custom_agent import AgentCNN as agent
+from custom_agent import AgentDQN as agent
+from models import CNN as cnn_model
 
 N = 7
 TAU = 10_000

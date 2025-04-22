@@ -554,7 +554,7 @@ class Qonnect:
     
 
 # Example configuration
-n = 5
+n = 6
 game_config = {
     'grid_size': n,                      # grid
     'cell_size': 100,                    # Smaller cells
