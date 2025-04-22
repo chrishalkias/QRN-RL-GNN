@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import torch
 import gym
 from gym import spaces
-from repeater_network import RepeaterNetwork
+from repeaters import RepeaterNetwork
 class QuantumNetworkEnv(gym.Env, RepeaterNetwork):
 
   def __init__(self,

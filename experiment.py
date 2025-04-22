@@ -21,8 +21,8 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.logger import configure
 # from stable_baselines3.common.summary import summary
 
-from repeater_network import RepeaterNetwork
-from quantum_network_env import QuantumNetworkEnv
+from repeaters import RepeaterNetwork
+from gym_env import QuantumNetworkEnv
 
 class CumulativeLossCallback(BaseCallback):
   def __init__(self, verbose=0):

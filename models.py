@@ -112,8 +112,17 @@ class GNN():
       self.hidden_dim = hidden_dim
       self.unembeding_dim = unembeding_dim
 
-    def message_passing(self, x):
-       pass
+    def encoder(self, x: torch.Tensor) -> torch.Tensor:
+       """Create the message passing and GNN loop"""
+       return x
+    
+    def latent_space(self, x: torch.Tensor) -> torch.Tensor:
+       """Create the latent space with fixed trainable parameters"""
+       return x
+    
+    def decoder(self, x: torch.Tensor) -> torch.Tensor:
+       """Decode the latent space representation into action probabilities"""
+       return x
 
     def forward(self, x):
        """
@@ -122,5 +131,8 @@ class GNN():
        Returns:
           torch.Tensor: Output tensor of shape (1, 4)
        """
-       pass
+       x = self.encoder(x)
+       x = self.latent_space(x)
+       x = self.decoder(x)
+       return x
     

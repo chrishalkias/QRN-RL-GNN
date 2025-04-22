@@ -14,15 +14,15 @@ np.set_printoptions(legacy='1.25')
 import matplotlib.pyplot as plt
 
 from experiment import Experiment as exp
-from custom_agent import AgentDQN as agent
+from agent import AgentDQN as agent
 from models import CNN as cnn_model
 
-N = 7
+N_train, N_test = 7, 7
 TAU = 10_000
 P_ENTANGLE = 1
 P_SWAP = 1
 
-MODEL = "DQN"  # Options: "DQN", "CNN"
+MODEL = "CNN"  # Options: "DQN", "CNN"
 TRAIN_AGENT = True
 TRAIN_STEPS = 10_000
 PLOT_TRAINING_METRICS, PLOT_LOSS = True, True
@@ -36,8 +36,10 @@ TRAINNING_PARAMETERS = None
 MODEL_FILES = None
 
 if __name__ == "__main__":
+
+    # Run DQN with gym
     if MODEL == "DQN":
-        experiment = exp(n=N, tau=TAU,
+        experiment = exp(n=N_train, tau=TAU,
                     p_entangle=P_ENTANGLE,
                     p_swap=P_SWAP,
                     log_dir = TRAIN_LOG_DIR,
@@ -50,10 +52,12 @@ if __name__ == "__main__":
         if True:
             experiment.env.close()
             print("Program exited with exit code 0")
-            
+
+
+    # run DQN with CNN network and torch        
     elif MODEL == "CNN":
-        exp = agent(n=4, kappa=1, tau=1_000_000,p_entangle=.85, p_swap=.85, lr=0.001, gamma=0.9, epsilon=0.1)
+        exp = agent(n=N_train, kappa=1, tau=1_000_000,p_entangle=.85, p_swap=.85, lr=0.001, gamma=0.9, epsilon=0.1)
         if TRAIN_AGENT:
-            agent.train(episodes=1_000, plot=True)
+            exp.train(episodes=1_000, plot=True)
         if EVALUATE_AGENT:
-            agent.test_agent(max_steps=100)
+            agent.test(N_test, max_steps=100, kind='trained', plot=True)

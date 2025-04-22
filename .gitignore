@@ -2,3 +2,6 @@
 *test.py
 /.vscode/*
 .DS_Store
+DQN_model.zip
+output.txt
+*.png

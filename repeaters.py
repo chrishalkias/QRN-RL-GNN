@@ -1,13 +1,8 @@
-# -*- coding: utf-8 -*-
-
-"""
-Created on Thu 6 Mar 2025
-The class encoding the phyiscal model of the repeater network
-"""
-
+#@title QRN
 import numpy as np
+np.set_printoptions(legacy='1.25')
 import itertools
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 class RepeaterNetwork():
@@ -90,14 +85,12 @@ class RepeaterNetwork():
 
     """
     self.n = n
-    self.directed, self.geometry = directed, geometry
-    self.global_state = False # Objective: make this into True
-    self.time , self.tau, self.kappa, self.c = 0, tau, kappa, 1
-    self.p_entangle, self.p_swap = p_entangle, p_swap
-
+    self.global_state = False
+    (self.directed, self.geometry) = (directed, geometry)
+    (self.time , self.tau, self.kappa, self.c) = (0, tau, kappa, 1)
+    (self.p_entangle, self.p_swap) = (p_entangle, p_swap)
     self.combinations = np.array([[a,b] for a in range(n) for b in range(n)])
     self.matrix = {tuple(self.combinations[i]): [0, 0] for i in range(n**2)}
-
     self.undirector() if not directed else None
     self.connect(geometry = geometry)
 
@@ -152,7 +145,7 @@ class RepeaterNetwork():
     Returns:
       assert statements
     """
-    leftBoundary = edge[0] >= 0 and edge[1] >= 0
+    leftBoundary  = edge[0] >= 0 and edge[1] >= 0
     rightBoundary = edge[0] <= self.n-1 and edge[1] <= self.n-1
     assert leftBoundary and rightBoundary, f'Edge {edge} out of bounds'
     assert (linkType == 0 or
@@ -177,7 +170,7 @@ class RepeaterNetwork():
       self.setLink(edge=edge, linkType=1, newValue=0)
 
 
-  def isSaturated(self, edge):
+  def isSaturated(self, edge) -> bool:
     """
     Checks if node is already doubly entangled and therefore cannot be
     entangled with any more repeaters (used in self.entangle()).
@@ -191,6 +184,7 @@ class RepeaterNetwork():
     return False, [] #infinite saturation limit
     assert self.geometry =='chain', f'Only chain geometry supported'
     totalEntanglements, pals = 0, []
+
     for others in self.matrix.keys():
       isSelf = (others[0]==edge[0] and others[1]==edge[1])
       connectivity = (others[1] == edge[0] or others[0] == edge[1]) #chain
@@ -219,7 +213,7 @@ class RepeaterNetwork():
       self.matrix[key][1] *= np.exp(-self.kappa * int(T) / (self.tau * self.c))
 
 
-  def nodes(self):
+  def nodes(self) -> dict:
     """
     Maybe not usefull, another representation of the system instead of self.matrix.
 
@@ -261,9 +255,9 @@ class RepeaterNetwork():
       return None
 
     if self.isSaturated(edge)[0]:
-      linksInvolved = self.isSaturated(edge)[1]
+      linksInvolved  = self.isSaturated(edge)[1]
       saturationDict = {link: self.getLink(link, 1) for link in linksInvolved}
-      oldestLink = sorted(saturationDict.items(), key=lambda item: item[1])[0][0]
+      oldestLink     = sorted(saturationDict.items(), key=lambda item: item[1])[0][0]
       #print(f'Edge {edge} contains saturated node, dropping oldest link')
       self.setLink(edge=oldestLink, linkType=1, newValue=0)
 
@@ -295,8 +289,8 @@ class RepeaterNetwork():
       return None
 
     (i, j), (k, l) = edge1, edge2
-    Eij= self.getLink(edge=(i,j),linkType=1)
-    Ejk = self.getLink(edge=(k,l),linkType=1)
+    Eij            = self.getLink(edge=(i,j),linkType=1)
+    Ejk            = self.getLink(edge=(k,l),linkType=1)
     effectiveValue = 0.5*swapEficciency*(Eij + Ejk) if (Eij>0 and Ejk>0) else 0
 
     assert j==k, f'Edges need to share a repeater, got {edge1, edge2} instead'
@@ -309,10 +303,10 @@ class RepeaterNetwork():
   def swapAT(self, node): #chain only
     """
     Perform the swap operation by specifying a certain node i. Let the system
-    choose which links get updated depending on the nodes {j} with which i is
+    choose which links get updated depending on the nodes j with which i is
     entangled with.
 
-    Args: 
+    Args:
       node    (int) : The node to swap
 
     Returns:
@@ -322,8 +316,8 @@ class RepeaterNetwork():
     assert node <= self.n-1, f'Node {node} not in system withn={self.n}'
 
     for i,j in self.matrix.keys():
-      is_looped = (i== node and j==node)
-      is_ordered = i < node < j # for chain
+      is_looped  = (i== node and j==node)
+      is_ordered = (i < node < j) # for chain
 
       if (not is_looped) and is_ordered:
         link1, link2 = (i,node), (node,j)
@@ -348,8 +342,9 @@ class RepeaterNetwork():
     Returns:
       actions (dict) : The dict of actions
     """
-    entangles= {f'Entangle {key}': f'self.entangle(edge={key})' for key in self.matrix.keys() if key[0]+1 == key[1]}
-    edgeList = list(itertools.combinations(self.matrix.keys(), 2))
+    entangles = {f'Entangle {key}':
+                 f'self.entangle(edge={key})' for key in self.matrix.keys() if key[0]+1 == key[1]}
+    edgeList  = list(itertools.combinations(self.matrix.keys(), 2))
     def find_edge_pairs():
       valid_pairs = []
       for (i, j) in self.matrix.keys():
@@ -358,13 +353,12 @@ class RepeaterNetwork():
                   valid_pairs.append(((i, j), (k, l)))
       return valid_pairs
     edge_pairs = find_edge_pairs()
-    swaps = {f'swap{pair}': f'self.swap(edge1={pair[0]}, edge2={pair[1]})' for pair in edge_pairs}
+    #swaps = {f'swap{pair}': f'self.swap(edge1={pair[0]}, edge2={pair[1]})' for pair in edge_pairs}
     swapATs = {f'swapAT{node}': f'self.swapAT(node={node})' for node in range(self.n)}
-    # return np.array([*(entangles| swaps).values()]) if not split else (entangles, swaps)
     return np.array([*(entangles|swapATs).values()]) if not split else (entangles, swapATs)
 
 
-  def globalActions(self, transformer_output:list) -> list: 
+  def globalActions(self) -> list:
     """
     Creates a list with all the possible global actions and then returns the
     global action (one operation per repeater) as dictated by the transformer.
@@ -377,59 +371,30 @@ class RepeaterNetwork():
     """
     actions         = [_ for _ in range(self.n)]
     neutral_element = '1' #neutral element can be changed to memory decay
-    entangle_left   = lambda repeater: f'entangle({(repeater-1, repeater)})'
-    entangle_right  = lambda repeater: f'entangle({(repeater, repeater+1)})'
-    swap            = lambda repeater: f'swapAT({repeater})'
+    entangle_left   = lambda repeater: f'self.entangle({(repeater-1, repeater)})'
+    entangle_right  = lambda repeater: f'self.entangle({(repeater, repeater+1)})'
+    swap            = lambda repeater: f'self.swapAT({repeater})'
 
     for repeater in range(self.n):
       actions[repeater] = [neutral_element,   #no action
                            entangle_left(repeater),
                            entangle_right(repeater),
-                           swap(repeater)]
-
+                           swap(repeater)
+                           ]
       if repeater==0:          #left edge
         actions[repeater][1] = actions[repeater][2]
         actions[repeater][3] = neutral_element
+
       elif repeater==self.n-1: #right edge
         actions[repeater][2] = actions[repeater][1]
         actions[repeater][3] = neutral_element
 
-    action_map = zip(actions, transformer_output)
-    global_action = [sublist[index - 1] for sublist, index in action_map]
-    global_action = ['self.' + action if action !=neutral_element else action for action in global_action]
-    return [*global_action]
+    return np.array(actions)
 
 
   def actionCount(self) -> int:
     """Returns the number of possible actions"""
     return len(self.actions())
-
-
-  def plotActionCounts(self, maxNodes=4):
-    """
-    This function plots the number of possible swaps and the number of
-    possible entanglements for a chain graph with maxNodes as n
-    """
-    entangleCount,swapCount=[],[]
-    for num in tqdm(range(1,maxNodes,1)):
-      entangles, swaps = self(n=num).actions(split=True)
-      entangleCount.append(len(entangles.values()))
-      swapCount.append(len(swaps.values()))
-    x=np.linspace(1,maxNodes,maxNodes-1)
-    plt.plot(x, np.array(entangleCount), label=r'Entangles($N$)')
-    plt.plot(x, (np.array(swapCount)), label=r'Swaps($N$)')
-    y_dif = np.array(entangleCount) + np.array(swapCount)
-    plt.bar(x, y_dif, bottom=(np.array(entangleCount)), label='Possible actions', width=.2)
-    plt.plot(x,x,'x', label='$N$')
-    plt.plot(x,x*(x-2)*(x-1),'x', label=r'$Bin(N,3)$')
-    plt.title('Number of possible actions as a function of the number of repeaters')
-    plt.ylabel('Number of possible actions')
-    plt.xlabel('Number of repeaters')
-    plt.savefig('actionCount.png')
-    plt.yscale("log")
-    plt.legend()
-    plt.show()
-    return
 
 
   def endToEndCheck(self):

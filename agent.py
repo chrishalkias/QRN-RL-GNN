@@ -6,10 +6,12 @@ import torch.optim as optim
 import random
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from repeater_network import RepeaterNetwork
-from cnn_model import CNN
+from repeaters import RepeaterNetwork
+from models import CNN
+from typing import List, Tuple
 
-class AgentCNN():
+#@title AgentCNN class
+class AgentDQN():
   def __init__(self, n=4,
                directed = False,
                geometry = 'chain',
@@ -84,10 +86,10 @@ class AgentCNN():
     self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
 
-  def get_state_vector(self):
+  def get_state_vector(self) -> torch.tensor:
     """ Container for the RepeaterNetwork output state for CNN"""
     dict_state = self.network.matrix
-    keys = dict_state.keys() #extract i,j indices 
+    keys = dict_state.keys() #extract i,j indices
     all_i = [k[0] for k in keys]
     all_j = [k[1] for k in keys]
     max_dim = max(all_i + all_j) #compute maximum dimension from all i,j
@@ -95,11 +97,11 @@ class AgentCNN():
     A = np.zeros(matrix_shape, dtype=np.float64)
     for (i, j), values in dict_state.items(): #fill the matrix
       A[i, j] = values
-      A[j, i] = values 
+      A[j, i] = values
       A[i, i] = np.zeros(2)
     return torch.tensor(A).permute(2, 0, 1).unsqueeze(0).float()
 
-  def decide(self, output):
+  def decide(self, output: np.ndarray) -> np.ndarray:
     """Chosse only one of the 4 actions from the output"""
     actions = self.network.globalActions()
     n_squared = output.size(0)
@@ -117,9 +119,9 @@ class AgentCNN():
         binary_mask = result
     # Apply the mask and flatten
     verbalized = actions[binary_mask.astype(bool)]
-    return verbalized
+    return verbalized, averaged
 
-  def choose_action(self, state, use_trained_model = False):
+  def choose_action(self, state: np.ndarray, use_trained_model = False) -> torch.tensor:
     """
     Choose a random action with probability epsilon, otherwise choose the best action
     """
@@ -133,9 +135,9 @@ class AgentCNN():
 
     with torch.no_grad():
       q_values = self.model(state)
-    return self.decide(q_values)
+    return self.decide(q_values)[0]
 
-  def update_environment(self, action_list):
+  def update_environment(self, action_list: List) -> float:
     new_dtype = '<U27'
     def insert_model(s):
       return s.replace('self.', 'self.network.')
@@ -145,7 +147,7 @@ class AgentCNN():
       exec(action)
     return self.reward()
 
-  def reward(self):
+  def reward(self) -> float:
     """Computes the agents reward"""
     self.network.endToEndCheck()
     return 1 if self.network.global_state else -.1
@@ -165,7 +167,7 @@ class AgentCNN():
 
       with torch.no_grad():
           target = reward + self.gamma * torch.max(self.model(next_state))
-      q_value = torch.mean(self.model(state)) #arbitrary
+      q_value = torch.mean(self.model(state)) # CHANGE THIS
 
       loss = self.criterion(q_value, target)
       self.optimizer.zero_grad()
@@ -187,12 +189,12 @@ class AgentCNN():
       plot_title = f"Training metrics for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap} over {episodes} episodes)"
 
       # ax1.axline((0,1),slope=0, ls='--')
-      ax1.plot(lossList, ls=':', label='Loss')
+      # ax1.plot(lossList, ls='-', label='Loss')
       ax1.plot(rewardList,ls='-', label='Cummulative reward')
       ax1.set(ylabel=f'Log reward and loss')
       ax1.set_yscale("symlog")
       ax1.legend()
-      
+
 
       ax2.plot(fidelityList, 'tab:green', ls='-', label='Total Fidelity')
       ax2.set(ylabel=f'Fidelity of resulting link')
@@ -209,7 +211,7 @@ class AgentCNN():
     torch.save(self.model.state_dict(), filename)
     print(f"Model saved to {filename}")
 
-  def test(self, n, max_steps=100, swap_asap=False, plot=True):
+  def test(self, n, max_steps=100, kind='trained', plot=True):
     """Evaluate the model"""
     totalReward, rewardList = 0, []
     fidelity, fidelityList = 0,[]
@@ -220,15 +222,23 @@ class AgentCNN():
       self.network.resetState()
       finalstep = None
       state = self.get_state_vector()
-
+      assert kind in ['trained', 'swap_asap', 'random'], f'Invalid option {kind}'
       for step in range(max_steps):
-        if swap_asap:
+
+        if kind == 'swap_asap':
           if (step % 2) == 0:
             action = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
           elif (step % 2) == 1:
             action = [f'self.swapAT({i})' for i in range(self.n)]
-        else:
+
+        elif kind == 'trained':
           action = self.choose_action(state, use_trained_model=False)
+
+        elif kind == 'random':
+          entangles = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
+          swaps = [f'self.swapAT({i})' for i in range(self.n)]
+          action = random.choice([entangles, swaps])
+
         state = self.get_state_vector()
         reward = self.update_environment(action)
         file.write(f"Action: {action},Reward: {reward}")
@@ -244,13 +254,10 @@ class AgentCNN():
           self.network.resetState()
         print('Max iterations reached', file=file) if step == max_steps-1 else None
         finalstep = step
-      file.write(f'Final Environment State: {self.network.matrix}')
+
       if plot:
         fig, (ax1, ax2) = plt.subplots(2, 1)
-        if swap_asap:
-          plot_title = f"SWAP ASAP for $(n, p_E, p_S)$= ({self.n}, 0.85, 0.85) over {max_steps} steps"
-        else:
-          plot_title = f"Testing metrics for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap} over {max_steps} steps)"
+        plot_title = f"Metrics for {kind} for $(n, p_E, p_S)$= ({self.n}, 0.85, 0.85) over {max_steps} steps"
         # ax1.axline((0,1),slope=0, ls='--')
         ax1.plot(rewardList, 'tab:orange', ls='-', label='Cummulative reward')
         ax1.set(ylabel=f'Log reward')
