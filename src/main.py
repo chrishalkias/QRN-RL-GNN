@@ -13,7 +13,7 @@ import numpy as np
 np.set_printoptions(legacy='1.25')
 import matplotlib.pyplot as plt
 
-from experiment import Experiment as exp
+from gym_env import Experiment as exp
 from agent import AgentDQN as agent
 from models import CNN as cnn_model
 
@@ -22,7 +22,7 @@ TAU = 10_000
 P_ENTANGLE = 1
 P_SWAP = 1
 
-MODEL = "CNN"  # Options: "DQN", "CNN"
+MODEL = "DQN"  # Options: "DQN", "CNN"
 TRAIN_AGENT = True
 TRAIN_STEPS = 10_000
 PLOT_TRAINING_METRICS, PLOT_LOSS = True, True
