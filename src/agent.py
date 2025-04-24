@@ -6,6 +6,7 @@ import torch.optim as optim
 import random
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+
 from repeaters import RepeaterNetwork
 from models import CNN
 from typing import List, Tuple
@@ -202,11 +203,11 @@ class AgentDQN():
       # ax2.plot(entanglementlist*self.n,'tab:green', ls='-', label=r'Average Entanglement')
 
       fig.suptitle(plot_title)
-      plt.savefig('Train.png')
-      plt.xlabel('Episode')
+      plt.savefig('logs/Train.png')
+      plt.xlabel('logs/Episode')
       plt.legend()
 
-  def saveModel(self, filename="cnn_model.pth"):
+  def saveModel(self, filename="logs/cnn_model.pth"):
     """Saves the model"""
     torch.save(self.model.state_dict(), filename)
     print(f"Model saved to {filename}")
@@ -268,6 +269,6 @@ class AgentDQN():
         ax2.set(ylabel=f'Fidelity of resulting link')
         ax2.set_xscale("log")
         fig.suptitle(plot_title)
-        plt.savefig('Test.png')
+        plt.savefig('logs/Test.png')
         plt.xlabel('Step')
     return finalstep

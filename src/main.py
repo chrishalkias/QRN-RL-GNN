@@ -10,7 +10,6 @@ Part of: MSc Thesis titled "Quantum Network Reinforcement Learning"
 """
 
 import numpy as np
-import version_information as vinf
 np.set_printoptions(legacy='1.25')
 import matplotlib.pyplot as plt
 
@@ -36,13 +35,13 @@ TRAINING_PLOTS = None
 TRAINNING_PARAMETERS = None
 MODEL_FILES = None
 
-with open("version_information.txt", "w") as file:
-    print()
+
 
 if __name__ == "__main__":
 
-    # Run DQN with gym
-    if MODEL == "DQN":
+    
+    if MODEL == "DQN": # Run DQN with gym
+
         experiment = exp(n=N_train, tau=TAU,
                     p_entangle=P_ENTANGLE,
                     p_swap=P_SWAP,
@@ -60,8 +59,8 @@ if __name__ == "__main__":
         print("Program exited with exit code 0")
 
 
-    # run DQN with CNN network and torch        
-    elif MODEL == "CNN":
+            
+    elif MODEL == "CNN": # run DQN with CNN network and torch
 
         exp = agent(n=N_train, kappa=1, tau=1_000_000,
                     p_entangle=P_ENTANGLE, p_swap=P_SWAP,
@@ -71,4 +70,5 @@ if __name__ == "__main__":
             exp.train(episodes=TRAIN_STEPS, plot=True)
 
         if EVALUATE_AGENT:
+            agent.test(N_test, max_steps=100, kind='random', plot=RENDER_EVALUATION)
             agent.test(N_test, max_steps=100, kind='trained', plot=RENDER_EVALUATION)

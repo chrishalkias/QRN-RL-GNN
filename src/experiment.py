@@ -164,8 +164,7 @@ class Experiment():
   def train_agent(self,
                   total_timesteps=1000,
                   plot=True,
-                  callback=False,
-                  log_dir="./logs/progress.csv"
+                  callback=False
                   ):
     """Trains the agent on the environment"""
     log_dir = "./logs/"
@@ -194,7 +193,7 @@ class Experiment():
         axes[1].set_xscale("log")
         plt.title("Trainng metrics")
         plt.legend()
-        plt.savefig(f'metrics_DQN_.png')
+        plt.savefig(f'{log_dir}metrics_DQN_.png')
         plt.show()
       elif (not loss_callback.cumulative_losses) or (not loss_callback.losses):
         print("no callbacks to print")
