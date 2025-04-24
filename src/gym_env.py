@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
+# src/gym_env.py
 
-"""
+'''
 Created on Thu 6 Mar 2025
-The QuantumNetworkEnv class is a container for the RepeaterNetwork class, which
-implements the gym.Env class. It is a reinforcement learning environment that
-can be used for training and testing reinforcement learning algorithms on the
-quantum network task.
-"""
+Contains a container for the RepeaterNetwork class creating a gym env and
+an experiment class to run the RL loop (PPO) on the quantum network. 
+'''
 
 import numpy as np
 import networkx as nx
@@ -24,7 +23,7 @@ from stable_baselines3.common.logger import configure
 #from stable_baselines3.common.vec_env import VecFrameStack, VecNormalize, DummyVecEnv
 # from stable_baselines3.common.summary import summary
 
-from repeaters import RepeaterNetwork
+from src.repeaters import RepeaterNetwork
 
 class QuantumNetworkEnv(gym.Env, RepeaterNetwork):
   def __init__(self,
@@ -309,10 +308,9 @@ class Experiment():
   def display_info(self):
     """Prints information about the test"""
     env= self.env
-    line = '\n' + '='*50 + '\n'
-    with open("logs/output.txt", "w") as file:
+    line = '\n' + '-'*50 + '\n'
+    with open("logs/training_information.txt", "w") as file:
       for file in [file, None]: #save and output at the same time
-        print(line, file=file)
         print(f'     >>> Experiment parameters <<<', file=file)
         print(line, file=file)
         print(f'Environment  : {env.__class__.__name__}', file=file)

@@ -1,9 +1,14 @@
-#@title QRN
+# -*- coding: utf-8 -*-
+# src/repeaters.py
+
+'''
+Created Thu 06 Mar 2025
+The base simulation class, simulates the quantum network.
+'''
+
 import numpy as np
 np.set_printoptions(legacy='1.25')
 import itertools
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 
 class RepeaterNetwork():
   def __init__(self,

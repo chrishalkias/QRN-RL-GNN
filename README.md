@@ -17,18 +17,7 @@ The project has a similar scope to [Haldar et al.](https://arxiv.org/abs/2303.00
 The repository consists of the following
 
 <!--
-- source
-  - repeater_network.py
-  - quantum_network_env.py
-  - graph_models.py
-- train
-  - main.py
-- tests
-  - some image folder  (not yet)
-  - some plotting code (not yet)
-  - other stuff        (not yet)
-- requirements.txt     (not yet)
-- README.md
+file structure
 -->
 
 ## Instalation

@@ -1,17 +1,26 @@
 # -*- coding: utf-8 -*-
+# src/agent.py
+
+'''
+Created Wed 02 Apr 2025
+The Agent class to run the RL model on the repeater networks.
+'''
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
+import sys
+from datetime import datetime
+from io import StringIO
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from torchsummary import summary
 
-from repeaters import RepeaterNetwork
-from models import CNN
-from typing import List, Tuple
+from src.repeaters import RepeaterNetwork
+from src.models import CNN
 
-#@title AgentCNN class
 class AgentDQN():
   def __init__(self, n=4,
                directed = False,
@@ -80,7 +89,19 @@ class AgentDQN():
                  )
     self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
-
+  def preview(self):
+    """A function to preview the model architecture"""
+    matrix = self.get_state_vector()  # Shape (H, W, 2)
+    model = self.model
+    old_stdout = sys.stdout
+    sys.stdout = buffer = StringIO()
+    info = summary(model, matrix.shape[1:])
+    sys.stdout = old_stdout
+    summary_txt = buffer.getvalue()
+    now = datetime.now()
+    with open("logs/model_summary.txt", "w") as file:
+      file.write(f'Model architecture evaluated at {now}: \n {summary_txt}')
+  
   def get_state_vector(self) -> torch.tensor:
     """ Container for the RepeaterNetwork output state for CNN"""
     dict_state = self.network.matrix
@@ -132,7 +153,7 @@ class AgentDQN():
       q_values = self.model(state)
     return self.decide(q_values)[0]
 
-  def update_environment(self, action_list: List) -> float:
+  def update_environment(self, action_list: list) -> float:
     new_dtype = '<U27'
     def insert_model(s):
       return s.replace('self.', 'self.network.')

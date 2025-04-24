@@ -1,74 +1,80 @@
 # -*- coding: utf-8 -*-
-
-"""
+# src/main.py
+'''
 Created on Thu 6 Mar 2025
-The main simulation file. 
-Dependencies: experiment.py, quantum_network_env.py, graph_models.py, repeater_network.py
-Author: Chris Chalkias
-Affiliation: Leiden University, Netherlands
+The main simulation file.
 Part of: MSc Thesis titled "Quantum Network Reinforcement Learning"
-"""
+'''
 
 import numpy as np
 np.set_printoptions(legacy='1.25')
-import matplotlib.pyplot as plt
 
 from gym_env import Experiment as exp
 from agent import AgentDQN as agent
-from models import CNN as cnn_model
 
-N_train, N_test = 7, 7
-TAU = 10_000
-P_ENTANGLE = 1
-P_SWAP = 1
 
-MODEL = "DQN"  # Options: "DQN", "CNN"
-TRAIN_AGENT = True
-TRAIN_STEPS = 10_000
-PLOT_TRAINING_METRICS, PLOT_LOSS = True, True
-TRAIN_LOG_DIR = "./logs/"
 
-EVALUATE_AGENT = False
-RENDER_EVALUATION = True
-FILE_NAME = None
-TRAINING_PLOTS = None
-TRAINNING_PARAMETERS = None
-MODEL_FILES = None
-
+config = {
+    'n_train'        : 7,
+    'n_test'         : 7,
+    'tau'            : 10_000,
+    'p_entangle'     : 1,
+    'p_swap'         : 1,
+    'model'          : 'CNN', # Options: "DQN", "CNN"
+    'train_agent'    : True,
+    'train_steps'    : 10_000,
+    'plot_metrics'   : True,
+    'plot_loss'      : True,
+    'train_logdir'   : './logs',
+    'print_model'    : True,
+    'evaluate_agent' : False,
+    'render_eval'    : True,
+}
 
 
 if __name__ == "__main__":
 
-    
-    if MODEL == "DQN": # Run DQN with gym
+    if config['model'] == "DQN": # Run DQN with gym
 
-        experiment = exp(n=N_train, tau=TAU,
-                    p_entangle=P_ENTANGLE,
-                    p_swap=P_SWAP,
-                    log_dir = TRAIN_LOG_DIR)
+        experiment = exp(n=config['n_train'],
+                         tau=config['tau'],
+                         p_entangle=config['p_entangle'],
+                         p_swap=config['p_swap'],
+                         log_dir = config['train_logdir'])
         
         experiment.display_info()
         
-        if TRAIN_AGENT:
-            experiment.train_agent(total_timesteps=TRAIN_STEPS, plot=PLOT_TRAINING_METRICS, callback=False)
+        if config['train_agent']:
+            experiment.train_agent(total_timesteps=config['train_steps'], plot=config['plot_metrics'], callback=False)
 
-        if EVALUATE_AGENT:
-            experiment.test_agent(max_steps =10, render=RENDER_EVALUATION)
+        if config['evaluate_agent']:
+            experiment.test_agent(max_steps=10, render=config['render_eval'])
         
         experiment.env.close()
         print("Program exited with exit code 0")
 
 
             
-    elif MODEL == "CNN": # run DQN with CNN network and torch
+    elif config['model'] == "CNN": # run DQN with CNN network and torch
 
-        exp = agent(n=N_train, kappa=1, tau=1_000_000,
-                    p_entangle=P_ENTANGLE, p_swap=P_SWAP,
-                    lr=0.001, gamma=0.9, epsilon=0.1)
+        exp = agent(n = config['n_train'],
+                    kappa = 1,
+                    tau = config['tau'],
+                    p_entangle = config['p_entangle'], 
+                    p_swap = config['p_swap'],
+                    lr = 0.001, 
+                    gamma = 0.9, 
+                    epsilon = 0.1
+                    )
         
-        if TRAIN_AGENT:
-            exp.train(episodes=TRAIN_STEPS, plot=True)
+        if config['print_model']:
+            exp.preview()
+        
+        if config['train_agent']:
+            exp.train(episodes=config['train_steps'], plot=True)
 
-        if EVALUATE_AGENT:
-            agent.test(N_test, max_steps=100, kind='random', plot=RENDER_EVALUATION)
-            agent.test(N_test, max_steps=100, kind='trained', plot=RENDER_EVALUATION)
+        if config['evaluate_agent']:
+            for kind in ['trained', 'random', 'swap_asap']:
+                agent.test(config['n_test'], max_steps=100, kind=kind, plot=config['render_eval'])
+    else:
+        raise NameError('Model type not supported')

@@ -1,6 +1,16 @@
+# -*- coding: utf-8 -*-
+# src/models.py
+
+'''
+Created Wed 02 Apr 2025
+Contains the NN models for the RL agent.
+'''
+
 import torch
+import numpy
 import torch.nn as nn
 import torch.nn.functional as F
+
 
 class CNN(nn.Module):
     def __init__(self,
