@@ -14,6 +14,7 @@ import torch
 import gym
 import os
 from gym import spaces
+from datetime import datetime
 from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
@@ -23,7 +24,7 @@ from stable_baselines3.common.logger import configure
 #from stable_baselines3.common.vec_env import VecFrameStack, VecNormalize, DummyVecEnv
 # from stable_baselines3.common.summary import summary
 
-from src.repeaters import RepeaterNetwork
+from repeaters import RepeaterNetwork
 
 class QuantumNetworkEnv(gym.Env, RepeaterNetwork):
   def __init__(self,
@@ -43,14 +44,13 @@ class QuantumNetworkEnv(gym.Env, RepeaterNetwork):
           ██ ▄▄ ██ ██   ██ ██  ██ ██     ██      ██  ██ ██  ██  ██  
            ██████  ██   ██ ██   ████     ███████ ██   ████   ████   
               ▀▀                                                    
-                                                                    
-    Create a new QuantumNetwork Environment for n repeaters to be used for
-    gymnasium
-    ----------------------------------------------------------------------------
-    This function is the proper "package" of the physical system into a reliable
-    framework for training / testing etc. It should be thought of as a container
-    of the RepeaterNetwork class with added functionality fo the Reinforcement
-    Learning task (step, reward, action, reset, etc).
+    
+    Description:                                                                
+      Creates a new QuantumNetwork gymansium environment for n repeaters to be used
+      for the RL loop. This function is the proper "package" of the physical system into a reliable
+      framework for training / testing etc. It is a container
+      of the RepeaterNetwork class with added functionality for the Reinforcement
+      Learning task (step, reward, action, reset, etc).
 
     Inherits from:
       gym.Env
@@ -63,7 +63,6 @@ class QuantumNetworkEnv(gym.Env, RepeaterNetwork):
       action_space                   (obj) : The action space of the env
       observation_space              (obj) : The observation space of the env
       edge_combinations              (int) : The number of edges in the graph
-
 
     Methods:
       _get_obs()                     (obj) : Return the current observation
@@ -308,10 +307,11 @@ class Experiment():
   def display_info(self):
     """Prints information about the test"""
     env= self.env
+    now = datetime.now()
     line = '\n' + '-'*50 + '\n'
     with open("logs/training_information.txt", "w") as file:
       for file in [file, None]: #save and output at the same time
-        print(f'     >>> Experiment parameters <<<', file=file)
+        print(f'>Experiment parameters at {now}', file=file)
         print(line, file=file)
         print(f'Environment  : {env.__class__.__name__}', file=file)
         print(f'n            : {env.n}', file=file)
@@ -327,20 +327,20 @@ class Experiment():
         print(f'gae_lambda   : {self.model.gae_lambda}', file=file)
         print(f'ent_coef     : {self.model.ent_coef}', file=file)
         print(f'n_steps      : {self.model.n_steps}', file=file)
-
-        if False: #print extra info if PPO
-          policy = self.model.policy
-          print(line, file=file)
-          print('>>> Shared Feature Extractor <<<', file=file)
-          print(line, file=file)
-          print(policy.mlp_extractor, file=file)
-          print('\nActor Network (action_net):', file=file)
-          print(policy.action_net, file=file)
-          print('\nCritic Network (value_net):', file=file)
-          print(policy.value_net, file=file)
-          print('\n>>> Policy Network Architecture <<<', file=file)
-          print(env.edge_combinations)
-          # print(summary(self.model.policy, input_size=(1,env.edge_combinations)), file=file)
+        print(f'> Policy parameters')
+        print(line, file=file)
+        policy = self.model.policy
+        print(line, file=file)
+        print('>>> Shared Feature Extractor <<<', file=file)
+        print(line, file=file)
+        print(policy.mlp_extractor, file=file)
+        print('\nActor Network (action_net):', file=file)
+        print(policy.action_net, file=file)
+        print('\nCritic Network (value_net):', file=file)
+        print(policy.value_net, file=file)
+        print('\n>>> Policy Network Architecture <<<', file=file)
+        print(env.edge_combinations)
+        # print(summary(self.model.policy, input_size=(1,env.edge_combinations)), file=file)
 
   def random_sample(self, n_samples):
     """Randomly samples actions from the environment"""
@@ -365,8 +365,8 @@ class Experiment():
                      progress_bar=True,
                      log_interval=total_timesteps)
     self.model.save("logs/DQN_model")
-    new_logger = configure(log_dir, ["stdout", "csv", "tensorboard"])
-    log_file = log_dir + "/progress.csv"
+    # with open('progress.csv', 'w') as f:
+    #    f.write([*loss_callback.cumulative_losses])
     if plot and callback:
       if loss_callback.cumulative_losses and loss_callback.losses:
         fig, axes = plt.subplots(1, 2, figsize=(12, 5))  # 1 row, 2 columns
@@ -391,7 +391,7 @@ class Experiment():
 
   def test_agent(self, max_steps =10, render:bool=False):
     """Tests the agent"""
-    self.model.load(self.net_type.__name__)
+    self.model.load(f'{self.net_type.__name__}_model')
     env = self.env
     obs, info = env.reset()
     for iter in range(max_steps):

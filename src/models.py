@@ -30,15 +30,15 @@ class CNN(nn.Module):
       CNN with fixed parameters for any input:
 
       Attributes:
-        -convolutions   (int) : Number of convolutional layers
-        -pooling_dim    (int) : Dimension of the pooling layer
-        -embeding_dim   (int) : Dimension of the embedding layer
-        -hidden_dim     (int) : Dimension of the hidden layer
-        -unembeding_dim (int) : Dimension of the unembedding layer
-      Methods:
-        -forward  (x:Tensor)  : Forward pass through the network
-      """
+        convolutions   (int) : Number of convolutional layers
+        pooling_dim    (int) : Dimension of the pooling layer
+        embeding_dim   (int) : Dimension of the embedding layer
+        hidden_dim     (int) : Dimension of the hidden layer
+        unembeding_dim (int) : Dimension of the unembedding layer
 
+      Methods:
+        forward  (x:Tensor)  : Forward pass through the network
+      """
       super().__init__()
       self.convolutions = convolutions
       self.pooling_dim = pooling_dim

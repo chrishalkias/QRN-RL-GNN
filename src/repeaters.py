@@ -28,19 +28,16 @@ class RepeaterNetwork():
                         ██ ▄▄ ██ ██   ██ ██  ██ ██ 
                          ██████  ██   ██ ██   ████ 
                             ▀▀                     
-                           
-    This class implements the Graph description of the repeater network.
-    ----------------------------------------------------------------------------
-    All of the information about the network is encoded in the edges of it. i.e
-    we consider the nodes to be all zero. The graph description takes the form
-    of a dictionary which is composed by an adjacency list as keys and the edges
-    as values so: adj_list ~ (i,j) : [r_ij, E_ij].
-
-    An adjecency matrix is built for n qubits and the links are initialized
-    to zero by a zero edge matrix. Local 1D connections can be made with
-    (geometry='chain'). More exotic Graphs will be implemented soon.
-
-    The two main methods are entangle(edge) and swap(edge1, edge2).
+    Description:                       
+      This class implements the Graph description of the repeater network.
+      All of the information about the network is encoded in the edges of it. i.e
+      we consider the nodes to be all zero. The graph description takes the form
+      of a dictionary which is composed by an adjacency list as keys and the edges
+      as values so: adj_list ~ (i,j) : [r_ij, E_ij].
+      An adjecency matrix is built for n qubits and the links are initialized
+      to zero by a zero edge matrix. Local 1D connections can be made with
+      (geometry='chain'). More exotic Graphs will be implemented soon.
+      The two main methods are entangle(edge) and swap(edge1, edge2).
 
     Methods:
       getLink()            > Get a link value for (i,j)
@@ -63,28 +60,6 @@ class RepeaterNetwork():
       p_swap      (float)  > Probability of swap success
       geometry    (str)    > The geometry of the network
       matrix      (array)  > Complete matrix representaition
-
-    Example usage (perform swap-asap on a n=4 chain ad measure):
-      net=RepeaterNetwork()               # Init to default values
-      initialMatrix = net.matrix          # to compare later
-      net.endToEndCheck()                 # starts disentangled
-      print(net.global_state)             # check if False
-      net.entangle(edge=(0,1))            # entangle (0,1)
-      net.entangle(edge=(1,2))            # entangle (1,2)
-      net.entangle(edge=(2,3))            # entangle (2,3)
-      print(net.matrix)                   # check entanglements
-      net.swap(edge1=(0,1), edge2=(1,2))  # swap (0,1) and (1,2)
-      net.swap(edge1=(0,2), edge2=(2,3))  # swap (0,2) and (2,3)
-      print(net.matrix)                   # check swap
-      net.endToEndCheck()                 # win if true
-      print(net.global_state)             # check if True
-      g.resetState()                      # reset all entanglement
-
-    For Reinforcement Learning:
-      1) The agent's action space is entangle((i,j)) or swap((i,j), (j,k))
-      2) entanglementCheck() acts as an environment reset
-      3) global_state can act as the reward (with some slight modifications)
-
     """
     self.n = n
     self.global_state = False

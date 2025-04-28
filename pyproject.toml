@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qrn-rl-gnn"
+description =  This is the code for my MSc Thesis
+authors = [{name = "Chris Chalkias", email = "chalkias@lorentz.leidenuniv.nl"}]
+version = "1.0.0"
+readme = "/README.md"
+dependencies = [
+    gym>=0.26.2
+    matplotlib>=3.10.1
+    networkx>=3.2.1
+    numpy>=2.2.5
+    pygame>=2.6.1
+    stable_baselines3>=2.5.0
+    torch>=2.6.0
+    tqdm>=4.67.1
+]

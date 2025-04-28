@@ -14,11 +14,13 @@ from src.models import CNN, GNN
 from src.agent import AgentDQN
 
 # core metadata
-__version__ = "1.0.0"
+__version__ = "1.0"
 __author__ = "Chris Chalkias"
 __email__ = "chalkias@lorentz.leidenuniv.nl"
-__license__ = ""
-__url__ = "https://github.com/chrishalkias/QRN-RL-GNN"
+__license__ = "https://hdl.handle.net/1887/license:7"
+__url__ = "https://github.com/chrishalkias/QRN-RL-GNN/src"
+__dependencies__ = []
+__all__ = ['repeaters', 'gym_env', 'models', 'agent', 'main']
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)

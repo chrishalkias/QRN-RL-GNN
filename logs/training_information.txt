@@ -1,0 +1,50 @@
+>Experiment parameters at 2025-04-27 20:49:25.636825
+
+--------------------------------------------------
+
+Environment  : QuantumNetworkEnv
+n            : 7
+directed     : False
+geometry     : chain
+kappa        : 1
+tau          : 100000
+p_entangle   : 0.85
+p_swap       : 0.85
+model        : DQN
+lr           : 0.0001
+gamma        : 0.99
+gae_lambda   : 0.95
+ent_coef     : 0.1
+n_steps      : 2048
+
+--------------------------------------------------
+
+
+--------------------------------------------------
+
+>>> Shared Feature Extractor <<<
+
+--------------------------------------------------
+
+MlpExtractor(
+  (policy_net): Sequential(
+    (0): Linear(in_features=21, out_features=64, bias=True)
+    (1): Tanh()
+    (2): Linear(in_features=64, out_features=64, bias=True)
+    (3): Tanh()
+  )
+  (value_net): Sequential(
+    (0): Linear(in_features=21, out_features=64, bias=True)
+    (1): Tanh()
+    (2): Linear(in_features=64, out_features=64, bias=True)
+    (3): Tanh()
+  )
+)
+
+Actor Network (action_net):
+Linear(in_features=64, out_features=13, bias=True)
+
+Critic Network (value_net):
+Linear(in_features=64, out_features=1, bias=True)
+
+>>> Policy Network Architecture <<<
