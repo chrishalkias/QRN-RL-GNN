@@ -13,7 +13,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from src.repeaters import RepeaterNetwork as rn
 from src.gym_env import QuantumNetworkEnv as qenv
 from src.gym_env import Experiment as exp
-from src.agent import AgentDQN as agent
+from src.environment import AgentDQN as agent
 
 class TestReepater(unittest.TestCase):
     """Test the Quantum repeater network class"""

@@ -1,0 +1,252 @@
+Action reward log for alternating at 2025-04-29 17:05:57.819140
+
+
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 3 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'swapAT(5)'],Reward: 1
+
+--Linked in 2 steps for alternating 
+
+ ---Max iterations reached 
+---Transfer times : [3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] 
+---Total links established : 49

@@ -12,15 +12,16 @@ import torch.nn as nn
 import torch.optim as optim
 import random
 import sys
+import os
 from datetime import datetime
 from io import StringIO
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 from torchsummary import summary
+from tqdm import tqdm
 
 from repeaters import RepeaterNetwork
 
-class AgentDQN():
+class Environment():
   def __init__(self,
                model, 
                n=4,
@@ -34,11 +35,15 @@ class AgentDQN():
                gamma=0.9,
                epsilon=0.1,):
     """
-                   █████   ██████  ███████ ███    ██ ████████ 
-                  ██   ██ ██       ██      ████   ██    ██    
-                  ███████ ██   ███ █████   ██ ██  ██    ██    
-                  ██   ██ ██    ██ ██      ██  ██ ██    ██    
-                  ██   ██  ██████  ███████ ██   ████    ██    
+
+                                    
+           ██████  ██████  ███    ██     ███████ ███    ██ ██    ██ 
+          ██    ██ ██   ██ ████   ██     ██      ████   ██ ██    ██ 
+          ██    ██ ██████  ██ ██  ██     █████   ██ ██  ██ ██    ██ 
+          ██ ▄▄ ██ ██   ██ ██  ██ ██     ██      ██  ██ ██  ██  ██  
+           ██████  ██   ██ ██   ████     ███████ ██   ████   ████   
+              ▀▀                                                                                            
+                                                                                               
                                              
     Description:
       This class implements the Graph description of the repeater network and uses
@@ -86,7 +91,7 @@ class AgentDQN():
     sys.stdout = old_stdout
     summary_txt = buffer.getvalue()
     now = datetime.now()
-    with open("logs/model_summary.txt", "w") as file:
+    with open("logs/models/model_summary.txt", "w") as file:
       line = '\n' + '-'*50 + '\n'
       file.write(f'Model architecture evaluated at {now}: \n {summary_txt}')
       file.write(f'>Experiment parameters at {now}')
@@ -102,7 +107,7 @@ class AgentDQN():
       file.write(f'lr           : {self.lr} \n')
       file.write(f'gamma        : {self.gamma} \n')
       file.write(f'epsilon      : {self.epsilon} \n')
-      file.write(f'criterion    : {self.criterion.__class__.__name__}')
+      file.write(f'criterion    : {self.criterion.__class__.__name__}\n')
       file.write(f'optimizer    : {self.optimizer.__class__.__name__} \n')
   
   def get_state_vector(self) -> torch.tensor:
@@ -146,7 +151,6 @@ class AgentDQN():
       for repeater in range(self.n):
         action_array.append(self.network.globalActions()[repeater][random_action_mask[repeater]])
       return action_array
-
     with torch.no_grad():
       q_values = self.model(state)
     return self.decide(q_values)[0]
@@ -167,6 +171,11 @@ class AgentDQN():
     self.network.endToEndCheck()
     return 1 if self.network.global_state else -.1
 
+  def saveModel(self, filename="logs/models/model.pth"):
+    """Saves the model"""
+    torch.save(self.model.state_dict(), filename)
+
+
   def trainQ(self, episodes=10_000, plot=True, save_model=True):
     """Trains the agent"""
     totalReward, rewardList = 0, []
@@ -181,7 +190,7 @@ class AgentDQN():
       next_state = self.get_state_vector()
 
       with torch.no_grad():
-          target = reward + self.gamma * torch.max(self.model(next_state))
+        target = reward + self.gamma * torch.max(self.model(next_state))
       q_value = torch.mean(self.model(state)) # CHANGE THIS
 
       loss = self.criterion(q_value, target)
@@ -214,74 +223,66 @@ class AgentDQN():
       ax2.set_xscale("log")
       # ax2.plot(entanglementlist*self.n,'tab:green', ls='-', label=r'Average Entanglement')
       fig.suptitle(plot_title)
-      plt.savefig('logs/train_plots.png')
-      plt.xlabel('logs/Episode')
+      plt.savefig('logs/plots/train_plots.png')
+      plt.xlabel('Episode')
       plt.legend()
-
-  def saveModel(self, filename="logs/model.pth"):
-    """Saves the model"""
-    torch.save(self.model.state_dict(), filename)
-    print(f"Model saved to {filename}")
 
   def test(self, n_test, max_steps=100, kind='trained', plot=True):
     """Evaluate the model"""
     totalReward, rewardList = 0, []
-    fidelity, fidelityList = 0,[]
-
-    with open('test_output.txt', 'w') as file:
-      self.network = RepeaterNetwork(n_test, p_entangle=self.network.p_entangle, p_swap=self.network.p_swap)
-      self.n = self.network.n
-      self.network.resetState()
-      finalstep = None
-      state = self.get_state_vector()
-      assert kind in ['trained', 'alternating', 'random'], f'Invalid option {kind}'
-      for step in range(max_steps):
-
+    fidelity, fidelityList = 0,[]    
+    self.network = RepeaterNetwork(n_test, p_entangle=self.network.p_entangle, p_swap=self.network.p_swap)
+    self.n = self.network.n
+    self.network.resetState()
+    finalstep, timelist = 0, []
+    state = self.get_state_vector()
+    assert kind in ['trained', 'alternating', 'random'], f'Invalid option {kind}'
+    os.makedirs('logs', exist_ok=True)
+    with open(f'./logs/textfiles/{kind}_test_output.txt', 'w') as file:
+      file.write(f'Action reward log for {kind} at {datetime.now()}\n\n')
+      for step in range(1, max_steps):
         if kind == 'alternating':
           if (step % 2) == 0:
             action = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
           elif (step % 2) == 1:
             action = [f'self.swapAT({i})' for i in range(self.n)]
-
         elif kind == 'trained':
           action = self.choose_action(state, use_trained_model=False)
-
         elif kind == 'random':
           entangles = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
           swaps = [f'self.swapAT({i})' for i in range(self.n)]
           action = random.choice([entangles, swaps])
-
         state = self.get_state_vector()
         reward = self.update_environment(action)
-        file.write(f"Action: {action},Reward: {reward}")
         totalReward += reward
         rewardList.append(totalReward)
         fidelity += self.network.getLink((0,self.n-1),1)
         fidelityList.append(fidelity)
-
+        file.write(f"\n Action: {[act[5:] for act in action]},Reward: {reward}")
         if reward == 1:
+          file.write(f"\n\n--Linked in {step - finalstep} steps for {kind} \n")
+          timelist.append(step-finalstep)
           finalstep = step
-          print(f"End-to-end entanglement achieved in {step+1} steps", file=file)
           self.network.endToEndCheck()
           self.network.resetState()
-        print('Max iterations reached', file=file) if step == max_steps-1 else None
-        finalstep = step
-
-      if plot:
-        fig, (ax1, ax2) = plt.subplots(2, 1)
-        plot_title = f"Metrics for {kind} for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap}) over {max_steps} steps"
-        # ax1.axline((0,1),slope=0, ls='--')
-        ax1.plot(rewardList, 'tab:orange', ls='-', label='Cummulative reward')
-        ax1.set(ylabel=f'Log reward')
-        ax1.set_yscale("symlog")
-        ax1.legend()
-        ax2.plot(fidelityList, 'tab:green', ls='-', label='Total Fidelity')
-        ax2.legend()
-        ax2.set(ylabel=f'Fidelity of resulting link')
-        ax2.set_xscale("log")
-        fig.suptitle(plot_title)
-        plt.savefig(f'logs/test_{kind}.png')
-        plt.xlabel('Step')
+        file.write('\n ---Max iterations reached \n') if step == max_steps-1 else None
+      file.write(f'---Transfer times : {timelist} \n')
+      file.write (f'---Total links established : {len(timelist)}')
+    if plot:
+      fig, (ax1, ax2) = plt.subplots(2, 1)
+      plot_title = f"Metrics for {kind} for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap}) over {max_steps} steps"
+      # ax1.axline((0,1),slope=0, ls='--')
+      ax1.plot(rewardList, 'tab:orange', ls='-', label='Cummulative reward')
+      ax1.set(ylabel=f'Log reward')
+      ax1.set_yscale("symlog")
+      ax1.legend()
+      ax2.plot(fidelityList, 'tab:green', ls='-', label='Total Fidelity')
+      ax2.legend()
+      ax2.set(ylabel=f'Fidelity of resulting link')
+      ax2.set_xscale("log")
+      fig.suptitle(plot_title)
+      plt.savefig(f'logs/plots/test_{kind}.png')
+      plt.xlabel('Step')
     return finalstep
   
   def reinforce(self):

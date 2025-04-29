@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import torch
 import gym
 import os
+import sys
 from gym import spaces
 from datetime import datetime
 from stable_baselines3 import DQN, PPO
@@ -23,7 +24,6 @@ from stable_baselines3.common.logger import configure
 
 #from stable_baselines3.common.vec_env import VecFrameStack, VecNormalize, DummyVecEnv
 # from stable_baselines3.common.summary import summary
-
 from repeaters import RepeaterNetwork
 
 class QuantumNetworkEnv(gym.Env, RepeaterNetwork):
@@ -37,14 +37,12 @@ class QuantumNetworkEnv(gym.Env, RepeaterNetwork):
                p_swap = 1
               ):
     """
-                                    
-           ██████  ██████  ███    ██     ███████ ███    ██ ██    ██ 
-          ██    ██ ██   ██ ████   ██     ██      ████   ██ ██    ██ 
-          ██    ██ ██████  ██ ██  ██     █████   ██ ██  ██ ██    ██ 
-          ██ ▄▄ ██ ██   ██ ██  ██ ██     ██      ██  ██ ██  ██  ██  
-           ██████  ██   ██ ██   ████     ███████ ██   ████   ████   
-              ▀▀                                                    
-    
+               ██████  ██    ██ ███    ███     ███████ ███    ██ ██    ██ 
+              ██        ██  ██  ████  ████     ██      ████   ██ ██    ██ 
+              ██   ███   ████   ██ ████ ██     █████   ██ ██  ██ ██    ██ 
+              ██    ██    ██    ██  ██  ██     ██      ██  ██ ██  ██  ██  
+               ██████     ██    ██      ██     ███████ ██   ████   ████   
+                                                            
     Description:                                                                
       Creates a new QuantumNetwork gymansium environment for n repeaters to be used
       for the RL loop. This function is the proper "package" of the physical system into a reliable
@@ -308,39 +306,33 @@ class Experiment():
     """Prints information about the test"""
     env= self.env
     now = datetime.now()
-    line = '\n' + '-'*50 + '\n'
     with open("logs/training_information.txt", "w") as file:
-      for file in [file, None]: #save and output at the same time
-        print(f'>Experiment parameters at {now}', file=file)
-        print(line, file=file)
-        print(f'Environment  : {env.__class__.__name__}', file=file)
-        print(f'n            : {env.n}', file=file)
-        print(f'directed     : {env.directed}', file=file)
-        print(f'geometry     : {env.geometry}', file=file)
-        print(f'kappa        : {env.kappa}', file=file)
-        print(f'tau          : {env.tau}', file=file)
-        print(f'p_entangle   : {env.p_entangle}', file=file)
-        print(f'p_swap       : {env.p_swap}', file=file)
-        print(f'model        : {self.net_type.__name__}', file=file)
-        print(f'lr           : {self.model.learning_rate}', file=file)
-        print(f'gamma        : {self.model.gamma}', file=file)
-        print(f'gae_lambda   : {self.model.gae_lambda}', file=file)
-        print(f'ent_coef     : {self.model.ent_coef}', file=file)
-        print(f'n_steps      : {self.model.n_steps}', file=file)
-        print(f'> Policy parameters')
-        print(line, file=file)
-        policy = self.model.policy
-        print(line, file=file)
-        print('>>> Shared Feature Extractor <<<', file=file)
-        print(line, file=file)
-        print(policy.mlp_extractor, file=file)
-        print('\nActor Network (action_net):', file=file)
-        print(policy.action_net, file=file)
-        print('\nCritic Network (value_net):', file=file)
-        print(policy.value_net, file=file)
-        print('\n>>> Policy Network Architecture <<<', file=file)
-        print(env.edge_combinations)
-        # print(summary(self.model.policy, input_size=(1,env.edge_combinations)), file=file)
+
+      file.write(f'-> Experiment parameters at {now} \n')
+      file.write(f'Environment  : {env.__class__.__name__} \n')
+      file.write(f'n            : {env.n} \n')
+      file.write(f'directed     : {env.directed} \n')
+      file.write(f'geometry     : {env.geometry} \n')
+      file.write(f'kappa        : {env.kappa} \n')
+      file.write(f'tau          : {env.tau} \n')
+      file.write(f'p_entangle   : {env.p_entangle} \n')
+      file.write(f'p_swap       : {env.p_swap} \n')
+      file.write(f'model        : {self.net_type.__name__} \n')
+      file.write(f'lr           : {self.model.learning_rate} \n')
+      file.write(f'gamma        : {self.model.gamma} \n')
+      file.write(f'gae_lambda   : {self.model.gae_lambda} \n')
+      file.write(f'ent_coef     : {self.model.ent_coef} \n')
+      file.write(f'n_steps      : {self.model.n_steps} \n')
+
+      file.write(f'\n -> Policy parameters \n')
+      policy = self.model.policy
+      file.write('>Shared Feature Extractor \n')
+      file.write(str(policy.mlp_extractor))
+      file.write('\n >Actor Network (action_net): \n')
+      file.write(str(policy.action_net))
+      file.write('\n >Critic Network (value_net): \n')
+      file.write(str(policy.value_net))
+      # print(summary(self.model.policy, input_size=(1,env.edge_combinations)), file=file)
 
   def random_sample(self, n_samples):
     """Randomly samples actions from the environment"""
@@ -403,3 +395,48 @@ class Experiment():
           obs, info = env.reset()
           break
     env.close()
+
+
+if __name__ == "__main__" :
+  """
+                ██████  ██    ██ ███    ██ 
+                ██   ██ ██    ██ ████   ██ 
+                ██████  ██    ██ ██ ██  ██ 
+                ██   ██ ██    ██ ██  ██ ██ 
+                ██   ██  ██████  ██   ████                     
+  """
+
+  config = {'n'             : 5,
+          'tau'           : 10_000,
+          'p_entangle'    : 0.8,
+          'p_swap'        : 0.8,
+          'train_steps'   : 10_000,
+          'train_agent'   : False,
+          'plot_metrics'  : True,
+          'callback'      : True,
+          'evaluate_agent': False,
+          'render_eval'   : True,
+          'display'       : True}
+
+  exp = Experiment(
+      n=config['n'],
+      tau=config['tau'],
+      p_entangle=config['p_entangle'],
+      p_swap=config['p_swap'],
+      )
+    
+  exp.display_info() if config['display'] else None
+  
+  if config['train_agent']:
+      exp.train_agent(
+          total_timesteps=config['train_steps'], 
+          plot=config['plot_metrics'], 
+          callback=config['render_eval'])
+
+  if config['evaluate_agent']:
+      exp.test_agent(
+          max_steps=10, 
+          render=config['render_eval'])
+  
+  exp.env.close()
+  print("Program exited with exit code 0")
