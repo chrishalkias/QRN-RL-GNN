@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from torchsummary import summary
 from tqdm import tqdm
 
-from repeaters import RepeaterNetwork
+from src.repeaters import RepeaterNetwork
 
 class Environment():
   def __init__(self,
@@ -91,24 +91,26 @@ class Environment():
     sys.stdout = old_stdout
     summary_txt = buffer.getvalue()
     now = datetime.now()
+    summa = [f'Model architecture evaluated at {now}: \n {summary_txt}',
+               f'>Experiment parameters at {now}', '\n' + '-'*50 + '\n',
+               f'Environment  : {self.network.__class__.__name__} \n',
+               f'n            : {self.network.n} \n',
+               f'directed     : {self.network.directed} \n',
+               f'geometry     : {self.network.geometry} \n',
+               f'kappa        : {self.network.kappa} \n',
+               f'tau          : {self.network.tau} \n',
+               f'p_entangle   : {self.network.p_entangle} \n',
+               f'p_swap       : {self.network.p_swap} \n',
+               f'lr           : {self.lr} \n',
+               f'gamma        : {self.gamma} \n',
+               f'gamma        : {self.gamma} \n',
+               f'epsilon      : {self.epsilon} \n',
+               f'criterion    : {self.criterion.__class__.__name__}\n',
+               f'optimizer    : {self.optimizer.__class__.__name__} \n']
     with open("logs/models/model_summary.txt", "w") as file:
-      line = '\n' + '-'*50 + '\n'
-      file.write(f'Model architecture evaluated at {now}: \n {summary_txt}')
-      file.write(f'>Experiment parameters at {now}')
-      file.write(line)
-      file.write(f'Environment  : {self.network.__class__.__name__} \n')
-      file.write(f'n            : {self.network.n} \n')
-      file.write(f'directed     : {self.network.directed} \n')
-      file.write(f'geometry     : {self.network.geometry} \n')
-      file.write(f'kappa        : {self.network.kappa} \n')
-      file.write(f'tau          : {self.network.tau} \n')
-      file.write(f'p_entangle   : {self.network.p_entangle} \n')
-      file.write(f'p_swap       : {self.network.p_swap} \n')
-      file.write(f'lr           : {self.lr} \n')
-      file.write(f'gamma        : {self.gamma} \n')
-      file.write(f'epsilon      : {self.epsilon} \n')
-      file.write(f'criterion    : {self.criterion.__class__.__name__}\n')
-      file.write(f'optimizer    : {self.optimizer.__class__.__name__} \n')
+      [file.write(info) for info in summa]
+        
+
   
   def get_state_vector(self) -> torch.tensor:
     """ Container for the RepeaterNetwork output state for CNN"""
@@ -247,7 +249,7 @@ class Environment():
           elif (step % 2) == 1:
             action = [f'self.swapAT({i})' for i in range(self.n)]
         elif kind == 'trained':
-          action = self.choose_action(state, use_trained_model=False)
+          action = self.choose_action(state, use_trained_model=True)
         elif kind == 'random':
           entangles = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
           swaps = [f'self.swapAT({i})' for i in range(self.n)]

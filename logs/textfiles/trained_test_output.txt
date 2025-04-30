@@ -1,105 +1,105 @@
-Action reward log for trained at 2025-04-29 17:05:56.872767
+Action reward log for trained at 2025-04-29 22:56:36.480254
 
 
- Action: ['entangle((0, 1))', 'entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', 'entangle((4, 5))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'swapAT(1)', 'entangle((2, 3))', 'entangle((2, 3))', 'swapAT(4)', 'entangle((4, 5))'],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', 'entangle((1, 2))', '', '', '', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', 'entangle((2, 3))', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', 'swapAT(1)', 'entangle((2, 3))', 'entangle((3, 4))', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', '', '', '', ''],Reward: -0.1
- Action: ['entangle((0, 1))', '', 'swapAT(2)', '', 'swapAT(4)', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', 'entangle((1, 2))', '', 'entangle((3, 4))', ''],Reward: -0.1
- Action: ['', '', 'entangle((1, 2))', '', 'entangle((3, 4))', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['entangle((0, 1))', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', 'swapAT(4)', 'entangle((4, 5))'],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', 'swapAT(2)', 'swapAT(3)', '', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', 'swapAT(2)', 'swapAT(3)', '', ''],Reward: -0.1
- Action: ['', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', '', ''],Reward: -0.1
- Action: ['', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)', '', ''],Reward: -0.1
- Action: ['', 'swapAT(1)', 'entangle((1, 2))', 'entangle((2, 3))', '', ''],Reward: -0.1
- Action: ['', 'swapAT(1)', 'entangle((1, 2))', 'entangle((2, 3))', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', 'swapAT(1)', '', '', '', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))', 'entangle((3, 4))', ''],Reward: -0.1
- Action: ['entangle((0, 1))', 'swapAT(1)', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', '', '', '', ''],Reward: -0.1
- Action: ['', 'entangle((0, 1))', '', '', '', ''],Reward: -0.1
- Action: ['', 'swapAT(1)', '', '', '', ''],Reward: -0.1
- Action: ['', 'swapAT(1)', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', 'entangle((1, 2))', '', '', ''],Reward: -0.1
- Action: ['', '', 'entangle((1, 2))', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', 'entangle((1, 2))', 'entangle((1, 2))', 'entangle((3, 4))', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['', '', '', '', '', ''],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'swapAT(2)', 'entangle((3, 4))', 'entangle((4, 5))', 'entangle((4, 5))'],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
+ Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1
  ---Max iterations reached 
 ---Transfer times : [] 
 ---Total links established : 0
