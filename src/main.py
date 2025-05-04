@@ -9,7 +9,7 @@ Part of: MSc Thesis titled "Quantum Network Reinforcement Learning"
 import numpy as np
 np.set_printoptions(legacy='1.25')
 
-from environment import Environment as env
+from environment import Environment
 from models import CNN
 
 
@@ -22,23 +22,23 @@ config = {
     'model'          : 'cnn', # Options: "mlp", "cnn", "gnn"
     'algorithm'      : 'Q-learning', #Options: 'Q-learning', 'Reinforce'
     'train_agent'    : True,
-    'train_steps'    : 1_000,
+    'train_steps'    : 300_000,
     'plot_metrics'   : True,
     'plot_loss'      : True,
     'print_model'    : True,
     'evaluate_agent' : True,
     'render_eval'    : True,}
 
-model = CNN(convolutions = 1,
+model = CNN(convolutions = 2,
             pooling_dim = 16,
-            embeding_dim = 16,
-            hidden_dim = 64,
+            embeding_dim = 32,
+            hidden_dim = 128,
             unembeding_dim = 8,)
 
 if __name__ == "__main__":
 
     if config['model'] == "cnn": # run DQN with CNN network and torch
-        exp = env(
+        exp = Environment(
             model=model,
             n=config['n_train'],
             kappa=1,

@@ -1,4 +1,4 @@
-Action reward log for trained at 2025-04-29 22:56:36.480254
+Action reward log for trained at 2025-05-04 00:05:18.362368
 
 
  Action: ['', 'swapAT(1)', 'swapAT(2)', ''],Reward: -0.1

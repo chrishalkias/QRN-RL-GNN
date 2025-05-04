@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# src/agent.py
+# src/environment.py
 
 '''
 Created Wed 02 Apr 2025
@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from torchsummary import summary
 from tqdm import tqdm
 
-from src.repeaters import RepeaterNetwork
+from repeaters import RepeaterNetwork
 
 class Environment():
   def __init__(self,
@@ -85,33 +85,32 @@ class Environment():
     """A function to preview the model architecture"""
     matrix = self.get_state_vector()  # Shape (H, W, 2)
     model = self.model
+    now = datetime.now()
+    #write model params into file
     old_stdout = sys.stdout
     sys.stdout = buffer = StringIO()
     info = summary(model, matrix.shape[1:])
     sys.stdout = old_stdout
     summary_txt = buffer.getvalue()
-    now = datetime.now()
-    summa = [f'Model architecture evaluated at {now}: \n {summary_txt}',
-               f'>Experiment parameters at {now}', '\n' + '-'*50 + '\n',
-               f'Environment  : {self.network.__class__.__name__} \n',
-               f'n            : {self.network.n} \n',
-               f'directed     : {self.network.directed} \n',
-               f'geometry     : {self.network.geometry} \n',
-               f'kappa        : {self.network.kappa} \n',
-               f'tau          : {self.network.tau} \n',
-               f'p_entangle   : {self.network.p_entangle} \n',
-               f'p_swap       : {self.network.p_swap} \n',
-               f'lr           : {self.lr} \n',
-               f'gamma        : {self.gamma} \n',
-               f'gamma        : {self.gamma} \n',
-               f'epsilon      : {self.epsilon} \n',
-               f'criterion    : {self.criterion.__class__.__name__}\n',
-               f'optimizer    : {self.optimizer.__class__.__name__} \n']
-    with open("logs/models/model_summary.txt", "w") as file:
-      [file.write(info) for info in summa]
-        
 
-  
+    summa = [f'---Experiment parameters at {now}---', '\n' + '-'*50 + '\n',
+            f'Environment  : {self.network.__class__.__name__} \n',
+            f'n            : {self.network.n} \n',
+            f'directed     : {self.network.directed} \n',
+            f'geometry     : {self.network.geometry} \n',
+            f'kappa        : {self.network.kappa} \n',
+            f'tau          : {self.network.tau} \n',
+            f'p_entangle   : {self.network.p_entangle} \n',
+            f'p_swap       : {self.network.p_swap} \n',
+            f'lr           : {self.lr} \n',
+            f'gamma        : {self.gamma} \n',
+            f'epsilon      : {self.epsilon} \n',
+            f'criterion    : {self.criterion.__class__.__name__}\n',
+            f'optimizer    : {self.optimizer.__class__.__name__} \n'
+            f'---Model architecture--- \n {summary_txt}',]
+    with open("logs/models/model_summary.txt", "w") as file:
+      [file.write(info) for info in summa] ;
+        
   def get_state_vector(self) -> torch.tensor:
     """ Container for the RepeaterNetwork output state for CNN"""
     dict_state = self.network.matrix
@@ -142,20 +141,23 @@ class Environment():
     binary_mask = result.numpy() if isinstance(result, torch.Tensor) else result
     # Apply the mask and flatten
     verbalized = actions[binary_mask.astype(bool)]
-    return verbalized, averaged
+    return verbalized, averaged[-1]
 
   def choose_action(self, state: np.ndarray, use_trained_model = False) -> torch.tensor:
     """Choose a random action with probability epsilon, otherwise choose the best action"""
-    condition_to_choose = (not use_trained_model) and (random.uniform(0, 1) < self.epsilon)
-    if condition_to_choose:
+    explore = random.uniform(0, 1) < self.epsilon
+
+    if use_trained_model or (not explore):
+      with torch.no_grad():
+        model_output = self.model(state)
+        return self.decide(model_output)[0]
+    else:
       random_action_mask = [random.randint(0, 3) for _ in range(self.n)] #4 acts to choose from
       action_array = []
       for repeater in range(self.n):
         action_array.append(self.network.globalActions()[repeater][random_action_mask[repeater]])
       return action_array
-    with torch.no_grad():
-      q_values = self.model(state)
-    return self.decide(q_values)[0]
+    
 
   def update_environment(self, action_list: list) -> float:
     """Updates the environment and returns the reward"""
@@ -173,61 +175,11 @@ class Environment():
     self.network.endToEndCheck()
     return 1 if self.network.global_state else -.1
 
+
   def saveModel(self, filename="logs/models/model.pth"):
     """Saves the model"""
     torch.save(self.model.state_dict(), filename)
 
-
-  def trainQ(self, episodes=10_000, plot=True, save_model=True):
-    """Trains the agent"""
-    totalReward, rewardList = 0, []
-    fidelity, fidelityList = 0,[]
-    lossList = []
-    entanglementDegree, entanglementlist = 0,[]
-
-    for _ in tqdm(range(episodes)):
-      state = self.get_state_vector()
-      action = self.choose_action(state)
-      reward = self.update_environment(action)
-      next_state = self.get_state_vector()
-
-      with torch.no_grad():
-        target = reward + self.gamma * torch.max(self.model(next_state))
-      q_value = torch.mean(self.model(state)) # CHANGE THIS
-
-      loss = self.criterion(q_value, target)
-      self.optimizer.zero_grad()
-      loss.backward()
-      self.optimizer.step()
-      totalReward += reward
-      rewardList.append(totalReward)
-      # some extra metrics
-      fidelity += self.network.getLink((0,self.n-1),1)
-      fidelityList.append(fidelity)
-      linkList = [self.network.getLink(node,1) for node in self.network.matrix.keys()]
-      lossList.append(loss.item())
-      entanglementDegree = np.mean(linkList) /self.n
-      entanglementlist.append(entanglementDegree)
-
-    self.saveModel() if save_model else None
-    if plot:
-      fig, (ax1, ax2) = plt.subplots(2, 1)
-      plot_title = f"Training metrics for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap} over {episodes} episodes)"
-
-      # ax1.axline((0,1),slope=0, ls='--')
-      # ax1.plot(lossList, ls='-', label='Loss')
-      ax1.plot(rewardList,ls='-', label='Cummulative reward')
-      ax1.set(ylabel=f'Log reward and loss')
-      ax1.set_yscale("symlog")
-      ax1.legend()
-      ax2.plot(fidelityList, 'tab:green', ls='-', label='Total Fidelity')
-      ax2.set(ylabel=f'Fidelity of resulting link')
-      ax2.set_xscale("log")
-      # ax2.plot(entanglementlist*self.n,'tab:green', ls='-', label=r'Average Entanglement')
-      fig.suptitle(plot_title)
-      plt.savefig('logs/plots/train_plots.png')
-      plt.xlabel('Episode')
-      plt.legend()
 
   def test(self, n_test, max_steps=100, kind='trained', plot=True):
     """Evaluate the model"""
@@ -254,8 +206,8 @@ class Environment():
           entangles = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
           swaps = [f'self.swapAT({i})' for i in range(self.n)]
           action = random.choice([entangles, swaps])
-        state = self.get_state_vector()
         reward = self.update_environment(action)
+        state = self.get_state_vector()
         totalReward += reward
         rewardList.append(totalReward)
         fidelity += self.network.getLink((0,self.n-1),1)
@@ -287,6 +239,103 @@ class Environment():
       plt.xlabel('Step')
     return finalstep
   
-  def reinforce(self):
-    """Use this for a more advanced algorithm"""
-    pass
+
+
+  def trainQ(self, episodes=10_000, plot=True, save_model=True):
+    """Trains the agent"""
+    totalReward, rewardList = 0, []
+    fidelity, fidelityList = 0,[]
+    lossList = []
+    entanglementDegree, entanglementlist = 0,[]
+
+    for _ in tqdm(range(episodes)):
+      state = self.get_state_vector()
+      action = self.choose_action(state)
+      reward = self.update_environment(action)
+      next_state = self.get_state_vector()
+
+      with torch.no_grad():
+        target = reward + self.gamma * torch.max(self.model(next_state))
+      q_value = torch.mean(self.decide(self.model(state))[1])
+      # q_value = torch.mean(self.model(state)) # CHANGE THIS
+
+      loss = self.criterion(q_value, target)
+      self.optimizer.zero_grad()
+      loss.backward()
+      self.optimizer.step()
+      totalReward += reward
+      rewardList.append(totalReward)
+      # some extra metrics
+      fidelity += self.network.getLink((0,self.n-1),1)
+      fidelityList.append(fidelity)
+      linkList = [self.network.getLink(node,1) for node in self.network.matrix.keys()]
+      lossList.append(loss.item())
+      entanglementDegree = np.mean(linkList) /self.n
+      entanglementlist.append(entanglementDegree)
+      self.network.resetState() if reward == 1 else None
+
+
+    self.saveModel() if save_model else None
+    if plot:
+      fig, (ax1, ax2) = plt.subplots(2, 1)
+      plot_title = f"Training metrics for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap} over {episodes} episodes)"
+
+
+      # ax1.axline((0,1),slope=0, ls='--')
+      # ax1.plot(lossList, ls='-', label='Loss')
+      ax1.plot(rewardList,ls='-', label='Cummulative reward')
+      ax1.set(ylabel=f'Log reward and loss')
+      ax1.set_yscale("symlog")
+      ax1.legend()
+      ax2.plot(fidelityList, 'tab:green', ls='-', label='Total Fidelity')
+      ax2.set(ylabel=f'Fidelity of resulting link')
+      ax2.set_xscale("log")
+      ax2.legend()
+      # ax2.plot(entanglementlist*self.n,'tab:green', ls='-', label=r'Average Entanglement')
+      fig.suptitle(plot_title)
+      plt.savefig('logs/plots/train_plots.png')
+      plt.xlabel('Episode')
+      plt.legend()
+
+      
+  def tREINFORCE(self):
+    """Performs REINFORCE policy gradient update after episode ends"""
+    returns = []
+    G = 0
+    
+    # Calculate discounted returns (backwards)
+    for r in reversed(self.rewards):
+        G = r + self.gamma * G
+        returns.insert(0, G)
+    
+    returns = torch.tensor(returns)
+    returns = (returns - returns.mean()) / (returns.std() + 1e-9)  # normalize
+    
+    policy_loss = []
+    for log_prob, G in zip(self.log_probs, returns):
+        policy_loss.append(-log_prob * G)  # negative sign for gradient ascent
+    
+    # Update model parameters (assuming self.model is inside choose_action)
+    self.optimizer.zero_grad()
+    loss = torch.stack(policy_loss).sum()
+    loss.backward()
+    self.optimizer.step()
+    
+    # Clear episode data
+    self.log_probs = []
+    self.rewards = []
+    
+  def run_episode(self):
+    """Runs one episode and updates policy"""
+    state = self.get_state_vector()
+    done = False
+    
+    while not done:
+        action, log_prob = self.choose_action(state)  # assume modified to return log_prob
+        reward, done = self.update_environment(action)
+        
+        self.log_probs.append(log_prob)
+        self.rewards.append(reward)
+        state = self.get_state_vector()
+    
+    self.tREINFORCE()  # Update policy after episode

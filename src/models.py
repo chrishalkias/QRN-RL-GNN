@@ -95,7 +95,7 @@ class GNN():
                  pooling_dim = 32,
                  embeding_dim = 64,
                  hidden_dim = 64,
-                 unembeding_dim = 8,
+                 unembeding_dim = 4,
                  ):
       """
                  ██████  ███    ██ ███    ██ 
@@ -132,6 +132,7 @@ class GNN():
     
     def decoder(self, x: torch.Tensor) -> torch.Tensor:
        """Decode the latent space representation into action probabilities"""
+       x = F.softmax(x, dim=-1)
        return x
 
     def forward(self, x):

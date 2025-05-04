@@ -1,13 +1,51 @@
-Action reward log for random at 2025-04-29 22:56:36.995042
+Action reward log for random at 2025-05-04 00:05:18.685694
 
 
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
 
---Linked in 5 steps for random 
+--Linked in 36 steps for random 
+
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
+
+--Linked in 4 steps for random 
 
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
@@ -15,134 +53,29 @@ Action reward log for random at 2025-04-29 22:56:36.995042
 
 --Linked in 3 steps for random 
 
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 5 steps for random 
-
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
 
---Linked in 3 steps for random 
+--Linked in 6 steps for random 
 
  Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
  Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
 
 --Linked in 7 steps for random 
 
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
 
---Linked in 4 steps for random 
-
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 4 steps for random 
-
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 3 steps for random 
-
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 3 steps for random 
-
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 8 steps for random 
-
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 10 steps for random 
-
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 8 steps for random 
-
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 3 steps for random 
-
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 11 steps for random 
-
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 3 steps for random 
-
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 8 steps for random 
-
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
- Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
-
---Linked in 4 steps for random 
+--Linked in 2 steps for random 
 
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
  Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
@@ -157,6 +90,58 @@ Action reward log for random at 2025-04-29 22:56:36.995042
 --Linked in 4 steps for random 
 
  Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
+
+--Linked in 5 steps for random 
+
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
+
+--Linked in 5 steps for random 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
+
+--Linked in 13 steps for random 
+
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
+
+--Linked in 2 steps for random 
+
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
+
+--Linked in 7 steps for random 
+
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: -0.1
+ Action: ['entangle((0, 1))', 'entangle((1, 2))', 'entangle((2, 3))'],Reward: -0.1
+ Action: ['swapAT(0)', 'swapAT(1)', 'swapAT(2)', 'swapAT(3)'],Reward: 1
+
+--Linked in 3 steps for random 
+
  ---Max iterations reached 
----Transfer times : [5, 3, 5, 3, 7, 4, 4, 3, 3, 8, 10, 8, 3, 11, 3, 8, 4, 2, 4] 
----Total links established : 19
+---Transfer times : [36, 4, 3, 6, 7, 2, 2, 4, 5, 5, 13, 2, 7, 3] 
+---Total links established : 14

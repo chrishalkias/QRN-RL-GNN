@@ -1,26 +1,4 @@
-Model architecture evaluated at 2025-04-29 22:56:33.289719: 
- ----------------------------------------------------------------
-        Layer (type)               Output Shape         Param #
-================================================================
-            Conv2d-1              [-1, 2, 5, 5]              18
-         MaxPool2d-2              [-1, 2, 2, 2]               0
- AdaptiveAvgPool2d-3            [-1, 2, 16, 16]               0
-           Flatten-4                  [-1, 512]               0
-            Linear-5                   [-1, 16]           8,208
-            Linear-6                   [-1, 64]           1,088
-              ReLU-7                   [-1, 64]               0
-            Linear-8                    [-1, 8]             520
-================================================================
-Total params: 9,834
-Trainable params: 9,834
-Non-trainable params: 0
-----------------------------------------------------------------
-Input size (MB): 0.00
-Forward/backward pass size (MB): 0.01
-Params size (MB): 0.04
-Estimated Total Size (MB): 0.05
-----------------------------------------------------------------
->Experiment parameters at 2025-04-29 22:56:33.289719
+---Experiment parameters at 2025-05-03 23:57:02.701725---
 --------------------------------------------------
 Environment  : RepeaterNetwork 
 n            : 4 
@@ -32,7 +10,30 @@ p_entangle   : 0.85
 p_swap       : 0.85 
 lr           : 0.001 
 gamma        : 0.9 
-gamma        : 0.9 
 epsilon      : 0.1 
 criterion    : MSELoss
 optimizer    : Adam 
+---Model architecture--- 
+ ----------------------------------------------------------------
+        Layer (type)               Output Shape         Param #
+================================================================
+            Conv2d-1              [-1, 2, 5, 5]              18
+         MaxPool2d-2              [-1, 2, 2, 2]               0
+            Conv2d-3              [-1, 2, 3, 3]              18
+         MaxPool2d-4              [-1, 2, 1, 1]               0
+ AdaptiveAvgPool2d-5            [-1, 2, 16, 16]               0
+           Flatten-6                  [-1, 512]               0
+            Linear-7                   [-1, 32]          16,416
+            Linear-8                   [-1, 64]           2,112
+              ReLU-9                   [-1, 64]               0
+           Linear-10                    [-1, 8]             520
+================================================================
+Total params: 19,084
+Trainable params: 19,084
+Non-trainable params: 0
+----------------------------------------------------------------
+Input size (MB): 0.00
+Forward/backward pass size (MB): 0.01
+Params size (MB): 0.07
+Estimated Total Size (MB): 0.08
+----------------------------------------------------------------
