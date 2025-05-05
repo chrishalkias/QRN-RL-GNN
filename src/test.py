@@ -10,34 +10,41 @@ import sys
 from pathlib import Path
 import unittest
 sys.path.append(str(Path(__file__).parent.parent))
-from src.repeaters import RepeaterNetwork as rn
-from src.gym_env import QuantumNetworkEnv as qenv
-from src.gym_env import Experiment as exp
-from src.environment import AgentDQN as agent
+from repeaters import RepeaterNetwork
+from gym_env import QuantumNetworkEnv
+from environment import Environment
 
 class TestReepater(unittest.TestCase):
     """Test the Quantum repeater network class"""
     def setUp(self):
-        self.renet = rn
+        self.net = RepeaterNetwork
         return super().setUp()
     
     def test_nesting(self):
+        """Test to see if num nodes is always consistent"""
         for n in range(1,100,1):
-            renet = self.renet(n)
-            self.assertEqual(renet.n, n)
+            net = self.net(n)
+            data = net.tensorState()
+            self.assertEqual(net.n, n)
+            self.assertEqual(data.num_nodes, n)
+
     def test_deterministic_swap_asap(self):
+        """Test links"""
         for n in range(100):
             for p_entangle in range(0,1,10):
                 for p_swap in range(0,1,10):
                     n=10
-                    net=rn(n=n, p_entangle=p_entangle, p_swap=p_swap)
+                    net=self.net(n=n, p_entangle=p_entangle, p_swap=p_swap)
                     initialMatrix = net.matrix
                     net.endToEndCheck()
                     self.assertFalse(net.global_state)
+                    for (i,j) in net.matrix.keys():
+                        net.entangle(edge = (i,j))
+                        self.assertEqual(net.matrix[(i,j)][1], 1)
 
 
     def test_state_dict(self):
-        return self.assertTrue(type(self.renet().matrix) == dict)
+        return self.assertTrue(type(self.net().matrix) == dict)
 
     def tearDown(self):
         return super().tearDown()

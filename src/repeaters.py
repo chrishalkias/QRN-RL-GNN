@@ -9,6 +9,8 @@ The base simulation class, simulates the quantum network.
 import numpy as np
 np.set_printoptions(legacy='1.25')
 import itertools
+import torch
+from torch_geometric.data import Data
 
 class RepeaterNetwork():
   def __init__(self,
@@ -71,6 +73,17 @@ class RepeaterNetwork():
     self.undirector() if not directed else None
     self.connect(geometry = geometry)
 
+  def tensorState(self):
+    """Returns the tensor graph state (to be used for GNN)"""
+    edge_list = [list(edge) for edge in self.matrix.keys()]
+    edge_index = torch.tensor(edge_list, dtype=torch.long)
+    edge_attr_list = [list(links)[1] for links in self.matrix.values()]
+    edge_attr = torch.tensor(edge_attr_list, dtype=torch.float)
+    data = Data(x=torch.tensor([1 for _ in range(self.n)], dtype=torch.float), 
+                edge_index=edge_index.t().contiguous, 
+                edge_attr = edge_attr)
+    return data
+
 
   def undirector(self):
     """Makes the graph directed and un-looped by modifying the state self.Matrix"""
@@ -89,7 +102,6 @@ class RepeaterNetwork():
     Connects the graph by creating locality links. The directionality
     of the graph is adjusted and afterwards locality links are filled
     out accorging to the input.
-
     Args:
       geometry (str)        : The type of connectivity to be used
       p        (float)      : For ER only the probability of connection
@@ -114,11 +126,9 @@ class RepeaterNetwork():
   def checkEdgeLink(self, edge:tuple, linkType:bool =0):
     """
     Check whether in grid and correct linkType (for getLink and setLink)
-
     Args:
       edge      (tuple) : The edge to be checked
       linkType  (bool)  : The linkType to be checked
-
     Returns:
       assert statements
     """
@@ -151,7 +161,6 @@ class RepeaterNetwork():
     """
     Checks if node is already doubly entangled and therefore cannot be
     entangled with any more repeaters (used in self.entangle()).
-
     Args:
       edge (tuple) : The edge to be checked
     Outputs:
@@ -177,7 +186,6 @@ class RepeaterNetwork():
     """
     Implements the time evolution of the system:
     T timesteps ahead -> age all the links by T*dt (dt=1 by convention)
-
     Args:
       T (int)         : The number of timesteps to be evolved
     Returns:
@@ -193,7 +201,6 @@ class RepeaterNetwork():
   def nodes(self) -> dict:
     """
     Maybe not usefull, another representation of the system instead of self.matrix.
-
     Returns:
       nodes (array) : Node description of the form [node, [partners], [ages]]
     """
@@ -216,10 +223,8 @@ class RepeaterNetwork():
     """
     Check if two nodes are adjecent and not saturated and
     entangle them with success probability p_entangle.
-
     Args:
       edge (tuple) : The edge to be entangled
-
     Returns:
       self.setLink
     """
@@ -248,14 +253,13 @@ class RepeaterNetwork():
     and edge2=(j,k) with probability p_swap. Swap sets the entanglement
      between (i,j) and (j,k) to 0 and the entanglement (i,k) equal to the
     average value of the two previous entanglements.
-
     Args:
       edge1 (tuple) : The first edge to be swapped
       edge2 (tuple) : The second edge to be swapped
-
     Returns:
       self.setLink
     """
+    return 0
     swapEficciency = 1
     self.checkEdgeLink(edge=edge1)
     self.checkEdgeLink(edge=edge2)
@@ -282,10 +286,8 @@ class RepeaterNetwork():
     Perform the swap operation by specifying a certain node i. Let the system
     choose which links get updated depending on the nodes j with which i is
     entangled with.
-
     Args:
       node    (int) : The node to swap
-
     Returns:
       set.Link
     """
@@ -312,10 +314,8 @@ class RepeaterNetwork():
   def actions(self, split = False) -> list:
     """
     Creates a dict() with all the possible actions
-
     Args:
       split   (bool) : choice to split the actions into entanglements and swaps
-
     Returns:
       actions (dict) : The dict of actions
     """
@@ -339,10 +339,8 @@ class RepeaterNetwork():
     """
     Creates a list with all the possible global actions and then returns the
     global action (one operation per repeater) as dictated by the transformer.
-
     Args:
       transformer_output (list) : The output of the transformer [1, n]
-
     Returns:
       global_action (list) : The list of global actions [1,n]
     """

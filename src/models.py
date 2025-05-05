@@ -117,7 +117,6 @@ class GNN():
       """
       super().__init__()
       self.message_passing = message_passing
-      self.pooling_dim = pooling_dim
       self.embeding_dim = embeding_dim
       self.hidden_dim = hidden_dim
       self.unembeding_dim = unembeding_dim
