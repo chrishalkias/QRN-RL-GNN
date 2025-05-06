@@ -10,6 +10,7 @@ import torch
 import numpy
 import torch.nn as nn
 import torch.nn.functional as F
+from torch_geometric.nn import GATConv
 
 
 class CNN(nn.Module):
@@ -30,11 +31,11 @@ class CNN(nn.Module):
       CNN with fixed parameters for any input:
 
       Attributes:
-        convolutions   (int) : Number of convolutional layers
-        pooling_dim    (int) : Dimension of the pooling layer
-        embeding_dim   (int) : Dimension of the embedding layer
-        hidden_dim     (int) : Dimension of the hidden layer
-        unembeding_dim (int) : Dimension of the unembedding layer
+        convolutions   (int) : Number of convolutional layers,
+        pooling_dim    (int) : Dimension of the pooling layer,
+        embeding_dim   (int) : Dimension of the embedding layer,
+        hidden_dim     (int) : Dimension of the hidden layer,
+        unembeding_dim (int) : Dimension of the unembedding layer,
 
       Methods:
         forward  (x:Tensor)  : Forward pass through the network
@@ -89,15 +90,16 @@ class CNN(nn.Module):
       output = F.softmax(decoded, dim=-1)
       return output.squeeze(0)  # Shape: (H*W, 4)
     
-class GNN():
-    def __init__(self,
-                 message_passing = None,
-                 pooling_dim = 32,
-                 embeding_dim = 64,
-                 hidden_dim = 64,
-                 unembeding_dim = 4,
-                 ):
-      """
+
+class GNN(nn.Module):
+    def __init__(self, node_dim=1, 
+                 embedding_dim=16,
+                 num_layers = 2,
+                 num_heads = 4,  
+                 hidden_dim=64, 
+                 unembedding_dim = 16, 
+                 output_dim=4):
+        """
                  ██████  ███    ██ ███    ██ 
                 ██       ████   ██ ████   ██ 
                 ██   ███ ██ ██  ██ ██ ██  ██ 
@@ -107,42 +109,55 @@ class GNN():
       The GNN model with fixed parameters for any input:
 
       Attributes:
-        - message_massing   (int) : Number of convolutional layers
-        -pooling_dim        (int) : Dimension of the pooling layer
-        -embeding_dim       (int) : Dimension of the embedding layer
-        -hidden_dim         (int) : Dimension of the hidden layer
-        -unembeding_dim     (int) : Dimension of the unembedding layer
+        embedding_dim   (int),
+        num_layers      (int),
+        num_heads       (int),  
+        hidden_dim      (int), 
+        unembedding_dim (int), 
+        output_dim      (int),
       Methods:
         -forward      (x:Tensor)  : Forward pass through the network
       """
-      super().__init__()
-      self.message_passing = message_passing
-      self.embeding_dim = embeding_dim
-      self.hidden_dim = hidden_dim
-      self.unembeding_dim = unembeding_dim
+        super().__init__()
 
-    def encoder(self, x: torch.Tensor) -> torch.Tensor:
-       """Create the message passing and GNN loop"""
-       return x
-    
-    def latent_space(self, x: torch.Tensor) -> torch.Tensor:
-       """Create the latent space with fixed trainable parameters"""
-       return x
-    
-    def decoder(self, x: torch.Tensor) -> torch.Tensor:
-       """Decode the latent space representation into action probabilities"""
-       x = F.softmax(x, dim=-1)
-       return x
+        self.gnn_layers = nn.ModuleList()
+        self.encoder = GATConv(node_dim, embedding_dim, heads=num_heads)
+        self.gatconv = GATConv(embedding_dim * num_heads, embedding_dim, heads=num_heads)
 
-    def forward(self, x):
-       """
-       Args:
-          x (torch.Tensor): Input tensor of shape (1, 2, H, W)
-       Returns:
-          torch.Tensor: Output tensor of shape (1, 4)
-       """
-       x = self.encoder(x)
-       x = self.latent_space(x)
-       x = self.decoder(x)
-       return x
+        for _ in range(num_layers):
+            self.gnn_layers.append(self.gatconv)
+
+        self.latent = nn.Sequential(
+          nn.Linear(embedding_dim * num_heads, hidden_dim),
+          nn.ReLU(),
+          nn.Linear(hidden_dim, unembedding_dim)
+      )
+        self.decoder = nn.Sequential(
+            nn.Linear(unembedding_dim, output_dim),
+            nn.Softmax(dim =-1)
+        )
+
+    def forward(self, data):
+        """
+        Args:
+            data (Data): Must have:
+                - x: Node features (shape: [n, node_dim], default=torch.ones)
+                - edge_index: Graph connectivity (shape: [2, num_edges])
+                - edge_attr: Edge features (shape: [num_edges, edge_feat_dim])
+        Returns:
+            torch.Tensor: Output of shape (n, 4)
+        """
+        x, edge_index = data.x, data.edge_index
+        
+        # GNN forward pass
+        x = self.encoder(x, edge_index)
+
+        for layer in self.gnn_layers:
+            x = layer(x, edge_index)
+            x = F.leaky_relu(x)
+
+        x = self.latent(x)
+        x = self.decoder(x)
+        
+        return x
     

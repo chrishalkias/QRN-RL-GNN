@@ -2,14 +2,13 @@
 # src/main.py
 '''
 Created on Thu 6 Mar 2025
-The main simulation file.
-Part of: MSc Thesis titled "Quantum Network Reinforcement Learning"
+The main simulation file for CNN"
 '''
 
 import numpy as np
 np.set_printoptions(legacy='1.25')
 
-from environment import Environment
+from cnn_environment import Environment
 from models import CNN
 
 

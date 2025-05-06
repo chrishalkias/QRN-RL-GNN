@@ -46,9 +46,11 @@ class RepeaterNetwork():
       setLink()            > Update a link value for (i,j) to V
       director()           > Remove ij-ji duplicates
       connect()            > Connects the Graph in specified geometry.
+      tensorState()        > Returns a Graph state of the system
       tick()               > Propagates the system in time by dt = 1
       entangle()           > Entangles two repeaters (i,j) (E_ij->1)
       swap()               > Swaps E_(i,j)(j,k) -> E_(i,k)
+      swapAT()             > Swaps at the specific node
       endToEndCheck()      > Measures to check if end-to-end-entangled
 
     Attributes:
@@ -75,12 +77,13 @@ class RepeaterNetwork():
 
   def tensorState(self):
     """Returns the tensor graph state (to be used for GNN)"""
-    edge_list = [list(edge) for edge in self.matrix.keys()]
-    edge_index = torch.tensor(edge_list, dtype=torch.long)
+    sources = torch.arange(self.n - 1, dtype=torch.long)  # 0, 1, ..., n-2
+    targets = sources + 1                            # 1, 2, ..., n-1
+    edge_index = torch.stack([sources, targets])     # Shape [2, n-1]
     edge_attr_list = [list(links)[1] for links in self.matrix.values()]
     edge_attr = torch.tensor(edge_attr_list, dtype=torch.float)
-    data = Data(x=torch.tensor([1 for _ in range(self.n)], dtype=torch.float), 
-                edge_index=edge_index.t().contiguous, 
+    data = Data(x=torch.ones(self.n, 1), 
+                edge_index=edge_index, 
                 edge_attr = edge_attr)
     return data
 
