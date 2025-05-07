@@ -1,6 +1,8 @@
 __pycache__/
 /.vscode/*
 .DS_Store
-test.py
-/.logs/*
-sandbox.py
+/src/test.py
+/logs/*
+/.venv/
+
+
