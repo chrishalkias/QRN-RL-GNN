@@ -137,7 +137,7 @@ class GNN(nn.Module):
             nn.Softmax(dim =-1)
         )
 
-    def forward(self, data):
+    def forward(self, data: torch.tensor):
         """
         Args:
             data (Data): Must have:

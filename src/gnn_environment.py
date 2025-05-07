@@ -17,7 +17,7 @@ import os
 from datetime import datetime
 from io import StringIO
 import matplotlib.pyplot as plt
-from torchsummary import summary
+from torch_geometric.nn import summary
 from tqdm import tqdm
 import torch.nn.functional as F
 
@@ -82,6 +82,31 @@ class Environment():
       self.memory = []
       self.model = model
       self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
+
+    def preview(self):
+        """Write the model params"""
+        summary_txt = 'No summary for gnn'
+        summa = [f'---Experiment parameters at {datetime.now()}---', '\n' + '-'*50 + '\n',
+            f'Environment  : {self.network.__class__.__name__} \n',
+            f'n            : {self.network.n} \n',
+            f'directed     : {self.network.directed} \n',
+            f'geometry     : {self.network.geometry} \n',
+            f'kappa        : {self.network.kappa} \n',
+            f'tau          : {self.network.tau} \n',
+            f'p_entangle   : {self.network.p_entangle} \n',
+            f'p_swap       : {self.network.p_swap} \n',
+            f'lr           : {self.lr} \n',
+            f'gamma        : {self.gamma} \n',
+            f'epsilon      : {self.epsilon} \n',
+            f'criterion    : {self.criterion.__class__.__name__}\n',
+            f'optimizer    : {self.optimizer.__class__.__name__} \n'
+            f'---Model architecture--- \n {summary_txt}',
+            ]
+        with open("logs/models/model_summary.txt", "w") as file:
+            [file.write(info) for info in summa] ;
+        # x = torch.randn(100, 128)
+        # edge_index = torch.randint(100, size=(2, 20))
+        # print(summary(self.model, x, edge_index))
 
     def get_state_vector(self):
         return self.network.tensorState()
@@ -220,7 +245,6 @@ class Environment():
             return finalstep
   
 
-
     def trainQ(self, episodes=10_000, plot=True, save_model=True):
         """Trains the agent"""
         totalReward, rewardList = 0, []
@@ -260,7 +284,7 @@ class Environment():
         self.saveModel() if save_model else None
         if plot:
             fig, (ax1, ax2) = plt.subplots(2, 1)
-            plot_title = f"Training metrics for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap} over {episodes} episodes)"
+            plot_title = f"Training metrics for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap} over {episodes} steps)"
 
 
         # ax1.axline((0,1),slope=0, ls='--')

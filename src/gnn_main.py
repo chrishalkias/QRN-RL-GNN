@@ -22,7 +22,7 @@ sys_config = {
 
 agent_config = {
     'train_agent'    : True,
-    'train_steps'    : 10_000,
+    'train_steps'    : 1_000,
     'learning_rate'  : 0.01,
     'gamma'          : 0.9,
     'epsilon'        : 0.1,
@@ -30,7 +30,7 @@ agent_config = {
     'plot_loss'      : True,
     'print_model'    : True,
     'evaluate_agent' : True,
-    'test_steps'     : 10_000,
+    'test_steps'     : 30_000,
     'render_eval'    : True,   
     }         
 
@@ -38,9 +38,9 @@ model_config = {}
 
 model = GNN(
             node_dim        = 1, # always
-            embedding_dim   = 16,
+            embedding_dim   = 8,
             num_layers      = 3,
-            num_heads       = 4,
+            num_heads       = 2,
             hidden_dim      = 64, 
             unembedding_dim = 16, 
             output_dim      = 4, # always
