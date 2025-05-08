@@ -386,4 +386,5 @@ class RepeaterNetwork():
     self.tick(timeToWait)
     endToEnd = (self.getLink(edge=linkToRead, linkType=1) > np.random.rand())
     self.global_state = endToEnd
+    return self.global_state
     # self.setLink(edge=(0,self.n-1), linkType=1, newValue = 0)

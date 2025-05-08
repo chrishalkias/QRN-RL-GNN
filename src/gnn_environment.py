@@ -21,8 +21,9 @@ from torch_geometric.nn import summary
 from tqdm import tqdm
 import torch.nn.functional as F
 plt.rcParams.update({
-    "text.usetex": True,
-    "font.family": "serif"})
+    "text.usetex": False,
+    "font.family": "Helvetica"
+})
 
 from repeaters import RepeaterNetwork
 
@@ -36,9 +37,11 @@ class Environment():
                tau = 1_000,
                p_entangle = 1,
                p_swap = 1,
+               weight_decay = 0,
                lr=0.001,
                gamma=0.9,
-               epsilon=0.1,):
+               epsilon=0.1,
+               temperature=0,):
       """
 
                                     
@@ -82,9 +85,13 @@ class Environment():
       self.gamma = gamma
       self.epsilon = epsilon
       self.criterion = nn.MSELoss()
+      self.weight_decay = weight_decay
       self.memory = []
       self.model = model
-      self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
+      self.temperature = temperature
+      self.optimizer = optim.Adam(self.model.parameters(),
+                                 lr=self.lr, 
+                                 weight_decay = self.weight_decay)
 
     def preview(self):
         """Write the model params"""
@@ -115,7 +122,7 @@ class Environment():
         return self.network.tensorState()
     
 
-    def out_to_onehot(self, tensor, temperature=1) -> torch.tensor:
+    def out_to_onehot(self, tensor, temperature=0) -> torch.tensor:
         """
         Converts tensor to one-hot encoding with temperature-scaled probabilities.
         """
@@ -131,7 +138,7 @@ class Environment():
         return one_hot
 
 
-    def choose_action(self, action_matrix: list,  output: torch.tensor, use_trained_model = False) -> list:
+    def choose_action(self, action_matrix: list,  output: torch.tensor, use_trained_model = False, temperature: float = 0) -> list:
         """Choose a random action with probability epsilon, otherwise choose the best action"""
         explore = random.uniform(0, 1) < self.epsilon
         from_model = use_trained_model or (not explore)
@@ -140,7 +147,7 @@ class Environment():
             with torch.no_grad():
                 action_array = np.array(action_matrix)
                 # Get one-hot mask
-                one_hot_mask = self.out_to_onehot(output).numpy()
+                one_hot_mask = self.out_to_onehot(output, temperature).numpy()
                 # Select actions where mask is 1
                 selected_actions = []
             for i in range(one_hot_mask.shape[0]):
@@ -168,8 +175,13 @@ class Environment():
 
     def reward(self) -> float:
         """Computes the agents reward"""
-        self.network.endToEndCheck()
-        return 1 if self.network.global_state else -.1
+        bonus_reward = 0 # some function f(d, e; n)
+        for (i,j), (adjecency, entanglement) in self.network.matrix.items():
+            distance = j-i #chain only
+            bonus_reward +=  entanglement*distance/(10*self.network.n**2) if entanglement else 0
+
+        return 1 if self.network.endToEndCheck() else -0.1 + bonus_reward
+    
 
     def saveModel(self, filename="logs/models/model.pth"):
         """Saves the model"""
@@ -177,7 +189,7 @@ class Environment():
 
     def test(self, n_test, max_steps=100, kind='trained', plot=True):
         """Evaluate the model"""
-        totalReward, rewardList = 0, []
+        totalReward, rewardlist, totalrewardList = 0, [], []
         fidelity, fidelityList = 0,[]    
         self.network = RepeaterNetwork(n_test, p_entangle=self.network.p_entangle, p_swap=self.network.p_swap)
         self.n = self.network.n
@@ -196,21 +208,22 @@ class Environment():
                     elif (step % 2) == 1:
                         action = [f'self.swapAT({i})' for i in range(self.n)]
                 elif kind == 'trained':
-                    action = self.choose_action(self.network.globalActions(), self.model(state), use_trained_model=True)
+                    action = self.choose_action(self.network.globalActions(), self.model(state), use_trained_model=True, temperature = self.temperature)
                 elif kind == 'random':
                     waits = ['' for _ in range(self.n)]
                     entangles = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
                     swaps = [f'self.swapAT({i})' for i in range(self.n)]
                     action = [random.choice([e, s, w]) for e, s, w in zip(entangles, swaps, waits) if random.choice([e, s, w]) is not None]
                 reward = self.update_environment(action)
+                rewardlist.append(reward)
                 state = self.get_state_vector()
                 totalReward += reward
-                rewardList.append(totalReward)
+                totalrewardList.append(totalReward)
                 fidelity += self.network.getLink((0,self.n-1),1)
                 fidelityList.append(fidelity)
                 fidelity_per_step = [val/(i+1) for i, val in enumerate(fidelityList)]
                 file.write(f"\n Action: {[act[5:] for act in action]},Reward: {reward}")
-                if reward == 1:
+                if self.network.endToEndCheck():
                     file.write(f"\n\n--Linked in {step - finalstep} steps for {kind} \n")
                     timelist.append(step-finalstep)
                     finalstep = step
@@ -220,7 +233,7 @@ class Environment():
             file.close()
         total_links = len(timelist)
         avg_time = sum(timelist) / len(timelist) if timelist else np.inf
-        std_time = statistics.stdev(timelist) if timelist else np.inf
+        std_time = statistics.stdev(timelist) if len(timelist) >= 2 else np.inf
         line0 = '-' * 50
         line1 = (f'\n >>> Total links established : {total_links}\n')
         line2 = (f'\n >>> Avg transfer time       : {avg_time:.3f} it \n')
@@ -232,16 +245,16 @@ class Environment():
                 f.write(line.rstrip('\r\n') + '\n' + content)
         if plot:
             fig, (ax1, ax2) = plt.subplots(2, 1)
-            plot_title = f"Metrics for {kind} for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap}) over {max_steps} steps"
+            plot_title = f"Metrics for {kind} for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap}) over $10^{int(np.log10(max_steps))}$ steps"
             # ax1.axline((0,1),slope=0, ls='--')
-            ax1.plot(rewardList, 'tab:orange', ls='-', label='Cummulative reward')
+            ax1.plot(totalrewardList, 'tab:orange', ls='-', label='Reward per step')
             ax1.set(ylabel=f'Log reward')
-            ax1.set_yscale("symlog")
+            # ax1.set_yscale("symlog")
             ax1.legend()
             ax2.plot(fidelity_per_step, 'tab:green', ls='-', label='Average Fidelity per step')
             ax2.legend()
             ax2.set(ylabel=f'Fidelity of resulting link')
-            ax2.set_xscale("log")
+            # ax2.set_xscale("log")
             fig.suptitle(plot_title)
             plt.savefig(f'logs/plots/test_{kind}.png')
             plt.xlabel('Step')
@@ -258,7 +271,7 @@ class Environment():
         for _ in tqdm(range(episodes)):
             state = self.get_state_vector()
             output = self.model(state)
-            action = self.choose_action(self.network.globalActions(), output)
+            action = self.choose_action(self.network.globalActions(), output, temperature = self.temperature)
             reward = self.update_environment(action)
             next_state = self.get_state_vector()
 
@@ -287,13 +300,13 @@ class Environment():
         self.saveModel() if save_model else None
         if plot:
             fig, (ax1, ax2) = plt.subplots(2, 1)
-            plot_title = f"Training metrics for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap} over {episodes} steps)"
+            plot_title = f"Training metrics for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap}) over $10^{int(np.log10(episodes))}$ steps"
 
 
         # ax1.axline((0,1),slope=0, ls='--')
         # ax1.plot(lossList, ls='-', label='Loss')
         ax1.plot(rewardList,ls='-', label='Cummulative reward')
-        ax1.set(ylabel=f'Log reward and loss')
+        ax1.set(ylabel=f'Log reward')
         ax1.set_yscale("symlog")
         ax1.legend()
         ax2.plot(fidelity_per_step, 'tab:green', ls='-', label='Average Fidelity')
