@@ -8,9 +8,9 @@ The src initialization to be treated as a package.
 import logging
 from pathlib import Path
 
-from src.repeaters import RepeaterNetwork
-from src.models import CNN, GNN
-from src.CNN_environment import Environment
+from repeaters import RepeaterNetwork
+from models import CNN, GNN
+from cnn_environment import Environment
 
 # core metadata
 __version__ = "1.0"

@@ -20,6 +20,9 @@ import matplotlib.pyplot as plt
 from torch_geometric.nn import summary
 from tqdm import tqdm
 import torch.nn.functional as F
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif"})
 
 from repeaters import RepeaterNetwork
 

@@ -22,7 +22,7 @@ sys_config = {
 
 agent_config = {
     'train_agent'    : True,
-    'train_steps'    : 1_000,
+    'train_steps'    : 10_000,
     'learning_rate'  : 0.01,
     'gamma'          : 0.9,
     'epsilon'        : 0.1,
@@ -30,7 +30,7 @@ agent_config = {
     'plot_loss'      : True,
     'print_model'    : True,
     'evaluate_agent' : True,
-    'test_steps'     : 30_000,
+    'test_steps'     : 1_000,
     'render_eval'    : True,   
     }         
 

@@ -16,7 +16,6 @@ import os
 from datetime import datetime
 from io import StringIO
 import matplotlib.pyplot as plt
-from torchsummary import summary
 from tqdm import tqdm
 
 from repeaters import RepeaterNetwork
@@ -86,12 +85,7 @@ class Environment():
     matrix = self.get_state_vector()  # Shape (H, W, 2)
     model = self.model
     now = datetime.now()
-    #write model params into file
-    old_stdout = sys.stdout
-    sys.stdout = buffer = StringIO()
-    info = summary(model, matrix.shape[1:])
-    sys.stdout = old_stdout
-    summary_txt = buffer.getvalue()
+    summary_txt = None
 
     summa = [f'---Experiment parameters at {now}---', '\n' + '-'*50 + '\n',
             f'Environment  : {self.network.__class__.__name__} \n',
