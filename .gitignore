@@ -1,8 +1,25 @@
-*__pycache__/*
-/.vscode/*
+# Ignore compiled Python files
+src/*.py[cod]
+
+# Ignore cache directories
+src/__pycache__/
+
+# Ignore environment files
+src/.venv
 .DS_Store
-/logs/*
-/.venv/
+
+# Ignore IDE-specific files
+src/.vscode/
+
+# Ignore test/output files
+src/temp/
+
+# Ignore full requirements
 requirements_full.txt
+
+# Ignore test files
+src/trial_and_error.py
+
+# (A nice collection here https://github.com/github/gitignore/tree/main)
 
 

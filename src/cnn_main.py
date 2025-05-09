@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# src/main.py
+# src/cnn_main.py
+
 '''
 Created on Thu 6 Mar 2025
-The main simulation file for CNN"
+The main simulation file for CNN.
 '''
 
 import numpy as np

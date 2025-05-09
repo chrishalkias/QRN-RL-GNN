@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# src/main.py
+# src/gnn_main.py
+
 '''
 Created on Thu 6 Mar 2025
 The main simulation file for GNN."

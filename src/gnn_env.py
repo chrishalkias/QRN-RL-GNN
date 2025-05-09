@@ -3,7 +3,7 @@
 
 '''
 Created Wed 02 Apr 2025
-The Agent class to run the RL model on the repeater networks.
+The Agent class to run the RL model on the repeater networks for the case of GNN models.
 '''
 
 import numpy as np
