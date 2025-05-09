@@ -8,7 +8,7 @@ The main simulation file for CNN"
 import numpy as np
 np.set_printoptions(legacy='1.25')
 
-from cnn_environment import Environment
+from cnn_env import Environment
 from models import CNN
 
 

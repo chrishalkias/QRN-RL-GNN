@@ -12,7 +12,7 @@ import unittest
 sys.path.append(str(Path(__file__).parent.parent))
 from src.repeaters import RepeaterNetwork
 from src.mlp_gym_env import QuantumNetworkEnv
-from src.cnn_environment import Environment
+from src.cnn_env import Environment
 
 class TestRepater(unittest.TestCase):
     """Test the Quantum repeater network class"""

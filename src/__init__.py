@@ -10,7 +10,7 @@ from pathlib import Path
 
 from repeaters import RepeaterNetwork
 from models import CNN, GNN
-from cnn_environment import Environment
+from src.cnn_env import Environment
 
 # core metadata
 __version__ = "1.0"

@@ -7,14 +7,14 @@ The main simulation file for GNN."
 
 import os
 import numpy as np
-from gnn_environment import Environment
+from gnn_env import Environment
 from models import GNN
 import plot_config
 
 
 sys_config = {
     'n_train'        : 4,
-    'n_test'         : 6,
+    'n_test'         : 4,
     'tau'            : 50_000,
     'p_entangle'     : .85,
     'p_swap'         : .85,
@@ -24,10 +24,10 @@ sys_config = {
 # RUN SOME HPO ON THIS!
 agent_config = {
     'train_agent'    : True,
-    'train_steps'    : 10_000,
-    'learning_rate'  : 0.01,
+    'train_steps'    : 50_000,
+    'learning_rate'  : 0.005,
     'weight_decay'   : 1e-4,
-    'temperature'    : 1,
+    'temperature'    : .8,
     'gamma'          : 0.9,
     'epsilon'        : 0.1,
     'plot_metrics'   : True,
