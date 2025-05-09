@@ -14,7 +14,7 @@ import random
 import sys
 import os
 from datetime import datetime
-from io import StringIO
+from torchinfo import summary
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
@@ -82,12 +82,8 @@ class Environment():
 
   def preview(self):
     """A function to preview the model architecture"""
-    matrix = self.get_state_vector()  # Shape (H, W, 2)
-    model = self.model
-    now = datetime.now()
-    summary_txt = None
-
-    summa = [f'---Experiment parameters at {now}---', '\n' + '-'*50 + '\n',
+    summary_txt = summary(self.model, input_size=(1, 2, self.network.n, self.network.n))
+    summa = [f'---Experiment parameters at {datetime.now()}---', '\n' + '-'*50 + '\n',
             f'Environment  : {self.network.__class__.__name__} \n',
             f'n            : {self.network.n} \n',
             f'directed     : {self.network.directed} \n',

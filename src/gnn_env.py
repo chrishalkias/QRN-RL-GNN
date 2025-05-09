@@ -17,9 +17,11 @@ import os
 from datetime import datetime
 from io import StringIO
 import matplotlib.pyplot as plt
-from torch_geometric.nn import summary
 from tqdm import tqdm
 import torch.nn.functional as F
+from torch_geometric.nn import summary
+from torch_geometric.data import Data
+
 plt.rcParams.update({
     "text.usetex": False,
     "font.family": "Helvetica"
@@ -95,8 +97,11 @@ class Environment():
 
     def preview(self):
         """Write the model params"""
-        summary_txt = 'No summary for gnn'
-        summa = [f'---Experiment parameters at {datetime.now()}---', '\n' + '-'*50 + '\n',
+        total_params = sum(p.numel() for p in self.model.parameters())
+        line = '\n' + '-'*50 + '\n'
+        summa = [line,
+            f'Run information at {datetime.now()}', line,
+            line, f'{" " * 10}Experiment parameters', line,
             f'Environment  : {self.network.__class__.__name__} \n',
             f'n            : {self.network.n} \n',
             f'directed     : {self.network.directed} \n',
@@ -109,8 +114,11 @@ class Environment():
             f'gamma        : {self.gamma} \n',
             f'epsilon      : {self.epsilon} \n',
             f'criterion    : {self.criterion.__class__.__name__}\n',
-            f'optimizer    : {self.optimizer.__class__.__name__} \n'
-            f'---Model architecture--- \n {summary_txt}',
+            f'optimizer    : {self.optimizer.__class__.__name__} \n',
+            line, f'{" " * 10} Model architecture', line,
+            f'{summary(self.model, self.network.tensorState())}\n',
+            f'Total params: {total_params:,}\n',
+            f'Model size: {sum(p.numel() * p.element_size() for p in self.model.parameters()) / (1024**2):.2f} MB',
             ]
         with open("logs/models/model_summary.txt", "w") as file:
             [file.write(info) for info in summa] ;
