@@ -262,7 +262,7 @@ class RepeaterNetwork():
     Returns:
       self.setLink
     """
-    return 0
+
     swapEficciency = 1
     self.checkEdgeLink(edge=edge1)
     self.checkEdgeLink(edge=edge2)
