@@ -8,9 +8,7 @@
 ---
 
 This is the repository for my MSc thesis on studying entanglement distribution in ***quantum repeater networks*** using Reinforcement Learning. The goal of this project is to examine how Reinforcement Learning agents can learn efficient policies for enanglement distribution in 1D repeater chains. The aim is that given a set of physical parameters $C_n$ an agent can establish a policy $\pi_n$ through the mapping:
-$
-\pi(C_n; NN) = \pi, \;\;C_N = (n, \;p_e, \;p_s, \; \tau)
-$
+$$\pi(C_n; NN) = \pi, \;\;C_N = (n, \;p_e, \;p_s, \; \tau)$$
 where, $NN$ encodes the neural network parameters. Afterwards, this policy is to be evaluated on a different set of physical parameters $C_{n'}$ and hopefuly we can find an agent that can learn optimal policies that can transfer to systems of different sizes.
 
 Additionally, there is a simple tabular puzzle game that translates the system into a more interpretable version that can also be played by humans!
