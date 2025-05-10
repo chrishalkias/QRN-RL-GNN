@@ -10,7 +10,7 @@ src/.venv
 .DS_Store
 
 # Ignore IDE-specific files
-.vscode/
+.vscode/*
 
 # Ignore temporary files
 /temp/
