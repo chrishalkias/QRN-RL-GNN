@@ -15,8 +15,8 @@ import plot_config
 
 sys_config = {
     'n_train'        : 4,
-    'n_test'         : 4,
-    'tau'            : 50_000,
+    'n_test'         : 6,
+    'tau'            : 10_000,
     'p_entangle'     : .85,
     'p_swap'         : .85,
     'kappa'          : 1, # Global depolarizer, legacy code
@@ -25,10 +25,10 @@ sys_config = {
 # RUN SOME HPO ON THIS!
 agent_config = {
     'train_agent'    : True,
-    'train_steps'    : 50_000,
-    'learning_rate'  : 0.005,
-    'weight_decay'   : 1e-4,
-    'temperature'    : .8,
+    'train_steps'    : 10_000,
+    'learning_rate'  : 3e-4,
+    'weight_decay'   : 1e-5,
+    'temperature'    : 1,
     'gamma'          : 0.9,
     'epsilon'        : 0.1,
     'plot_metrics'   : True,
@@ -41,18 +41,20 @@ agent_config = {
 
 model_config = {
     'input_features' : 1, # always
-    'embedding_dim'  : 8,
-    'num_layers'     : 3,
+    'embedding_dim'  : 4,
+    'num_layers'     : 1,
     'num_heads'      : 2,
-    'hidden_dim'     : 64, 
-    'unembedding_dim': 32, 
+    'hidden_dim'     : 32, 
+    'unembedding_dim': 64, 
     'output_dim'     : 4, # always
 
 }
 
 if __name__ == "__main__":
+
     np.set_printoptions(legacy='1.25')
     plot_config.set()
+
     model = GNN(
             node_dim          = model_config['input_features'], 
             embedding_dim     = model_config['embedding_dim'],
@@ -76,6 +78,8 @@ if __name__ == "__main__":
                 epsilon      = agent_config['epsilon'],
                 temperature  = agent_config['temperature']
             )
+    
+    exp.preview()
 
     if agent_config['train_agent']:
         exp.trainQ(episodes=agent_config['train_steps'], plot=True)

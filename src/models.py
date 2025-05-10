@@ -120,12 +120,19 @@ class GNN(nn.Module):
       """
         super().__init__()
 
-        self.gnn_layers = nn.ModuleList()
-        self.encoder = GATConv(node_dim, embedding_dim, heads=num_heads)
-        self.gatconv = GATConv(embedding_dim * num_heads, embedding_dim, heads=num_heads)
+        # self.gnn_layers = nn.ModuleList()
+        # self.ingat = GATConv(node_dim, embedding_dim, heads=num_heads)
+        # self.gatconv = GATConv(embedding_dim * num_heads, embedding_dim, heads=num_heads)
 
+        # self.gnn_layers.append(self.ingat)
+        # for _ in range(num_layers):
+        #     self.gnn_layers.append(self.gatconv)
+
+        self.encoder = nn.Sequential(
+           GATConv(node_dim, embedding_dim, heads=num_heads),
+        )
         for _ in range(num_layers):
-            self.gnn_layers.append(self.gatconv)
+           self.encoder.append(GATConv(embedding_dim * num_heads, embedding_dim, heads=num_heads),)
 
         self.latent = nn.Sequential(
           nn.Linear(embedding_dim * num_heads, hidden_dim),
@@ -150,11 +157,11 @@ class GNN(nn.Module):
         x, edge_index = data.x, data.edge_index
         
         # GNN forward pass
-        x = self.encoder(x, edge_index)
+        # x = self.encoder(x, edge_index)
 
-        for layer in self.gnn_layers:
+        for layer in self.encoder:
             x = layer(x, edge_index)
-            x = F.leaky_relu(x)
+            # x = F.leaky_relu(x, negative_slope=0.01,)
 
         x = self.latent(x)
         x = self.decoder(x)

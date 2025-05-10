@@ -7,9 +7,13 @@ Test things here
 '''
 from repeaters import RepeaterNetwork
 from models import CNN, GNN
-from gnn_env import Environment as gnnenv
-from cnn_env import Environment as cnnenv
+from gnn_env import Environment as EnvG
+from cnn_env import Environment as EnvC
 
+net = RepeaterNetwork()
 model = GNN()
-env = gnnenv(GNN())
-env.preview()
+env = EnvG(model)
+
+out = model.forward(net.tensorState())
+print(sum(out[1]))
+import datetime

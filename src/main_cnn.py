@@ -22,7 +22,7 @@ config = {
     'model'          : 'cnn', # Options: "mlp", "cnn", "gnn"
     'algorithm'      : 'Q-learning', #Options: 'Q-learning', 'Reinforce'
     'train_agent'    : True,
-    'train_steps'    : 300_000,
+    'train_steps'    : 10_000,
     'plot_metrics'   : True,
     'plot_loss'      : True,
     'print_model'    : True,
