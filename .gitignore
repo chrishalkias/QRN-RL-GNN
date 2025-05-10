@@ -3,22 +3,27 @@ src/*.py[cod]
 
 # Ignore cache directories
 src/__pycache__/
+src/__init__.py
 
 # Ignore environment files
 src/.venv
 .DS_Store
 
 # Ignore IDE-specific files
-src/.vscode/
+.vscode/
 
-# Ignore test/output files
-src/temp/
+# Ignore temporary files
+/temp/
 
 # Ignore full requirements
 requirements_full.txt
 
 # Ignore test files
 src/trial_and_error.py
+
+#Ignore CNN files
+src/cnn_env.py
+src/main_cnn.py
 
 # (A nice collection here https://github.com/github/gitignore/tree/main)
 

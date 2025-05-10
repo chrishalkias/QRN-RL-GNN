@@ -1,6 +1,6 @@
 
 --------------------------------------------------
-Run information at 2025-05-10 03:00:18.503939
+Run information at 2025-05-10 05:37:47.639079
 --------------------------------------------------
 
 --------------------------------------------------
@@ -43,16 +43,16 @@ Model size: 0.01 MB
 --------------------------------------------------
             Training information 
 --------------------------------------------------
- Trained for 11.436 sec performing 10000 steps.
+ Trained for 43.089 sec performing 20000 steps.
 --------------------------------------------------
  Testing Information 
 --------------------------------------------------
-Kind :trained, Links established : 20, t_avg: 49.600 it/link, t_std: 38.143 it/link
+Kind :trained, Links established : 12, t_avg: 82.417 it/link, t_std: 82.391 it/link
 --------------------------------------------------
  Testing Information 
 --------------------------------------------------
-Kind :random, Links established : 10, t_avg: 92.200 it/link, t_std: 78.388 it/link
+Kind :random, Links established : 8, t_avg: 103.000 it/link, t_std: 85.175 it/link
 --------------------------------------------------
  Testing Information 
 --------------------------------------------------
-Kind :alternating, Links established : 244, t_avg: 4.094 it/link, t_std: 2.698 it/link
+Kind :alternating, Links established : 241, t_avg: 4.145 it/link, t_std: 2.837 it/link

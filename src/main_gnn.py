@@ -25,7 +25,7 @@ sys_config = {
 # RUN SOME HPO ON THIS!
 agent_config = {
     'train_agent'    : True,
-    'train_steps'    : 10_000,
+    'train_steps'    : 20_000,
     'learning_rate'  : 3e-4,
     'weight_decay'   : 1e-5,
     'temperature'    : 1,
