@@ -2,8 +2,15 @@
 # src/repeaters.py
 
 '''
-Created Thu 06 Mar 2025
-The base simulation class, simulates the quantum network.
+                         ██████  ██████  ███    ██ 
+                        ██    ██ ██   ██ ████   ██ 
+                        ██    ██ ██████  ██ ██  ██ 
+                        ██ ▄▄ ██ ██   ██ ██  ██ ██ 
+                         ██████  ██   ██ ██   ████ 
+                            ▀▀      
+                            
+                          Created Thu 06 Mar 2025
+            The base simulation class, simulates the quantum network.
 '''
 
 import numpy as np
@@ -22,13 +29,7 @@ class RepeaterNetwork():
                p_entangle: float = 1,
                p_swap: float = 1
               ):
-    """
-                         ██████  ██████  ███    ██ 
-                        ██    ██ ██   ██ ████   ██ 
-                        ██    ██ ██████  ██ ██  ██ 
-                        ██ ▄▄ ██ ██   ██ ██  ██ ██ 
-                         ██████  ██   ██ ██   ████ 
-                            ▀▀                     
+    """               
     Description:                       
       This class implements the Graph description of the repeater network.
       All of the information about the network is encoded in the edges of it. i.e

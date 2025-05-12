@@ -1,6 +1,6 @@
 
 --------------------------------------------------
-Run information at 2025-05-12 01:57:03.461125
+Run information at 2025-05-12 15:29:13.804287
 --------------------------------------------------
 
 --------------------------------------------------
@@ -43,7 +43,12 @@ Model size: 0.01 MB
 --------------------------------------------------
             Training information (Q-learning) 
 --------------------------------------------------
- Trained for 42.226 sec performing 20000 steps.
-trained, L=19, t_avg=51.9, t_std=39.1
-random, L=4, t_avg=244.8, t_std=107.7
-alternating, L=218, t_avg=4.6, t_std=3.3
+ Trained for 87.380 sec performing 40000 steps.
+trained, L=13, t_avg=76.5, t_std=87.7
+random, L=4, t_avg=152.2, t_std=101.2
+alternating, L=231, t_avg=4.3, t_std=3.1
+
+--------------------------------------------------
+            Training information (Q-learning) 
+--------------------------------------------------
+ Trained for 28.190 sec performing 10000 steps.

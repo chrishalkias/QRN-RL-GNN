@@ -2,8 +2,14 @@
 # src/gnn_main.py
 
 '''
-Created Fri 09 May 2025
-Test things here
+         ██████  ███    ██ ███    ██     ███    ███  █████  ██ ███    ██ 
+        ██       ████   ██ ████   ██     ████  ████ ██   ██ ██ ████   ██ 
+        ██   ███ ██ ██  ██ ██ ██  ██     ██ ████ ██ ███████ ██ ██ ██  ██ 
+        ██    ██ ██  ██ ██ ██  ██ ██     ██  ██  ██ ██   ██ ██ ██  ██ ██ 
+         ██████  ██   ████ ██   ████     ██      ██ ██   ██ ██ ██   ████    
+
+                            Created Fri 09 May 2025
+                            The main simulation file
 '''
 
 import os
@@ -26,7 +32,7 @@ sys_config = {
 # RUN SOME HPO ON THIS!
 exp_config = {
     'train_agent'    : True,
-    'train_steps'    : 20_000,
+    'train_steps'    : 10_000,
     'learning_rate'  : 3e-4,
     'weight_decay'   : 1e-5,
     'temperature'    : 1,
@@ -96,8 +102,8 @@ if __name__ == "__main__":
 
     if exp_config['train_agent']:
         
-        trainer = Trainer(experiment=exp)
-        trainer.trainQ_scalar(episodes=exp_config['train_steps'], plot=True)
+        trainer = QTrainer(experiment=exp)
+        trainer.trainQ_tensor(episodes=exp_config['train_steps'], plot=True)
 
     if exp_config['evaluate_agent']:
         for kind in ['trained', 'random', 'alternating']:

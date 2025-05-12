@@ -2,7 +2,14 @@
 # src/environment.py
 
 '''
-Created Wed 02 Apr 2025
+             ██████  ██████  ███    ██     ███████ ███    ██ ██    ██ 
+            ██    ██ ██   ██ ████   ██     ██      ████   ██ ██    ██ 
+            ██    ██ ██████  ██ ██  ██     █████   ██ ██  ██ ██    ██ 
+            ██ ▄▄ ██ ██   ██ ██  ██ ██     ██      ██  ██ ██  ██  ██  
+             ██████  ██   ██ ██   ████     ███████ ██   ████   ████   
+                ▀▀                                                         
+                                                   
+                            Created Wed 02 Apr 2025
 The Agent class to run the RL model on the repeater networks for the case of GNN models.
 '''
 
@@ -47,13 +54,6 @@ class Environment():
                epsilon: float =0.1,
                temperature: float = 0,):
         """                   
-             ██████  ██████  ███    ██     ███████ ███    ██ ██    ██ 
-            ██    ██ ██   ██ ████   ██     ██      ████   ██ ██    ██ 
-            ██    ██ ██████  ██ ██  ██     █████   ██ ██  ██ ██    ██ 
-            ██ ▄▄ ██ ██   ██ ██  ██ ██     ██      ██  ██ ██  ██  ██  
-             ██████  ██   ██ ██   ████     ███████ ██   ████   ████   
-                ▀▀                                                                                            
-
     Description:
         This class implements the Graph description of the repeater network and uses
         it to train a deep Q learning algorithm using the DQN model built with

@@ -2,8 +2,14 @@
 # src/models.py
 
 '''
-Created Wed 02 Apr 2025
-Contains the NN models for the RL agent.
+    ███    ██ ███████ ██    ██ ██████   █████  ██          ███    ██ ███████ ████████ ███████ 
+    ████   ██ ██      ██    ██ ██   ██ ██   ██ ██          ████   ██ ██         ██    ██      
+    ██ ██  ██ █████   ██    ██ ██████  ███████ ██          ██ ██  ██ █████      ██    ███████ 
+    ██  ██ ██ ██      ██    ██ ██   ██ ██   ██ ██          ██  ██ ██ ██         ██         ██ 
+    ██   ████ ███████  ██████  ██   ██ ██   ██ ███████     ██   ████ ███████    ██    ███████ 
+                                                                   
+                            Created Wed 02 Apr 2025
+                        Contains the NN models for the RL agent.
 '''
 
 import torch
@@ -22,13 +28,8 @@ class CNN(nn.Module):
                  unembeding_dim = 8,
                  ):
       """
-             ██████ ███    ██ ███    ██ 
-            ██      ████   ██ ████   ██ 
-            ██      ██ ██  ██ ██ ██  ██ 
-            ██      ██  ██ ██ ██  ██ ██ 
-             ██████ ██   ████ ██   ████ 
-                                                        
-      CNN with fixed parameters for any input:
+      Description:                                            
+        CNN with fixed parameters for any input:
 
       Attributes:
         convolutions   (int) : Number of convolutional layers,
@@ -100,13 +101,8 @@ class GNN(nn.Module):
                  unembedding_dim = 16, 
                  output_dim=4):
         """
-                 ██████  ███    ██ ███    ██ 
-                ██       ████   ██ ████   ██ 
-                ██   ███ ██ ██  ██ ██ ██  ██ 
-                ██    ██ ██  ██ ██ ██  ██ ██ 
-                 ██████  ██   ████ ██   ████ 
-                                      
-      The GNN model with fixed parameters for any input:
+      Description:                        
+        The GNN model with fixed parameters for any input:
 
       Attributes:
         embedding_dim   (int),
