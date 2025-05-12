@@ -14,16 +14,15 @@ from torch_geometric.data import Data
 
 class RepeaterNetwork():
   def __init__(self,
-               n=4,
-               directed = False,
-               geometry = 'chain',
-               kappa = 1,
-               tau = 1_000,
-               p_entangle = 1,
-               p_swap = 1
+               n: int=4,
+               directed: bool = False,
+               geometry: str = 'chain',
+               kappa: float = 1,
+               tau: float = 1_000,
+               p_entangle: float = 1,
+               p_swap: float = 1
               ):
     """
-
                          ██████  ██████  ███    ██ 
                         ██    ██ ██   ██ ████   ██ 
                         ██    ██ ██████  ██ ██  ██ 

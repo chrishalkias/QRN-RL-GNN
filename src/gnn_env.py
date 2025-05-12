@@ -33,30 +33,27 @@ from repeaters import RepeaterNetwork
 
 class Environment():
     def __init__(self,
-               model, 
-               n=4,
-               directed = False,
-               geometry = 'chain',
-               kappa = 1,
-               tau = 1_000,
-               p_entangle = 1,
-               p_swap = 1,
-               weight_decay = 0,
-               lr=0.001,
-               gamma=0.9,
-               epsilon=0.1,
-               temperature=0,):
-        """
-
-                                    
+               model: object, 
+               n: int=4,
+               directed: bool = False,
+               geometry: str = 'chain',
+               kappa: float = 1,
+               tau: float = 1_000,
+               p_entangle: float = 1,
+               p_swap: float = 1,
+               weight_decay: float = 0,
+               lr: float = 1e-3,
+               gamma: float = 0.9,
+               epsilon: float =0.1,
+               temperature: float = 0,):
+        """                   
              ██████  ██████  ███    ██     ███████ ███    ██ ██    ██ 
             ██    ██ ██   ██ ████   ██     ██      ████   ██ ██    ██ 
             ██    ██ ██████  ██ ██  ██     █████   ██ ██  ██ ██    ██ 
             ██ ▄▄ ██ ██   ██ ██  ██ ██     ██      ██  ██ ██  ██  ██  
              ██████  ██   ██ ██   ████     ███████ ██   ████   ████   
                 ▀▀                                                                                            
-                                                                                                
-                                                
+
     Description:
         This class implements the Graph description of the repeater network and uses
         it to train a deep Q learning algorithm using the DQN model built with
@@ -69,7 +66,6 @@ class Environment():
         choose_action          > Choose a random, or the best, action
         update_environment     > Execute one of the actions
         reward                 > Computes the agents reward function
-        train                  > Trains the agent
         saveModel              > Saves the model to file
         test                   > Evaluate the model
 
@@ -119,7 +115,7 @@ class Environment():
         #     )
 
     def preview(self):
-        """Write the model params"""
+        """Write the model params in file"""
         total_params = sum(p.numel() for p in self.model.parameters())
         summa = [self.line,
             f'Run information at {datetime.now()}', self.line,
@@ -152,9 +148,15 @@ class Environment():
         return self.network.tensorState()
     
 
-    def out_to_onehot(self, tensor, temperature=0) -> torch.tensor:
+    def out_to_onehot(self, tensor: torch.tensor, temperature: float=0) -> torch.tensor:
         """
         Converts tensor to one-hot encoding with temperature-scaled probabilities.
+
+        Args:
+            tensor (torch.tensor)  : The input tensor to be one hotted
+        Returns:
+            one_hot (torch.tensor) : One hot encoded tensor
+
         """
         # Apply temperature scaling to squared values
         scaled = tensor.pow(2) / max(temperature, 1e-8)
@@ -233,11 +235,6 @@ class Environment():
         return 1 if self.network.endToEndCheck() else -0.1 + bonus_reward
     
 
-    def saveModel(self, filename="logs/model_checkpoints/GNN_model.pth"):
-        """Saves the model"""
-        torch.save(self.model.state_dict(), filename)
-
-
     def test(self, n_test, max_steps=100, kind='trained', plot=True):
         """
         Performs an evaluation on a repeater chain of specific length and returns the actions
@@ -255,29 +252,51 @@ class Environment():
         """
         totalReward, rewardlist, totalrewardList = 0, [], []
         fidelity, fidelityList = 0,[]    
-        self.network = RepeaterNetwork(n_test, p_entangle=self.network.p_entangle, p_swap=self.network.p_swap)
-        self.n = self.network.n
-        self.network.resetState()
         finalstep, timelist = 0, []
+        self.network = RepeaterNetwork(n_test, 
+                                       p_entangle=self.network.p_entangle, 
+                                       p_swap=self.network.p_swap)
+        self.n = self.network.n
+        self.network.resetState() #start with clean slate
         state = self.get_state_vector()
         assert kind in ['trained', 'alternating', 'random'], f'Invalid option {kind}'
+
+        def trained_action():
+            """Return the models prediction for an action"""
+            return self.choose_action(self.network.globalActions(), 
+                                      self.model(state), use_trained_model=True, 
+                                      temperature = self.temperature)
+
+        def random_action():
+            """Perform a random action at each node"""
+            waits = ['' for _ in range(self.n)]
+            entangles = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
+            swaps = [f'self.swapAT({i})' if (i != 0) and (i !=self.n-1) else '' for i in range(self.n)] # dont swap ad end nodes
+            return [random.choice([e, s, w]) for e, s, w in zip(entangles, swaps, waits) if random.choice([e, s, w]) is not None]
+
+        def alternating_action():
+            """At even timestep entangle all and at odd swap all"""
+            if (step % 2) == 0:
+                return [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
+            elif (step % 2) == 1:
+                return [f'self.swapAT({i})' if (i != 0) and (i !=self.n-1) else '' for i in range(self.n)]
+            
+        def swap_asap():
+            """Perform the swap asap"""
+            pass
+
         os.makedirs('logs', exist_ok=True)
         with open(f'./logs/textfiles/{kind}_test_output.txt', 'w') as file:
             file.write(f'Action reward log for {kind} at {datetime.now()}\n\n')
             print(f'Testing {kind}')
             for step in tqdm(range(1, max_steps)):
                 if kind == 'alternating':
-                    if (step % 2) == 0:
-                        action = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
-                    elif (step % 2) == 1:
-                        action = [f'self.swapAT({i})' for i in range(self.n)]
+                    action = alternating_action()
                 elif kind == 'trained':
-                    action = self.choose_action(self.network.globalActions(), self.model(state), use_trained_model=True, temperature = self.temperature)
+                    action = trained_action()
                 elif kind == 'random':
-                    waits = ['' for _ in range(self.n)]
-                    entangles = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
-                    swaps = [f'self.swapAT({i})' for i in range(self.n)]
-                    action = [random.choice([e, s, w]) for e, s, w in zip(entangles, swaps, waits) if random.choice([e, s, w]) is not None]
+                    action = random_action()
+
                 reward = self.update_environment(action)
                 rewardlist.append(reward)
                 state = self.get_state_vector()
@@ -286,8 +305,10 @@ class Environment():
                 fidelity += self.network.getLink((0,self.n-1),1)
                 fidelityList.append(fidelity)
                 fidelity_per_step = [val/(i+1) for i, val in enumerate(fidelityList)]
+                
                 file.write(f"\n Action: {[act[5:] for act in action]},Reward: {reward}")
                 file.write(f'\n State: {[ent for (adj, ent) in self.network.matrix.values()]}\n\n')
+
                 if self.network.endToEndCheck():
                     file.write(f"\n\n--Linked in {step - finalstep} steps for {kind} \n")
                     timelist.append(step-finalstep)
@@ -296,6 +317,7 @@ class Environment():
                     self.network.resetState()
                     file.write('\n ---Max iterations reached \n') if step == max_steps-1 else None
             file.close()
+
         total_links = len(timelist)
         avg_time = sum(timelist) / len(timelist) if timelist else np.inf
         std_time = statistics.stdev(timelist) if len(timelist) >= 2 else np.inf
@@ -310,8 +332,9 @@ class Environment():
                 f.write(line.rstrip('\r\n') + '\n' + content)
 
         with open("logs/information.txt", "a") as file3:
-            file3.write(f'Tested :{kind}, Links established : {total_links}, t_avg: {avg_time:.1f} it/link, t_std: {std_time:.1f} it/link\n')
+            file3.write(f'{kind}, L={total_links}, t_avg={avg_time:.1f}, t_std={std_time:.1f}\n')
             file3.close()
+
         if plot:
             fig, (ax1, ax2) = plt.subplots(2, 1)
             plot_title = f"Metrics for {kind} for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap}) over $10^{int(np.log10(max_steps))}$ steps"

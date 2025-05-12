@@ -17,12 +17,20 @@ class Trainer(Environment):
             experiment (obj) : The experiment object
 
         Methods:
-            trainQ (None) : Deployes the Q-learning algorithm
+            saveModel (NaN) : Saves the model chackpoint files
+            trainQ    (NaN) : Deployes the Q-learning algorithm
         """
-        assert isinstance(experiment, Environment), f'Parameter has to be an instance of an Environment'
+        assert isinstance(experiment, Environment), f'Arg has to be an instance of an Environment'
         self.experiment = experiment
 
-    def trainQ(self, episodes=10_000, plot=True, save_model=True):
+
+    def saveModel(self, filename="logs/model_checkpoints/GNN_model.pth"):
+        """Saves the model"""
+        model = self.experiment.model
+        torch.save(model.state_dict(), filename)
+
+
+    def trainQ_scalar(self, episodes=10_000, plot=True, save_model=True):
         """
         This is the bread and butter of this class. Here the main loop of state action reward is iterated
         and the optimizer is moving forward on the model. This implements a very simple Q-learning procedure
@@ -47,7 +55,9 @@ class Trainer(Environment):
             # set the MDP
             state = exp.get_state_vector()
             output = exp.model(state)
-            action = exp.choose_action(exp.network.globalActions(), output, temperature = exp.temperature)
+            action = exp.choose_action(exp.network.globalActions(), 
+                                       output, 
+                                       temperature = exp.temperature)
             reward = exp.update_environment(action)
             next_state = exp.get_state_vector()
             
@@ -77,7 +87,7 @@ class Trainer(Environment):
         train_time = time.time() - start_time
         with open("logs/information.txt", "a") as file:
             file.write(f'{exp.line} {" " *10} Training information (Q-learning) {exp.line} Trained for {train_time:.3f} sec performing {episodes} steps.\n')
-        exp.saveModel() if save_model else None
+        self.saveModel() if save_model else None
         if plot:
             fig, (ax1, ax2) = plt.subplots(2, 1)
             plot_title = f"Training metrics for $(n, p_E, p_S)$= ({exp.n}, {exp.network.p_entangle}, {exp.network.p_swap}) over $10^{int(np.log10(episodes))}$ steps"
@@ -116,3 +126,6 @@ class Trainer(Environment):
             plt.savefig('logs/plots/train_plots_loss.png')
             plt.xlabel('Episode')
             plt.legend()
+
+    def trainQ_tensor(self):
+        ...

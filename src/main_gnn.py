@@ -16,15 +16,15 @@ import plot_config
 
 sys_config = {
     'n_train'        : 4,
-    'n_test'         : 4,
-    'tau'            : 50_000,
+    'n_test'         : 6,
+    'tau'            : 1_000,
     'p_entangle'     : .85,
     'p_swap'         : .85,
     'kappa'          : 1, # Global depolarizer, legacy code
     } 
 
 # RUN SOME HPO ON THIS!
-agent_config = {
+exp_config = {
     'train_agent'    : True,
     'train_steps'    : 20_000,
     'learning_rate'  : 3e-4,
@@ -39,6 +39,17 @@ agent_config = {
     'test_steps'     : 1_000,
     'render_eval'    : True,   
     }   
+
+# train_config = {
+#     'train_agent'    : True,
+#     'train_steps'    : 100_000,
+#     'learning_rate'  : 3e-4,
+#     'weight_decay'   : 1e-5,
+#     'gamma'          : 0.9, #Q
+#     'epsilon'        : 0.1, #Q
+#     'plot_metrics'   : True,
+#     'plot_loss'      : True,
+#     } #not used yet
   
 
 model_config = {
@@ -74,25 +85,25 @@ if __name__ == "__main__":
                 tau          = sys_config['tau'],
                 p_entangle   = sys_config['p_entangle'], 
                 p_swap       = sys_config['p_swap'],
-                lr           = agent_config['learning_rate'], 
-                weight_decay = agent_config['weight_decay'],
-                gamma        = agent_config['gamma'], 
-                epsilon      = agent_config['epsilon'],
-                temperature  = agent_config['temperature']
+                lr           = exp_config['learning_rate'], 
+                weight_decay = exp_config['weight_decay'],
+                gamma        = exp_config['gamma'], 
+                epsilon      = exp_config['epsilon'],
+                temperature  = exp_config['temperature']
             )
     
     exp.preview()
 
-    if agent_config['train_agent']:
+    if exp_config['train_agent']:
         
         trainer = Trainer(experiment=exp)
-        trainer.trainQ(episodes=agent_config['train_steps'], plot=True)
+        trainer.trainQ_scalar(episodes=exp_config['train_steps'], plot=True)
 
-    if agent_config['evaluate_agent']:
+    if exp_config['evaluate_agent']:
         for kind in ['trained', 'random', 'alternating']:
             exp.test(n_test=sys_config['n_test'], 
-                        max_steps=agent_config['test_steps'], 
+                        max_steps=exp_config['test_steps'], 
                         kind=kind, 
-                        plot=agent_config['render_eval'])
+                        plot=exp_config['render_eval'])
 
     print(":-)")

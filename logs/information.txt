@@ -1,6 +1,6 @@
 
 --------------------------------------------------
-Run information at 2025-05-10 23:02:36.484748
+Run information at 2025-05-12 01:57:03.461125
 --------------------------------------------------
 
 --------------------------------------------------
@@ -11,7 +11,7 @@ n            : 4
 directed     : False 
 geometry     : chain 
 kappa        : 1 
-tau          : 50000 
+tau          : 1000 
 p_entangle   : 0.85 
 p_swap       : 0.85 
 lr           : 0.0003 
@@ -43,7 +43,7 @@ Model size: 0.01 MB
 --------------------------------------------------
             Training information (Q-learning) 
 --------------------------------------------------
- Trained for 45.038 sec performing 20000 steps.
-Tested :trained, Links established : 94, t_avg: 10.6 it/link, t_std: 7.4 it/link
-Tested :random, Links established : 63, t_avg: 15.7 it/link, t_std: 11.7 it/link
-Tested :alternating, Links established : 238, t_avg: 4.2 it/link, t_std: 4.8 it/link
+ Trained for 42.226 sec performing 20000 steps.
+trained, L=19, t_avg=51.9, t_std=39.1
+random, L=4, t_avg=244.8, t_std=107.7
+alternating, L=218, t_avg=4.6, t_std=3.3
