@@ -1,28 +1,43 @@
+network = <repeaters.RepeaterNetwork object at 0x10e4edfd0> 
+n = 4 
+lr = 0.0003 
+gamma = 0.9 
+epsilon = 0.1 
+criterion = MSELoss() 
+weight_decay = 1e-05 
+memory = [] 
+model = GNN(
+  (encoder): Sequential(
+    (0): GATConv(1, 4, heads=2)
+    (1): GATConv(8, 4, heads=2)
+  )
+  (latent): Sequential(
+    (0): Linear(in_features=8, out_features=32, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=32, out_features=64, bias=True)
+  )
+  (decoder): Sequential(
+    (0): Linear(in_features=64, out_features=4, bias=True)
+    (1): Softmax(dim=-1)
+  )
+) 
+temperature = 1 
+optimizer = Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    capturable: False
+    differentiable: False
+    eps: 1e-08
+    foreach: None
+    fused: None
+    lr: 0.0003
+    maximize: False
+    weight_decay: 1e-05
+) 
+scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x10e4edbe0> 
 
---------------------------------------------------
-Run information at 2025-05-12 15:29:13.804287
---------------------------------------------------
-
---------------------------------------------------
-          Experiment parameters
---------------------------------------------------
-Environment  : RepeaterNetwork 
-n            : 4 
-directed     : False 
-geometry     : chain 
-kappa        : 1 
-tau          : 1000 
-p_entangle   : 0.85 
-p_swap       : 0.85 
-lr           : 0.0003 
-gamma        : 0.9 
-epsilon      : 0.1 
-criterion    : MSELoss
-optimizer    : Adam 
-
---------------------------------------------------
-           Model architecture
---------------------------------------------------
+ Model breakdown 
 +-----------------------+----------------+----------------+----------+
 | Layer                 | Input Shape    | Output Shape   | #Param   |
 |-----------------------+----------------+----------------+----------|
@@ -39,16 +54,9 @@ optimizer    : Adam
 | │    └─(1)Softmax     | [4, 4]         | [4, 4]         | --       |
 +-----------------------+----------------+----------------+----------+
 Total params: 2,780
-Model size: 0.01 MB
---------------------------------------------------
-            Training information (Q-learning) 
---------------------------------------------------
- Trained for 87.380 sec performing 40000 steps.
-trained, L=13, t_avg=76.5, t_std=87.7
-random, L=4, t_avg=152.2, t_std=101.2
-alternating, L=231, t_avg=4.3, t_std=3.1
 
---------------------------------------------------
             Training information (Q-learning) 
---------------------------------------------------
- Trained for 28.190 sec performing 10000 steps.
+ Trained for 22.589 sec performing 10000 steps.
+trained, L=55, t_avg=71.7, t_std=59.1
+random, L=36, t_avg=103.3, t_std=108.8
+alternating, L=881, t_avg=4.5, t_std=3.4

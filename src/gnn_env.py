@@ -81,7 +81,6 @@ class Environment():
         temperature  (float)   > The temperature to be used on one-hot
         """
         super().__init__()
-        self.line = '\n' + '-'*50 + '\n'
         self.network = RepeaterNetwork(n, directed, geometry, kappa, tau, p_entangle, p_swap)
         self.n = self.network.n
         self.lr=lr
@@ -114,39 +113,16 @@ class Environment():
         #     lr_lambda=lambda step: min(1.0, step / warmup_steps)
         #     )
 
-    def preview(self):
+    def preview(self) -> None:
         """Write the model params in file"""
         total_params = sum(p.numel() for p in self.model.parameters())
-        summa = [self.line,
-            f'Run information at {datetime.now()}', self.line,
-            self.line, f'{" " * 10}Experiment parameters', self.line,
-            f'Environment  : {self.network.__class__.__name__} \n',
-            f'n            : {self.network.n} \n',
-            f'directed     : {self.network.directed} \n',
-            f'geometry     : {self.network.geometry} \n',
-            f'kappa        : {self.network.kappa} \n',
-            f'tau          : {self.network.tau} \n',
-            f'p_entangle   : {self.network.p_entangle} \n',
-            f'p_swap       : {self.network.p_swap} \n',
-            f'lr           : {self.lr} \n',
-            f'gamma        : {self.gamma} \n',
-            f'epsilon      : {self.epsilon} \n',
-            f'criterion    : {self.criterion.__class__.__name__}\n',
-            f'optimizer    : {self.optimizer.__class__.__name__} \n',
-            self.line, f'{" " * 10} Model architecture', self.line,
-            f'{summary(self.model, self.network.tensorState())}\n',
-            f'Total params: {total_params:,}\n',
-            f'Model size: {sum(p.numel() * p.element_size() for p in self.model.parameters()) / (1024**2):.2f} MB',
-            ]
+        infos = [f"{attr} = {value} \n" for attr, value in self.__dict__.items()]
+        infos.append(f'\n Model breakdown \n')
+        infos.append(f'{summary(self.model, self.network.tensorState())}\n')
+        infos.append(f'Total params: {total_params:,}\n')
         with open("logs/information.txt", "w") as file:
-            [file.write(info) for info in summa];
-        # x = torch.randn(100, 128)
-        # edge_index = torch.randint(100, size=(2, 20))
-        # print(summary(self.model, x, edge_index))
+            [file.write(info) for info in infos];
 
-    def get_state_vector(self):
-        return self.network.tensorState()
-    
 
     def out_to_onehot(self, tensor: torch.tensor, temperature: float=0) -> torch.tensor:
         """
@@ -170,7 +146,11 @@ class Environment():
         return one_hot
 
 
-    def choose_action(self, action_matrix: list,  output: torch.tensor, use_trained_model = False, temperature: float = 0) -> list:
+    def choose_action(self, 
+                      action_matrix: list,  
+                      output: torch.tensor, 
+                      use_trained_model = False, 
+                      temperature: float = 0) -> list:
         """
         Choose a random action with probability epsilon, otherwise choose the best action
 
@@ -235,7 +215,7 @@ class Environment():
         return 1 if self.network.endToEndCheck() else -0.1 + bonus_reward
     
 
-    def test(self, n_test, max_steps=100, kind='trained', plot=True):
+    def test(self, n_test, max_steps=100, kind='trained', plot=True) -> int:
         """
         Performs an evaluation on a repeater chain of specific length and returns the actions
         and plots of performance. Here the trained model is tested agains heuristics (random, alternating).
@@ -258,7 +238,7 @@ class Environment():
                                        p_swap=self.network.p_swap)
         self.n = self.network.n
         self.network.resetState() #start with clean slate
-        state = self.get_state_vector()
+        state = self.network.tensorState()
         assert kind in ['trained', 'alternating', 'random'], f'Invalid option {kind}'
 
         def trained_action():
@@ -299,7 +279,7 @@ class Environment():
 
                 reward = self.update_environment(action)
                 rewardlist.append(reward)
-                state = self.get_state_vector()
+                state = self.network.tensorState()
                 totalReward += reward
                 totalrewardList.append(totalReward)
                 fidelity += self.network.getLink((0,self.n-1),1)
@@ -325,15 +305,17 @@ class Environment():
         line1 = (f'\n >>> Total links established : {total_links}\n')
         line2 = (f'\n >>> Avg transfer time       : {avg_time:.3f} it \n')
         line3 = (f'\n >>>Typical time deviation   : {std_time:.3f} it\n')
+
         for line in (line0, line3, line2, line1, line0):
             with open(f'./logs/textfiles/{kind}_test_output.txt', 'r+') as f:
                 content = f.read()
                 f.seek(0, 0)
                 f.write(line.rstrip('\r\n') + '\n' + content)
+                f.close
 
-        with open("logs/information.txt", "a") as file3:
-            file3.write(f'{kind}, L={total_links}, t_avg={avg_time:.1f}, t_std={std_time:.1f}\n')
-            file3.close()
+        with open("logs/information.txt", "a") as f:
+            f.write(f'{kind}, L={total_links}, t_avg={avg_time:.1f}, t_std={std_time:.1f}\n')
+            f.close()
 
         if plot:
             fig, (ax1, ax2) = plt.subplots(2, 1)

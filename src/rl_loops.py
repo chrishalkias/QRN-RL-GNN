@@ -66,13 +66,13 @@ class QTrainer(Environment):
 
         for _ in tqdm(range(episodes)):
             # set the MDP
-            state = exp.get_state_vector()
+            state = exp.network.tensorState()
             output = exp.model(state)
             action = exp.choose_action(exp.network.globalActions(), 
                                        output, 
                                        temperature = exp.temperature)
             reward = exp.update_environment(action)
-            next_state = exp.get_state_vector()
+            next_state = exp.network.tensorState()
             
             # compute the target
             with torch.no_grad():
@@ -99,7 +99,7 @@ class QTrainer(Environment):
 
         train_time = time.time() - start_time
         with open("logs/information.txt", "a") as file:
-            file.write(f'{exp.line} {" " *10} Training information (Q-learning) {exp.line} Trained for {train_time:.3f} sec performing {episodes} steps.\n')
+            file.write(f'\n {" " *10} Training information (Q-learning) \n Trained for {train_time:.3f} sec performing {episodes} steps.\n')
         self.saveModel() if save_model else None
         if plot:
             fig, (ax1, ax2) = plt.subplots(2, 1)
@@ -142,7 +142,8 @@ class QTrainer(Environment):
 
     def trainQ_tensor(self, episodes=10_000, plot=True, save_model=True):
         """
-        Same as scalar but now the MSE is calculated on the difference of the current and next q_value tensors.
+        Same as scalar but now the MSE is calculated on the difference
+        of the current and next q_value tensors.
 
         Args:
             episodes   (int)  : The number of trainig steps to perform
@@ -161,14 +162,14 @@ class QTrainer(Environment):
         for _ in tqdm(range(episodes)):
             # set the MDP
             dims = 4 * exp.network.n
-            state = exp.get_state_vector()
+            state = exp.network.tensorState()
             output = exp.model(state)
             action = exp.choose_action(exp.network.globalActions(), 
                                     output, 
                                     temperature = exp.temperature)
             reward = exp.update_environment(action)
             q_values = output.view(-1, dims)[0]
-            next_state = exp.get_state_vector()
+            next_state = exp.network.tensorState()
             next_q_values = exp.model(next_state).view(-1, dims)[0]
             
             # compute the target
@@ -196,7 +197,7 @@ class QTrainer(Environment):
 
         train_time = time.time() - start_time
         with open("logs/information.txt", "a") as file:
-            file.write(f'{exp.line} {" " *10} Training information (Q-learning) {exp.line} Trained for {train_time:.3f} sec performing {episodes} steps.\n')
+            file.write(f'\n {" " *10} Training information (Q-learning) \n Trained for {train_time:.3f} sec performing {episodes} steps.\n')
         self.saveModel() if save_model else None
         if plot:
             fig, (ax1, ax2) = plt.subplots(2, 1)

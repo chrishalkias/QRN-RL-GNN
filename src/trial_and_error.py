@@ -15,17 +15,17 @@ from gnn_env import Environment
 from models import GNN
 from rl_loops import QTrainer
 
+net = RepeaterNetwork()
 model = GNN()
 experiment = Environment(model, n=5)
 new_model = GNN(output_dim=10)
-state = RepeaterNetwork().tensorState()
+state = net.tensorState()
+
+net.entangle(edge=(0,1))
+print(net.getLink(edge=(0,1), linkType=1))
+net.resetState()
+print(net.getLink(edge=(0,1), linkType=1))
 
 
-#load the saved model for evaluation
-os.makedirs('logs/model_checkpoints/', exist_ok=True)
-model.load_state_dict(torch.load('./logs/model_checkpoints/GNN_model.pth')) # Shape: [1, 4]
-model.eval()
-with torch.no_grad():
-    output = model(state)
-output = output.squeeze(0)
-print("Model output:", output)
+
+

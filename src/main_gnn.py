@@ -16,100 +16,84 @@ import os
 import numpy as np
 from gnn_env import Environment
 from models import GNN
-from rl_loops import Trainer
+from rl_loops import QTrainer
 import plot_config
+np.set_printoptions(legacy='1.25')
+
+#SYSTEM CONFIGURATION
+N_TRAIN         = 4
+N_TEST          = 6
+TAU             = 1_000
+P_ENTANGLE      = 0.85
+P_SWAP          = 0.85
+KAPPA           = 1
+
+#EXPERIMENT CONFIGURATION
+TRAIN_AGENT     = True
+TRAIN_STEPS     = 10_000
+LEARNING_RATE   = 3e-4
+WEIGHT_DECAY    = 1e-5
+TEMPERATURE     = 1
+GAMMA           = 0.9
+EPSILON         = 0.1
+PLOT_METRICS    = True
+PLOT_LOSS       = True
+PRINT_MODEL     = True
+EVALUATE_AGENT  = True
+TEST_STEPS      = 4_000
+RENDER_EVAL     = True
+
+#MODEL CONFIGURATION
+INPUT_FEATURES  = 1
+EMBEDDING_DIM   = 4
+NUM_LAYERS      = 1
+NUM_HEADS       = 2
+HIDDEN_DIM      = 32
+UNEMBEDDING_DIM = 64
+OUTPUT_DIM      = 4
 
 
-sys_config = {
-    'n_train'        : 4,
-    'n_test'         : 6,
-    'tau'            : 1_000,
-    'p_entangle'     : .85,
-    'p_swap'         : .85,
-    'kappa'          : 1, # Global depolarizer, legacy code
-    } 
+model = GNN(
+        node_dim          = INPUT_FEATURES, 
+        embedding_dim     = EMBEDDING_DIM,
+        num_layers        = NUM_LAYERS,
+        num_heads         = NUM_HEADS,
+        hidden_dim        = HIDDEN_DIM, 
+        unembedding_dim   = UNEMBEDDING_DIM, 
+        output_dim        = OUTPUT_DIM, 
+        ) 
 
-# RUN SOME HPO ON THIS!
-exp_config = {
-    'train_agent'    : True,
-    'train_steps'    : 10_000,
-    'learning_rate'  : 3e-4,
-    'weight_decay'   : 1e-5,
-    'temperature'    : 1,
-    'gamma'          : 0.9, #Q
-    'epsilon'        : 0.1, #Q
-    'plot_metrics'   : True,
-    'plot_loss'      : True,
-    'print_model'    : True,
-    'evaluate_agent' : True,
-    'test_steps'     : 1_000,
-    'render_eval'    : True,   
-    }   
-
-# train_config = {
-#     'train_agent'    : True,
-#     'train_steps'    : 100_000,
-#     'learning_rate'  : 3e-4,
-#     'weight_decay'   : 1e-5,
-#     'gamma'          : 0.9, #Q
-#     'epsilon'        : 0.1, #Q
-#     'plot_metrics'   : True,
-#     'plot_loss'      : True,
-#     } #not used yet
-  
-
-model_config = {
-    'input_features' : 1, # always
-    'embedding_dim'  : 4,
-    'num_layers'     : 1,
-    'num_heads'      : 2,
-    'hidden_dim'     : 32, 
-    'unembedding_dim': 64, 
-    'output_dim'     : 4, # always
-
-}
+exp = Environment(
+            model        = model,
+            n            = N_TRAIN,
+            kappa        = KAPPA,
+            tau          = TAU,
+            p_entangle   = P_ENTANGLE, 
+            p_swap       = P_SWAP,
+            lr           = LEARNING_RATE, 
+            weight_decay = WEIGHT_DECAY,
+            gamma        = GAMMA, 
+            epsilon      = EPSILON,
+            temperature  = TEMPERATURE
+        )
 
 if __name__ == "__main__":
 
-    np.set_printoptions(legacy='1.25')
     plot_config.set()
-
-    model = GNN(
-            node_dim          = model_config['input_features'], 
-            embedding_dim     = model_config['embedding_dim'],
-            num_layers        = model_config['num_layers'],
-            num_heads         = model_config['num_heads'],
-            hidden_dim        = model_config['hidden_dim'], 
-            unembedding_dim   = model_config['unembedding_dim'], 
-            output_dim        = model_config['output_dim'], 
-            ) 
-
-    exp = Environment(
-                model        = model,
-                n            = sys_config['n_train'],
-                kappa        = sys_config['kappa'],
-                tau          = sys_config['tau'],
-                p_entangle   = sys_config['p_entangle'], 
-                p_swap       = sys_config['p_swap'],
-                lr           = exp_config['learning_rate'], 
-                weight_decay = exp_config['weight_decay'],
-                gamma        = exp_config['gamma'], 
-                epsilon      = exp_config['epsilon'],
-                temperature  = exp_config['temperature']
-            )
-    
     exp.preview()
 
-    if exp_config['train_agent']:
+    if TRAIN_AGENT:
         
         trainer = QTrainer(experiment=exp)
-        trainer.trainQ_tensor(episodes=exp_config['train_steps'], plot=True)
+        trainer.trainQ_tensor(episodes=TRAIN_STEPS, plot=True)
 
-    if exp_config['evaluate_agent']:
+    if EVALUATE_AGENT:
+
         for kind in ['trained', 'random', 'alternating']:
-            exp.test(n_test=sys_config['n_test'], 
-                        max_steps=exp_config['test_steps'], 
-                        kind=kind, 
-                        plot=exp_config['render_eval'])
 
-    print(":-)")
+            exp.test(n_test    = N_TEST, 
+                     max_steps = TEST_STEPS, 
+                     kind      = kind, 
+                     plot      = RENDER_EVAL)
+
+    print(" ------------- Simulation end :-) ------------- ")
