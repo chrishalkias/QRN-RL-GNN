@@ -145,6 +145,23 @@ class Environment():
         one_hot.scatter_(1, choices.unsqueeze(1), 1)
         return one_hot
 
+    def binary_tensor_to_int(self, onehot:torch.tensor) -> int:
+        """
+        Converts a binary tensor of shape (4, N) to a unique integer.
+        The left-most element is treated as the most significant bit.
+        
+        Args:
+            tensor: torch.Tensor of shape (1, N) containing 0s and 1s
+            
+        Returns:
+            int: Unique integer representation
+        """
+        onehot = onehot.view(-1)
+        N = onehot.shape[0]
+        # Create powers of 2 in descending order (MSB to LSB)
+        powers = 2 ** torch.arange(N-1, -1, -1)
+        return int((onehot * powers).sum().item())
+
 
     def choose_action(self, 
                       action_matrix: list,  

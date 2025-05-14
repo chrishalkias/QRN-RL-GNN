@@ -71,15 +71,17 @@ class QTrainer(Environment):
             action = exp.choose_action(exp.network.globalActions(), 
                                        output, 
                                        temperature = exp.temperature)
+            q_value = exp.binary_tensor_to_int(exp.out_to_onehot(output))
             reward = exp.update_environment(action)
             next_state = exp.network.tensorState()
+            next_q_value = exp.binary_tensor_to_int(exp.out_to_onehot(exp.model(next_state)))
             
             # compute the target
             with torch.no_grad():
-                target = reward + exp.gamma * torch.max(exp.model(next_state))
+                target = reward + exp.gamma * next_q_value #torch.argmax(exp.model(next_state))
 
             # compute reward and backpropagate
-            q_value = torch.max(output)
+            q_value = q_value #torch.max(output)
             loss = exp.criterion(q_value, target)
             exp.optimizer.zero_grad()
             loss.backward()

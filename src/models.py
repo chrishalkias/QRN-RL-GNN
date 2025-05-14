@@ -116,6 +116,7 @@ class GNN(nn.Module):
       """
         super().__init__()
 
+        self.output_dim = output_dim
         # self.gnn_layers = nn.ModuleList()
         # self.ingat = GATConv(node_dim, embedding_dim, heads=num_heads)
         # self.gatconv = GATConv(embedding_dim * num_heads, embedding_dim, heads=num_heads)

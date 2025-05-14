@@ -24,13 +24,14 @@ np.set_printoptions(legacy='1.25')
 N_TRAIN         = 4
 N_TEST          = 6
 TAU             = 1_000
-P_ENTANGLE      = 0.85
-P_SWAP          = 0.85
+P_ENTANGLE      = .85
+P_SWAP          = .85
 KAPPA           = 1
 
 #EXPERIMENT CONFIGURATION
 TRAIN_AGENT     = True
-TRAIN_STEPS     = 10_000
+ALGORITHM       = 'QL'      # Options: 'QL', 'REINFORCE'
+TRAIN_STEPS     = 80_000
 LEARNING_RATE   = 3e-4
 WEIGHT_DECAY    = 1e-5
 TEMPERATURE     = 1
@@ -85,7 +86,11 @@ if __name__ == "__main__":
     if TRAIN_AGENT:
         
         trainer = QTrainer(experiment=exp)
-        trainer.trainQ_tensor(episodes=TRAIN_STEPS, plot=True)
+
+        if ALGORITHM == 'QL':
+            trainer.trainQ_tensor(episodes=TRAIN_STEPS, plot=True)
+        elif ALGORITHM == 'REINFORCE':
+            raise Exception("REINFORCE not yet implemented")
 
     if EVALUATE_AGENT:
 
