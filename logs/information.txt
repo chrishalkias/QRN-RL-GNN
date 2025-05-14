@@ -1,9 +1,9 @@
-network = <repeaters.RepeaterNetwork object at 0x10a80dd30> 
+network = <repeaters.RepeaterNetwork object at 0x10c7d5d30> 
 n = 4 
 lr = 0.0003 
-gamma = 0.9 
-epsilon = 0.1 
-criterion = MSELoss() 
+gamma = 0.95 
+epsilon = 0.2 
+criterion = CrossEntropyLoss() 
 weight_decay = 1e-05 
 memory = [] 
 model = GNN(
@@ -35,7 +35,7 @@ Parameter Group 0
     maximize: False
     weight_decay: 1e-05
 ) 
-scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x10a80d940> 
+scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x10c7d5940> 
 
  Model breakdown 
 +-----------------------+----------------+----------------+----------+
@@ -54,9 +54,6 @@ scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x10a80d940>
 | │    └─(1)Softmax     | [4, 4]         | [4, 4]         | --       |
 +-----------------------+----------------+----------------+----------+
 Total params: 2,780
-
-            Training information (Q-learning) 
- Trained for 186.892 sec performing 80000 steps.
-trained, L=62, t_avg=64.5, t_std=68.6
-random, L=30, t_avg=132.7, t_std=117.2
-alternating, L=860, t_avg=4.7, t_std=3.3
+trained, L=14, t_avg=67.1, t_std=61.0
+random, L=9, t_avg=110.4, t_std=77.7
+alternating, L=230, t_avg=4.3, t_std=3.0

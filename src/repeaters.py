@@ -210,6 +210,7 @@ class RepeaterNetwork():
       self.time (int) : The current time of the system
       updates the self.matrix with the new values
     """
+    return
     self.time += int(T)
     for key in self.matrix:
       i,j = key # Needs an extra r_ij here

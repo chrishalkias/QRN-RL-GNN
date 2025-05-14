@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 
 def set():
     """Sets the parameters for matplotlib"""
-    plt.rcParams.update({
+
+    plt.rcParams.update({ # or helvetiva font
         # --- Fonts ---
         "font.family": "serif",          # Use serif fonts (like Times New Roman)
         "font.serif": ["DejaVu Serif"],  # Built-in font that supports math symbols

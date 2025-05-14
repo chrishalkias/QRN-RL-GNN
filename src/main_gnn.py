@@ -20,48 +20,56 @@ from rl_loops import QTrainer
 import plot_config
 np.set_printoptions(legacy='1.25')
 
-#SYSTEM CONFIGURATION
+# SYSTEM CONFIGURATION
 N_TRAIN         = 4
 N_TEST          = 6
 TAU             = 1_000
 P_ENTANGLE      = .85
 P_SWAP          = .85
-KAPPA           = 1
+KAPPA           = 1 # legacy code
 
-#EXPERIMENT CONFIGURATION
+# TRAINING CONFIGURATION
 TRAIN_AGENT     = True
-ALGORITHM       = 'QL'      # Options: 'QL', 'REINFORCE'
-TRAIN_STEPS     = 80_000
+ALGORITHM       = 'PPO'      # Options: 'QL', 'REINFORCE', 'PPO'
+GAMMA           = 0.95
+EPSILON         = 0.2
+
+# DQN COnfig
+TRAIN_STEPS     = 10_000
 LEARNING_RATE   = 3e-4
+
+# PPO CONFIG
+NUM_STEPS       = 10_000 
+EPOCHS          = 5
+BATCH_SIZE      = 10
+
+
+# EXPERIMENT CONFIGURATION
 WEIGHT_DECAY    = 1e-5
 TEMPERATURE     = 1
-GAMMA           = 0.9
-EPSILON         = 0.1
 PLOT_METRICS    = True
-PLOT_LOSS       = True
-PRINT_MODEL     = True
+
+# TESTING CONFIGURATION
 EVALUATE_AGENT  = True
-TEST_STEPS      = 4_000
+TEST_STEPS      = 1_000
 RENDER_EVAL     = True
 
 #MODEL CONFIGURATION
-INPUT_FEATURES  = 1
 EMBEDDING_DIM   = 4
 NUM_LAYERS      = 1
 NUM_HEADS       = 2
 HIDDEN_DIM      = 32
 UNEMBEDDING_DIM = 64
-OUTPUT_DIM      = 4
 
 
 model = GNN(
-        node_dim          = INPUT_FEATURES, 
+        node_dim          = 1, 
         embedding_dim     = EMBEDDING_DIM,
         num_layers        = NUM_LAYERS,
         num_heads         = NUM_HEADS,
         hidden_dim        = HIDDEN_DIM, 
         unembedding_dim   = UNEMBEDDING_DIM, 
-        output_dim        = OUTPUT_DIM, 
+        output_dim        = 4, 
         ) 
 
 exp = Environment(
@@ -85,12 +93,20 @@ if __name__ == "__main__":
 
     if TRAIN_AGENT:
         
+        assert ALGORITHM in ['QL', 'REINFORCE', 'PPO'], "Algorithm not in list"
         trainer = QTrainer(experiment=exp)
 
         if ALGORITHM == 'QL':
-            trainer.trainQ_tensor(episodes=TRAIN_STEPS, plot=True)
+            trainer.trainQ_tensor(episodes=TRAIN_STEPS, plot=PLOT_METRICS)
         elif ALGORITHM == 'REINFORCE':
             raise Exception("REINFORCE not yet implemented")
+        elif ALGORITHM == 'PPO':
+            trainer.train_PPO(num_steps    = NUM_STEPS, 
+                              epochs       = EPOCHS, 
+                              batch_size   = BATCH_SIZE, 
+                              gamma        = GAMMA, 
+                              clip_epsilon = EPSILON,
+                              plot         = PLOT_METRICS)
 
     if EVALUATE_AGENT:
 
@@ -99,6 +115,7 @@ if __name__ == "__main__":
             exp.test(n_test    = N_TEST, 
                      max_steps = TEST_STEPS, 
                      kind      = kind, 
-                     plot      = RENDER_EVAL)
+                     plot      = RENDER_EVAL,
+                     algorithm = ALGORITHM)
 
-    print(" ------------- Simulation end :-) ------------- ")
+    print(f" {'-'*15} Simulation end :-) {'-'*15} ")

@@ -22,29 +22,15 @@ new_model = GNN(output_dim=10)
 state = experiment.network.tensorState()
 output = experiment.model(state)
 
-
-def binary_tensor_to_int(onehot):
-    """
-    Converts a binary tensor of shape (4, N) to a unique integer.
-    The left-most element is treated as the most significant bit.
-    
-    Args:
-        tensor: torch.Tensor of shape (1, N) containing 0s and 1s
-        
-    Returns:
-        int: Unique integer representation
-    """
-    onehot = onehot.view(-1)
-    N = onehot.shape[0]
-    # Create powers of 2 in descending order (MSB to LSB)
-    powers = 2 ** torch.arange(N-1, -1, -1)
-    return int((onehot * powers).sum().item())
-
-# Example usage
-onehot = experiment.out_to_onehot(output)  
-unique_int = binary_tensor_to_int(onehot)
-print(unique_int)  # Output: 10 (which is 1*8 + 0*4 + 1*2 + 0*1)
-
+from tqdm import tqdm
+epochs=50
+num_steps=1000
+batch_size = 100
+count = 0
+for epoch in tqdm(range(epochs)):
+    for start in range(0, num_steps, batch_size):
+        count +=1
+print(count,  epochs * num_steps / batch_size)
 
 
 

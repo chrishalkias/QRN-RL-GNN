@@ -31,11 +31,6 @@ from torch_geometric.nn import summary
 from torch_geometric.data import Data
 from torch.optim.lr_scheduler import LambdaLR, CyclicLR
 
-plt.rcParams.update({
-    "text.usetex": False,
-    "font.family": "Helvetica"
-})
-
 from repeaters import RepeaterNetwork
 
 class Environment():
@@ -86,7 +81,7 @@ class Environment():
         self.lr=lr
         self.gamma = gamma
         self.epsilon = epsilon
-        self.criterion = nn.MSELoss()
+        self.criterion = nn.CrossEntropyLoss()# nn.MSELoss()
         self.weight_decay = weight_decay
         self.memory = []
         self.model = model
@@ -94,6 +89,7 @@ class Environment():
         self.optimizer = optim.Adam(self.model.parameters(),
                                     lr=self.lr, 
                                     weight_decay = self.weight_decay)
+        
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer,
             mode ='max',
@@ -232,13 +228,14 @@ class Environment():
         return 1 if self.network.endToEndCheck() else -0.1 + bonus_reward
     
 
-    def test(self, n_test, max_steps=100, kind='trained', plot=True) -> int:
+    def test(self, n_test, algorithm: str, max_steps=100, kind='trained', plot=True) -> int:
         """
         Performs an evaluation on a repeater chain of specific length and returns the actions
         and plots of performance. Here the trained model is tested agains heuristics (random, alternating).
 
         Args:
             n_test        (int)  : The length of the repeater chain to perform the test on
+            algorithm     (str)  : The name of the algorithm tested
             max_steps     (int)  : The maximum number of test iterations
             kind          (str)  : The chosen test method. 'trained' means using the trained model
             plot          (bool) : Create fidelity and reward plots
@@ -347,7 +344,8 @@ class Environment():
             ax2.set(ylabel=f'Fidelity of resulting link')
             # ax2.set_xscale("log")
             fig.suptitle(plot_title)
-            plt.savefig(f'logs/plots/test_{kind}.png')
+            label = f'logs/plots/test_{algorithm}.png' if (kind=='trained') else f'logs/plots/test_{kind}.png'
+            plt.savefig(label)
             plt.xlabel('Step')
             return finalstep
       
