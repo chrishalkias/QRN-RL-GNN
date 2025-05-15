@@ -2,8 +2,14 @@
 # game/game.py
 
 '''
-Created Wed 15 Apr 2025
-A simple quantum network based board game.
+                 ██████   ██████  ███    ██ ███    ██ ███████  ██████ ████████ 
+                ██    ██ ██    ██ ████   ██ ████   ██ ██      ██         ██    
+                ██    ██ ██    ██ ██ ██  ██ ██ ██  ██ █████   ██         ██    
+                ██ ▄▄ ██ ██    ██ ██  ██ ██ ██  ██ ██ ██      ██         ██    
+                 ██████   ██████  ██   ████ ██   ████ ███████  ██████    ██    
+                     ▀▀                                                                                                        
+                               Created Wed 15 Apr 2025
+                        A simple quantum network based board game.
 '''
 
 import pygame
@@ -13,8 +19,17 @@ from typing import List, Tuple, Optional, Dict
 
 class Qonnect:
     def __init__(self, config: dict):
-        """Initialize the game with customizable parameters"""
-                                                
+        """
+        This is the main class for the game
+
+        Description:
+            This is a game tha implements the swapping based repeater scheme in a puzzle game fashion
+
+        Args:
+            config (dict) > A configuration dictionary for the game
+        """
+
+        #Initialize the game with customizable parameters                                        
         self.config = {                         # Game configuration
             'grid_size': 5,                     # Size of the grid (N x N)
             'cell_size': 80,                    # Size of each cell in pixels
@@ -76,25 +91,26 @@ class Qonnect:
 
 
     def show_rules_popup(self):
-        """Display game rules in a modal popup"""
+        """Display game rules in a modal popup with each rule on a new line"""
         rules_lines = [
-            "Welcome to Qonnect! ",
-            "The goal of the game is to put a dot on the green square (end-to-end entanglement). ",
-            "Here are the rules: ",
-            "Rule 0: The game is played on a grid of size N x N with reflection symmetry about the diagonal. ",
-            "Rule 1: You can select a grey cell to place a dot (entanglement generation). ",
-            "Rule 2: You can select two dots to merge them (entanglement swapping). ",
-            "When swapping, the dots must be in the same row or column and selection must be first done on the topmost or leftmost dot. ",
-            "For example, if you have dots at (i,j) and (j,k), you can swap them. ",
-            "You can also swap dots with their mirror images and sometimes only with their mirror images. ",
-            "The mirror image of a dot (i,j) is (j,i). ",
-            "If you swap two dots (i,j) and (j,k), the result will be in the position (i,k). ",
-            "Rule 3: The dots will disappear after a few actions. ",
-            "Rule 4: You can only place dots in grey cells. ",
-            "Rule 5: The game ends when you create a dot in the target position. ",
-            "Final rule: Enjoy the game!               -Chris"
+            "Welcome to Qonnect!",
+            "The goal of the game is to put a dot on the green square (end-to-end entanglement).",
+            "Here are the rules:", "",
+            "-Rule 0: The game is played on a grid of size N x N with reflection symmetry about the diagonal.","",
+            "-Rule 1: You can select a grey cell to place a dot (entanglement generation).","",
+            "-Rule 2: You can select two dots to merge them (entanglement swapping).",
+            "When swapping, the dots must be in the same row or column."
+            "For example, if you have dots at (i,j) and (j,k), you can swap them."
+            "You can also swap dots with their mirror images and sometimes only with their mirror images."
+            "The mirror image of a dot (i,j) is (j,i)."
+            "If you swap two dots (i,j) and (j,k), the result will be in the position (i,k).","",
+            "-Rule 3: The dots will disappear after a few actions.",
+            "-Rule 4: You can only place dots in grey cells.",
+            "-Rule 5: The game ends when you create a dot in the target position.",
+            "-Final rule: Enjoy the game!,"
+            "",
+            "                       -Chris"
         ]
-        rules_text = "".join(rules_lines)
         
         # Create a semi-transparent overlay
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
@@ -102,20 +118,28 @@ class Qonnect:
         self.screen.blit(overlay, (0, 0))
         
         # Create popup rectangle
-        popup_width, popup_height = 700, 500
+        popup_width, popup_height = 800, 600
         popup_x = (self.screen.get_width() - popup_width) // 2
         popup_y = (self.screen.get_height() - popup_height) // 2
         
         pygame.draw.rect(self.screen, (240, 240, 240), 
                         (popup_x, popup_y, popup_width, popup_height))
         
-        # Render rules text (with word wrapping)
+        # Render rules text with each line on a new line
         font = pygame.font.SysFont(None, 24)
         y_offset = popup_y + 20
-        for line in self._wrap_text(rules_text, font, popup_width - 40):
-            text = font.render(line, True, (0, 0, 0))
-            self.screen.blit(text, (popup_x + 20, y_offset))
-            y_offset += 30
+        for line in rules_lines:
+            # Split very long lines (optional)
+            if len(line) > 80:
+                sublines = self._wrap_text(line, font, popup_width - 40)
+                for subline in sublines:
+                    text = font.render(subline, True, (0, 0, 0))
+                    self.screen.blit(text, (popup_x + 20, y_offset))
+                    y_offset += 25
+            else:
+                text = font.render(line, True, (0, 0, 0))
+                self.screen.blit(text, (popup_x + 20, y_offset))
+                y_offset += 25
         
         # Render close button
         close_rect = pygame.Rect(popup_x + popup_width - 120, popup_y + popup_height - 50, 100, 30)
@@ -394,33 +418,40 @@ class Qonnect:
         if self.grid[row1][col1] and self.grid[row2][col2]:
             self.age_dots()
             if random.random() < self.config['dot_merge_prob']:
-                # Apply matrix multiplication rule: (i,j) and (k,l) can merge if j == k
-                if col1 == row2:
-                    # Result goes to (i,l)
+                # Calculate average lifetime of the two dots
+                lifetime1 = self.dot_timers.get((row1, col1), self.config['dot_lifetime'])
+                lifetime2 = self.dot_timers.get((row2, col2), self.config['dot_merge_prob'])
+                average_lifetime = (lifetime1 + lifetime2) // 2
+                
+                # Determine valid merge combinations (row or column matches)
+                new_row, new_col = -1, -1
+                if col1 == row2:  # (i,j) and (j,k) → (i,k)
                     new_row, new_col = row1, col2
-                    
+                elif col1 == col2:  # (i,j) and (k,j) → (i,k)
+                    new_row, new_col = row1, row2
+                elif row1 == row2:  # (i,j) and (i,k) → (j,k)
+                    new_row, new_col = col1, col2
+                elif row1 == col2:  # (i,j) and (k,i) → (j,k)
+                    new_row, new_col = col1, row2
+                
+                if new_row != -1 and new_col != -1:  # If valid merge combination found
                     # Remove original dots and their mirrors
                     self.remove_dot(row1, col1)
                     self.remove_dot(row2, col2)
                     
                     # Check if target position is valid
                     if self.is_valid_position(new_row, new_col):
-                        # Place new dot and its mirror
+                        # Place new dot and its mirror with average lifetime
                         self.grid[new_row][new_col] = True
-                        self.dot_timers[(new_row, new_col)] = self.config['dot_lifetime']
+                        self.dot_timers[(new_row, new_col)] = average_lifetime
                         
                         mirror_row, mirror_col = new_col, new_row
                         if mirror_row != mirror_col:  # Don't mirror on diagonal
                             self.grid[mirror_row][mirror_col] = True
-                            self.dot_timers[(mirror_row, mirror_col)] = self.config['dot_lifetime']
+                            self.dot_timers[(mirror_row, mirror_col)] = average_lifetime
                         
                         self.log_action(f"Swap ({row1+1},{col1+1}) and ({row2+1},{col2+1})")
-
-                        # Age all existing dots (including the new ones)
-                        
-                        # Check win condition
                         self.check_win_condition()
-    
     def remove_dot(self, row: int, col: int):
         """Remove a dot and its mirror image"""
         self.grid[row][col] = False
