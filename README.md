@@ -1,9 +1,13 @@
 # Quantum Repeater Network with RL and GNNs
 
+<div align='center'>
+
 ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
 ![LaTeX](https://img.shields.io/badge/LaTeX-008080?logo=latex&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)
 ![PyTorch Geometric](https://img.shields.io/badge/PyTorch%20Geometric-EE4C2C?style=flat&logo=pytorch&logoColor=white)
+
+</div>
 
 
 >[!WARNING]
