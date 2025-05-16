@@ -1,5 +1,10 @@
 # Quantum Repeater Network with RL and GNNs
 
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![LaTeX](https://img.shields.io/badge/LaTeX-008080?logo=latex&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)
+![PyTorch Geometric](https://img.shields.io/badge/PyTorch%20Geometric-EE4C2C?style=flat&logo=pytorch&logoColor=white)
+
 
 >[!WARNING]
 >This project is still under construction and not operational. The code only offers limited usability far below the scope of the full project. When all is done, after the shampagne :beers:, remove this banner and declare victory.
@@ -22,11 +27,6 @@ the full code structure can be found below:
 
 ```
 .
-├── game
-│   ├── __init__.py
-│   ├── game.py
-│   ├── play.py
-│   └── README.md
 ├── src
 │   ├── __init__.py
 │   ├── cnn_environment.py
@@ -40,16 +40,21 @@ the full code structure can be found below:
 │   ├── repeaters.py
 │   └── sandbox.ipynb
 ├── logs
-│   ├── models
-│   │   ├── model_summary.txt
-│   │   └── model.pth
+│   ├── information.txt
+│   ├── model_checkpoints
+│   │   └── GNN_model.pth
 │   ├── plots
+│   │   ├── (DQN)_train_loss.png
+│   │   ├── (DQN)_train_reward.png
 │   │   ├── test_alternating.png
+│   │   ├── test_PPO.png
+│   │   ├── test_QL.png
 │   │   ├── test_random.png
-│   │   ├── test_trained.png
+│   │   ├── test_swapASAP.png
 │   │   └── train_plots.png
 │   └── textfiles
 │       ├── alternating_test_output.txt
+│       ├── swapASAP_test_output.txt
 │       ├── random_test_output.txt
 │       └── trained_test_output.txt
 ├── example.ipynb

@@ -253,7 +253,7 @@ class Environment():
         self.n = self.network.n
         self.network.resetState() #start with clean slate
         state = self.network.tensorState()
-        assert kind in ['trained', 'alternating', 'random'], f'Invalid option {kind}'
+        assert kind in ['trained', 'swapASAP', 'alternating', 'random'], f'Invalid option {kind}'
 
         def trained_action():
             """Return the models prediction for an action"""
@@ -277,13 +277,30 @@ class Environment():
             
         def swap_asap():
             """Perform the swap asap"""
-            pass
+            net = self.network
+            actions = []
 
+            for i in range(net.n):
+                rightlink = net.getLink(edge = (i,i+1), linkType=1) if i != net.n-1 else -1
+                leftlink = net.getLink(edge = (i-1,i), linkType=1) if i != 0 else -1
+
+                if leftlink > 0 and rightlink > 0 and i!=1 and i!=net.n:
+                    actions.append(f'self.swapAT({i})')
+                elif leftlink == 0 and leftlink != -1:
+                    actions.append(f'self.entangle(edge={(i-1,i)})')
+                elif rightlink == 0 and rightlink != -1:
+                    actions.append(f'self.entangle(edge={(i,i+1)})')
+
+            return actions
+
+            
         os.makedirs('logs', exist_ok=True)
         with open(f'./logs/textfiles/{kind}_test_output.txt', 'w') as file:
             file.write(f'Action reward log for {kind} at {datetime.now()}\n\n')
             print(f'Testing {kind}')
             for step in tqdm(range(1, max_steps)):
+                if kind == 'swapASAP':
+                    action = swap_asap()
                 if kind == 'alternating':
                     action = alternating_action()
                 elif kind == 'trained':
@@ -344,7 +361,7 @@ class Environment():
             ax2.set(ylabel=f'Fidelity of resulting link')
             # ax2.set_xscale("log")
             fig.suptitle(plot_title)
-            label = f'logs/plots/test_{algorithm}.png' if (kind=='trained') else f'logs/plots/test_{kind}.png'
+            label = f'logs/plots/test_({algorithm}).png' if (kind=='trained') else f'logs/plots/test_{kind}.png'
             plt.savefig(label)
             plt.xlabel('Step')
             return finalstep

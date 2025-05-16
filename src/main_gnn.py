@@ -24,18 +24,18 @@ np.set_printoptions(legacy='1.25')
 N_TRAIN         = 4
 N_TEST          = 6
 TAU             = 1_000
-P_ENTANGLE      = .85
-P_SWAP          = .85
+P_ENTANGLE      = .99
+P_SWAP          = .99
 KAPPA           = 1 # legacy code
 
 # TRAINING CONFIGURATION
 TRAIN_AGENT     = True
-ALGORITHM       = 'PPO'      # Options: 'QL', 'REINFORCE', 'PPO'
+ALGORITHM       = 'QL'      # Options: 'QL', 'REINFORCE', 'PPO'
 GAMMA           = 0.95
 EPSILON         = 0.2
 
 # DQN COnfig
-TRAIN_STEPS     = 10_000
+TRAIN_STEPS     = 1_000
 LEARNING_RATE   = 3e-4
 
 # PPO CONFIG
@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     if EVALUATE_AGENT:
 
-        for kind in ['trained', 'random', 'alternating']:
+        for kind in ['trained', 'random', 'alternating', 'swapASAP']:
 
             exp.test(n_test    = N_TEST, 
                      max_steps = TEST_STEPS, 

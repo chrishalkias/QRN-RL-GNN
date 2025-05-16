@@ -250,7 +250,8 @@ class QTrainer(Environment):
                   clip_epsilon: float = 0.2,
                   plot: bool = True) -> None:
         """
-        Implements the PPO algorithm
+        Implements the PPO algorithm from scratch.
+
         Args:
             num_steps    (int)   > The number of training steps
             epochs       (int)   > The total number of epochs
@@ -373,8 +374,3 @@ class QTrainer(Environment):
             # ax2.set(ylabel=f'Fidelity of resulting links')
             # ax2.set_xscale("log")
             # ax2.legend()
-
-
-
-
-
