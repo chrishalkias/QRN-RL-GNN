@@ -89,6 +89,5 @@ if __name__ == "__main__":
         trainer.trainQ_tensor(episodes=TRAIN_STEPS, plot=PLOT_METRICS,)
 
     if EVALUATE_AGENT:
-            for kind in ['trained', 'random', 'swapASAP', 'alternating']:
-                exp.test(n_test=N_TEST, kind=kind, max_steps=TEST_STEPS,plot=RENDER_EVAL,)
+        exp.test(n_test=N_TEST, max_steps=TEST_STEPS,plot=RENDER_EVAL,)
     print(' :) ')

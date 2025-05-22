@@ -1,4 +1,4 @@
-network = <repeaters.RepeaterNetwork object at 0x10f5fdd30> 
+network = <repeaters.RepeaterNetwork object at 0x1283fdd30> 
 n = 4 
 lr = 0.0003 
 gamma = 0.95 
@@ -22,6 +22,7 @@ model = GNN(
   )
 ) 
 temperature = 1 
+test_dict = {} 
 optimizer = Adam (
 Parameter Group 0
     amsgrad: False
@@ -35,7 +36,7 @@ Parameter Group 0
     maximize: False
     weight_decay: 1e-05
 ) 
-scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x10f5fd940> 
+scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x1283fd940> 
 
  Model breakdown 
 +-----------------------+----------------+----------------+----------+
@@ -56,8 +57,8 @@ scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x10f5fd940>
 Total params: 2,780
 
 -Training information (Q-learning) 
- Trained for 2.241 sec performing 1000 steps.
-trained, L=12, t_avg=77.4, t_std=69.7
-random, L=8, t_avg=117.0, t_std=83.7
-swapASAP, L=165, t_avg=6.0, t_std=8.0
-alternating, L=220, t_avg=4.5, t_std=3.6
+ Trained for 2.333 sec performing 1000 steps.
+trained, L=19, t_avg=51.4, t_std=50.3
+random, L=26, t_avg=30.9, t_std=185.6
+swapASAP, L=153, t_avg=6.5, t_std=100.3
+alternating, L=380, t_avg=2.6, t_std=81.7

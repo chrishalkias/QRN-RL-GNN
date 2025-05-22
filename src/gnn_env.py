@@ -87,6 +87,7 @@ class Environment():
         self.memory = []
         self.model = model
         self.temperature = temperature
+        self.test_dict = {}
         self.optimizer = optim.Adam(self.model.parameters(),
                                     lr=self.lr, 
                                     weight_decay = self.weight_decay)
@@ -229,7 +230,7 @@ class Environment():
         return 1 if self.network.endToEndCheck() else -0.1 + bonus_reward
     
 
-    def test(self, n_test, max_steps=100, kind='trained', plot=True) -> int:
+    def test(self, n_test, max_steps=100, plot=True) -> int:
         """
         Performs an evaluation on a repeater chain of specific length and returns the actions
         and plots of performance. Here the trained model is tested agains heuristics (random, alternating).
@@ -237,7 +238,6 @@ class Environment():
         Args:
             n_test        (int)  : The length of the repeater chain to perform the test on
             max_steps     (int)  : The maximum number of test iterations
-            kind          (str)  : The chosen test method. 'trained' means using the trained model
             plot          (bool) : Create fidelity and reward plots
 
         Returns:
@@ -253,7 +253,7 @@ class Environment():
         self.n = self.network.n
         self.network.resetState() #start with clean slate
         state = self.network.tensorState()
-        assert kind in ['trained', 'swapASAP', 'alternating', 'random'], f'Invalid option {kind}'
+
 
         def trained_action():
             """Return the models prediction for an action"""
@@ -295,83 +295,84 @@ class Environment():
 
             
         os.makedirs('logs', exist_ok=True)
-        with open(f'./logs/textfiles/{kind}_test_output.txt', 'w') as file:
-            file.write(f'Action reward log for {kind} at {datetime.now()}\n\n')
-            print(f'Testing {kind}')
-            for step in tqdm(range(1, max_steps)):
-                if kind == 'swapASAP':
-                    action = swap_asap()
-                if kind == 'alternating':
-                    action = alternating_action()
-                elif kind == 'trained':
-                    action = trained_action()
-                elif kind == 'random':
-                    action = random_action()
+        for kind in ['trained', 'random', 'swapASAP', 'alternating']:
+            with open(f'./logs/textfiles/{kind}_test_output.txt', 'w') as file:
+                file.write(f'Action reward log for {kind} at {datetime.now()}\n\n')
+                print(f'Testing {kind}')
+                for step in tqdm(range(1, max_steps)):
+                    if kind == 'swapASAP':
+                        action = swap_asap()
+                    if kind == 'alternating':
+                        action = alternating_action()
+                    elif kind == 'trained':
+                        action = trained_action()
+                    elif kind == 'random':
+                        action = random_action()
 
-                reward = self.update_environment(action)
-                rewardlist.append(reward)
-                state = self.network.tensorState()
-                totalReward += reward
-                totalrewardList.append(totalReward)
-                fidelity += self.network.getLink((0,self.n-1),1)
-                fidelityList.append(fidelity)
-                fidelity_per_step = [val/(i+1) for i, val in enumerate(fidelityList)]
+                    reward = self.update_environment(action)
+                    rewardlist.append(reward)
+                    state = self.network.tensorState()
+                    totalReward += reward
+                    totalrewardList.append(totalReward)
+                    fidelity += self.network.getLink((0,self.n-1),1)
+                    fidelityList.append(fidelity)
+                    fidelity_per_step = [val/(i+1) for i, val in enumerate(fidelityList)]
+                    
+                    file.write(f"\n Action: {[act[5:] for act in action]},Reward: {reward}")
+                    file.write(f'\n State: {[ent for (adj, ent) in self.network.matrix.values()]}\n\n')
+
+                    if self.network.endToEndCheck():
+                        file.write(f"\n\n--Linked in {step - finalstep} steps for {kind} \n")
+                        timelist.append(step-finalstep)
+                        finalstep = step
+                        self.network.endToEndCheck()
+                        self.network.resetState()
+                        file.write('\n ---Max iterations reached \n') if step == max_steps-1 else None
+                file.close()
+
+            total_links = len(timelist)
+            avg_time = sum(timelist) / len(timelist) if timelist else np.inf
+            std_time = statistics.stdev(timelist) if len(timelist) >= 2 else np.inf
+            line0 = '-' * 50
+            line1 = (f'\n >>> Total links established : {total_links}\n')
+            line2 = (f'\n >>> Avg transfer time       : {avg_time:.3f} it \n')
+            line3 = (f'\n >>>Typical time deviation   : {std_time:.3f} it\n')
+
+            for line in (line0, line3, line2, line1, line0):
+                with open(f'./logs/textfiles/{kind}_test_output.txt', 'r+') as f:
+                    content = f.read()
+                    f.seek(0, 0)
+                    f.write(line.rstrip('\r\n') + '\n' + content)
+                    f.close
+
+            with open("logs/information.txt", "a") as f:
+                f.write(f'{kind}, L={total_links}, t_avg={avg_time:.1f}, t_std={std_time:.1f}\n')
+                f.close()
                 
-                file.write(f"\n Action: {[act[5:] for act in action]},Reward: {reward}")
-                file.write(f'\n State: {[ent for (adj, ent) in self.network.matrix.values()]}\n\n')
+            # Gather test statistics
+            (mean_reward, std_reward) = (statistics.mean(rewardlist), statistics.stdev(rewardlist))
+            (mean_fidelity, std_fidelity) = (statistics.mean(fidelity_per_step), statistics.stdev(fidelity_per_step))
+            self.test_dict = self.test_dict | {kind: [mean_reward, std_reward, mean_fidelity, std_fidelity]}
+        
 
-                if self.network.endToEndCheck():
-                    file.write(f"\n\n--Linked in {step - finalstep} steps for {kind} \n")
-                    timelist.append(step-finalstep)
-                    finalstep = step
-                    self.network.endToEndCheck()
-                    self.network.resetState()
-                    file.write('\n ---Max iterations reached \n') if step == max_steps-1 else None
-            file.close()
+            if plot:
+                fig, (ax1, ax2) = plt.subplots(2, 1)
+                plot_title = f"Metrics for {kind} for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap}) over $10^{int(np.log10(max_steps))}$ steps"
+                # ax1.axline((0,1),slope=0, ls='--')
+                ax1.plot(totalrewardList, 'tab:orange', ls='-', label='Reward per step')
+                ax1.set(ylabel=f'Log reward')
+                # ax1.set_yscale("symlog")
+                ax1.legend()
+                ax2.plot(fidelity_per_step, 'tab:green', ls='-', label='Average Fidelity per step')
+                ax2.legend()
+                ax2.set(ylabel=f'Fidelity of resulting link')
+                # ax2.set_xscale("log")
+                fig.suptitle(plot_title)
+                label = f'logs/plots/test_{kind}.png'
+                plt.savefig(label)
+                plt.xlabel('Step')
 
-        total_links = len(timelist)
-        avg_time = sum(timelist) / len(timelist) if timelist else np.inf
-        std_time = statistics.stdev(timelist) if len(timelist) >= 2 else np.inf
-        line0 = '-' * 50
-        line1 = (f'\n >>> Total links established : {total_links}\n')
-        line2 = (f'\n >>> Avg transfer time       : {avg_time:.3f} it \n')
-        line3 = (f'\n >>>Typical time deviation   : {std_time:.3f} it\n')
-
-        for line in (line0, line3, line2, line1, line0):
-            with open(f'./logs/textfiles/{kind}_test_output.txt', 'r+') as f:
-                content = f.read()
-                f.seek(0, 0)
-                f.write(line.rstrip('\r\n') + '\n' + content)
-                f.close
-
-        with open("logs/information.txt", "a") as f:
-            f.write(f'{kind}, L={total_links}, t_avg={avg_time:.1f}, t_std={std_time:.1f}\n')
-            f.close()
-        # Gather test statistics
-        mean_reward, std_reward = statistics.mean(rewardlist), statistics.stdev(rewardlist)
-        mean_fidelity, std_fidelity = statistics.mean(fidelity_per_step), statistics.stdev(fidelity_per_step)
-        test_dict = {kind: 
-                     {'reward': [mean_reward, std_reward], 
-                      'fidelity': [mean_fidelity, std_fidelity]}
-                     }
-        with open('logs/test_metrics.json', 'a') as f:
-            json.dump(test_dict, f, indent=4)
-            json.dump(',',f) 
-        if plot:
-            fig, (ax1, ax2) = plt.subplots(2, 1)
-            plot_title = f"Metrics for {kind} for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap}) over $10^{int(np.log10(max_steps))}$ steps"
-            # ax1.axline((0,1),slope=0, ls='--')
-            ax1.plot(totalrewardList, 'tab:orange', ls='-', label='Reward per step')
-            ax1.set(ylabel=f'Log reward')
-            # ax1.set_yscale("symlog")
-            ax1.legend()
-            ax2.plot(fidelity_per_step, 'tab:green', ls='-', label='Average Fidelity per step')
-            ax2.legend()
-            ax2.set(ylabel=f'Fidelity of resulting link')
-            # ax2.set_xscale("log")
-            fig.suptitle(plot_title)
-            label = f'logs/plots/test_{kind}.png'
-            plt.savefig(label)
-            plt.xlabel('Step')
-            return finalstep
-      
+        #save the test data
+        with open("logs/test_metrics.json", 'a') as f:
+            json.dump(self.test_dict, f, indent=4,)
+        print(self.test_dict)
