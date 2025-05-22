@@ -61,8 +61,8 @@ class QTrainer(Environment):
             train_plots (.png) : The training plots
         """
         exp = self.experiment
-        (totalReward, fidelity, entanglementDegree) = (0,0,0)
-        (rewardList, fidelityList, entanglementlist, lossList) = ([],[],[],[])
+        (totalReward, fidelity) = (0,0)
+        (rewardList, fidelityList, lossList) = ([],[],[],[])
         start_time = time.time()
 
         for _ in tqdm(range(episodes)):
@@ -96,16 +96,14 @@ class QTrainer(Environment):
             rewardList.append(totalReward)
             fidelity += exp.network.getLink((0,exp.n-1),1)
             fidelityList.append(fidelity)
-            linkList = [exp.network.getLink(node,1) for node in exp.network.matrix.keys()]
             lossList.append(loss.item())
-            entanglementDegree = np.mean(linkList) /exp.n
-            entanglementlist.append(entanglementDegree)
             exp.network.resetState() if reward == 1 else None
 
+        #save model when training is done
+        self.saveModel() if save_model else None
         train_time = time.time() - start_time
         with open("logs/information.txt", "a") as file:
-            file.write(f'\n {" " *10} Training information (Q-learning) \n Trained for {train_time:.3f} sec performing {episodes} steps.\n')
-        self.saveModel() if save_model else None
+            file.write(f'\n Training information for in {train_time:.3f} sec.\n')
         if plot:
             fig, (ax1, ax2) = plt.subplots(2, 1)
             plot_title = f"Training metrics for $(n, p_E, p_S)$= ({exp.n}, {exp.network.p_entangle}, {exp.network.p_swap}) over $10^{int(np.log10(episodes))}$ steps"
@@ -220,140 +218,6 @@ class QTrainer(Environment):
 
             # ax2.plot(entanglementlist*self.n,'tab:green', ls='-', label=r'Average Entanglement')
             fig.suptitle(plot_title)
-            plt.savefig('logs/plots/(DQN)_train_reward.png')
+            plt.savefig('logs/plots/train_reward.png')
             plt.xlabel('Episode')
             plt.legend()
-
-
-    # def train_PPO(self, 
-    #               num_steps: int= 2048, 
-    #               epochs: int = 4, 
-    #               batch_size: int = 64, 
-    #               gamma: float = 0.99, 
-    #               clip_epsilon: float = 0.2,
-    #               plot: bool = True) -> None:
-    #     """
-    #     Implements the PPO algorithm from scratch.
-
-    #     Args:
-    #         num_steps    (int)   > The number of training steps
-    #         epochs       (int)   > The total number of epochs
-    #         batch_size   (int)   > The batch size
-    #         gamma        (float) > The discount factor
-    #         clip_epsilon (float) > The policy clipping
-    #         plot         (int)   > If plot the metrics
-
-    #     Returns:
-    #         information        (.txt) > Appends the training information
-    #         train_plot_loss    (.png) > Returns the loss and fidelity plots
-    #         train_plots_reward (.png) > Returns the reward and fidelity plots
-    #     """
-        
-    #     (fidelityList, losslist) = ([],[])
-        
-    #     exp = self.experiment
-    #     states, actions, old_log_probs, rewards = [], [], [], []
-    #     current_state = exp.network.tensorState()
-
-    #     # Data collection phase
-    #     print(f'Collecting data')
-    #     for _ in tqdm(range(num_steps)):
-    #         with torch.no_grad():
-    #             output = exp.model(current_state)
-    #             action_probs = F.softmax(output, dim=-1)
-                
-    #             # Create distribution and sample actions for each node
-    #             dists = [torch.distributions.Categorical(logits=node_logits) 
-    #                     for node_logits in output]
-    #             action_labels = torch.stack([d.sample() for d in dists])
-    #             log_probs = torch.stack([dists[i].log_prob(action_labels[i]) 
-    #                         for i in range(exp.n)]).sum()
-
-    #             # Convert to environment's action format
-    #             action = exp.choose_action(
-    #                                 exp.network.globalActions(), 
-    #                                 action_probs, 
-    #                                 use_trained_model=True,
-    #                                 temperature=exp.temperature
-    #                                 )
-
-    #         reward = exp.update_environment(action)
-            
-    #         states.append(current_state)
-    #         actions.append(action_labels)
-    #         old_log_probs.append(log_probs)
-    #         rewards.append(reward)
-    #         current_state = exp.network.tensorState()
-
-    #     # Convert to tensors
-    #     actions = torch.stack(actions)  # [num_steps, n]
-    #     old_log_probs = torch.stack(old_log_probs)  # [num_steps]
-
-    #     # Calculate discounted returns
-    #     returns = []
-    #     discounted = 0
-    #     for r in reversed(rewards):
-    #         discounted = r + gamma * discounted
-    #         returns.insert(0, discounted)
-    #     returns = torch.tensor(returns, dtype=torch.float32)
-    #     returns = (returns - returns.mean()) / (returns.std() + 1e-8)
-
-    #     # Optimization loop
-    #     print(f'Optimizing')
-    #     for epoch in tqdm(range(epochs)):
-    #         indices = torch.randperm(num_steps)
-    #         for start in range(0, num_steps, batch_size):
-    #             batch_idx = indices[start:start+batch_size]
-    #             batch_states = [states[i] for i in batch_idx.tolist()]
-    #             batch_actions = actions[batch_idx]
-    #             batch_old_log_probs = old_log_probs[batch_idx]
-    #             batch_returns = returns[batch_idx]
-
-    #             # Get new policy probabilities
-    #             current_log_probs = []
-    #             for state in batch_states:
-    #                 output = exp.model(state)
-    #                 dists = [torch.distributions.Categorical(logits=node_logits)
-    #                         for node_logits in output]
-    #                 log_probs = torch.stack([dists[i].log_prob(batch_actions[:,i][j]) 
-    #                                     for j, i in enumerate(range(exp.n))]).sum()
-                    
-    #                 current_log_probs.append(log_probs)
-                    
-    #             current_log_probs = torch.stack(current_log_probs)
-
-    #             # Calculate policy loss
-    #             ratio = (current_log_probs - batch_old_log_probs).exp()
-    #             surr1 = ratio * batch_returns
-    #             surr2 = torch.clamp(ratio, 1-clip_epsilon, 1+clip_epsilon) * batch_returns
-    #             policy_loss = -torch.min(surr1, surr2).mean()
-    #             losslist.append(policy_loss.item())
-
-    #             # Update model
-    #             exp.optimizer.zero_grad()
-    #             policy_loss.backward()
-    #             exp.optimizer.step()
-
-    #     if plot:
-    #         logstep = int(np.log10(epochs * num_steps / batch_size))
-    #         params = (exp.n, exp.network.p_entangle, exp.network.p_swap)
-    #         plot_title = f"Training metrics for $(n, p_E, p_S)$= {params} over $10^{logstep}$ steps (PPO)"
-    #         plt.plot(losslist,ls='-', label='Loss')
-    #         plt.ylabel('Policy Loss')
-    #         plt.title(plot_title)
-    #         plt.legend()
-    #         plt.savefig("./logs/plots/(PPO)_PolicyLoss.png")
-            
-    #         # fig, (ax1, ax2) = plt.subplots(2, 1)
-    #         # plot_title = f"Training metrics for $(n, p_E, p_S)$= ({exp.n}, {exp.network.p_entangle}, {exp.network.p_swap}) over $10^{int(np.log10(epochs))}$ epochs (PPO)"
-    #         # ax1.plot(losslist,ls='-', label='Loss')
-    #         # ax1.set(ylabel=f'Policy Loss')
-    #         # ax1.set_yscale("symlog")
-    #         # plt.savefig("./logs/plots/(PPO)_PolicyLoss.png")
-    #         # ax1.legend()
-
-    #         # fidelity_per_step = [val/(i+1) for i, val in enumerate(fidelityList)]
-    #         # ax2.plot(fidelity_per_step, 'tab:green', ls='-', label='Average Fidelity')
-    #         # ax2.set(ylabel=f'Fidelity of resulting links')
-    #         # ax2.set_xscale("log")
-    #         # ax2.legend()

@@ -114,12 +114,13 @@ class Environment():
     def preview(self) -> None:
         """Write the model params in file"""
         total_params = sum(p.numel() for p in self.model.parameters())
-        infos = [f"{attr} = {value} \n" for attr, value in self.__dict__.items()]
+        attr_exclude = ['model', 'optimizer', 'memory', 'test_dict']
+        infos = [f"{attr} = {value} \n" for attr, value in self.__dict__.items() if attr not in attr_exclude]
         infos.append(f'\n Model breakdown \n')
         infos.append(f'{summary(self.model, self.network.tensorState())}\n')
         infos.append(f'Total params: {total_params:,}\n')
         with open("logs/information.txt", "w") as file:
-            [file.write(info) for info in infos];
+            file.write(f'Run at {datetime.now()} \n'), [file.write(info) for info in infos];
 
 
     def out_to_onehot(self, tensor: torch.tensor, temperature: float=0) -> torch.tensor:
@@ -244,9 +245,6 @@ class Environment():
             *_test_output (.txt) : A text file with all the actions taken
             test_*        (.png) : Figures of the reward and fidelity plots
         """
-        totalReward, rewardlist, totalrewardList = 0, [], []
-        fidelity, fidelityList = 0,[]    
-        finalstep, timelist = 0, []
         self.network = RepeaterNetwork(n_test, 
                                        p_entangle=self.network.p_entangle, 
                                        p_swap=self.network.p_swap)
@@ -296,6 +294,9 @@ class Environment():
             
         os.makedirs('logs', exist_ok=True)
         for kind in ['trained', 'random', 'swapASAP', 'alternating']:
+            totalReward, rewardlist, totalrewardList = 0, [], []
+            fidelity, fidelityList = 0,[]    
+            finalstep, timelist = 0, []
             with open(f'./logs/textfiles/{kind}_test_output.txt', 'w') as file:
                 file.write(f'Action reward log for {kind} at {datetime.now()}\n\n')
                 print(f'Testing {kind}')
@@ -375,4 +376,3 @@ class Environment():
         #save the test data
         with open("logs/test_metrics.json", 'a') as f:
             json.dump(self.test_dict, f, indent=4,)
-        print(self.test_dict)

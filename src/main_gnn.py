@@ -24,15 +24,15 @@ np.set_printoptions(legacy='1.25')
 
 # SYSTEM CONFIGURATION
 N_TRAIN         = 4
-N_TEST          = 6
+N_TEST          = 4
 TAU             = 1_000
-P_ENTANGLE      = .85
-P_SWAP          = .85
+P_ENTANGLE      = .15
+P_SWAP          = .15
 KAPPA           = 1 # legacy code
 
 # TRAINING CONFIGURATION
 TRAIN_AGENT     = True
-TRAIN_STEPS     = 1_000
+TRAIN_STEPS     = 10_000
 LEARNING_RATE   = 3e-4
 GAMMA           = 0.95
 EPSILON         = 0.2

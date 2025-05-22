@@ -1,42 +1,13 @@
-network = <repeaters.RepeaterNetwork object at 0x1283fdd30> 
+Run at 2025-05-22 23:22:44.214192 
+network = <repeaters.RepeaterNetwork object at 0x122405a90> 
 n = 4 
 lr = 0.0003 
 gamma = 0.95 
 epsilon = 0.2 
 criterion = CrossEntropyLoss() 
 weight_decay = 1e-05 
-memory = [] 
-model = GNN(
-  (encoder): Sequential(
-    (0): GATConv(1, 4, heads=2)
-    (1): GATConv(8, 4, heads=2)
-  )
-  (latent): Sequential(
-    (0): Linear(in_features=8, out_features=32, bias=True)
-    (1): ReLU()
-    (2): Linear(in_features=32, out_features=64, bias=True)
-  )
-  (decoder): Sequential(
-    (0): Linear(in_features=64, out_features=4, bias=True)
-    (1): Softmax(dim=-1)
-  )
-) 
 temperature = 1 
-test_dict = {} 
-optimizer = Adam (
-Parameter Group 0
-    amsgrad: False
-    betas: (0.9, 0.999)
-    capturable: False
-    differentiable: False
-    eps: 1e-08
-    foreach: None
-    fused: None
-    lr: 0.0003
-    maximize: False
-    weight_decay: 1e-05
-) 
-scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x1283fd940> 
+scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x1224056a0> 
 
  Model breakdown 
 +-----------------------+----------------+----------------+----------+
@@ -57,8 +28,8 @@ scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x1283fd940>
 Total params: 2,780
 
 -Training information (Q-learning) 
- Trained for 2.333 sec performing 1000 steps.
-trained, L=19, t_avg=51.4, t_std=50.3
-random, L=26, t_avg=30.9, t_std=185.6
-swapASAP, L=153, t_avg=6.5, t_std=100.3
-alternating, L=380, t_avg=2.6, t_std=81.7
+ Trained for 21.932 sec performing 10000 steps.
+trained, L=25, t_avg=39.6, t_std=25.2
+random, L=11, t_avg=90.5, t_std=109.3
+swapASAP, L=83, t_avg=12.0, t_std=7.5
+alternating, L=17, t_avg=54.5, t_std=38.8
