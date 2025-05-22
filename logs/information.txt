@@ -1,4 +1,4 @@
-network = <repeaters.RepeaterNetwork object at 0x10addde80> 
+network = <repeaters.RepeaterNetwork object at 0x10f5fdd30> 
 n = 4 
 lr = 0.0003 
 gamma = 0.95 
@@ -35,7 +35,7 @@ Parameter Group 0
     maximize: False
     weight_decay: 1e-05
 ) 
-scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x10addda90> 
+scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x10f5fd940> 
 
  Model breakdown 
 +-----------------------+----------------+----------------+----------+
@@ -55,9 +55,9 @@ scheduler = <torch.optim.lr_scheduler.ReduceLROnPlateau object at 0x10addda90>
 +-----------------------+----------------+----------------+----------+
 Total params: 2,780
 
-            Training information (Q-learning) 
- Trained for 2.210 sec performing 1000 steps.
-trained, L=18, t_avg=54.8, t_std=39.4
-random, L=18, t_avg=50.1, t_std=39.9
-alternating, L=482, t_avg=2.1, t_std=0.4
-swapASAP, L=0, t_avg=inf, t_std=inf
+-Training information (Q-learning) 
+ Trained for 2.241 sec performing 1000 steps.
+trained, L=12, t_avg=77.4, t_std=69.7
+random, L=8, t_avg=117.0, t_std=83.7
+swapASAP, L=165, t_avg=6.0, t_std=8.0
+alternating, L=220, t_avg=4.5, t_std=3.6

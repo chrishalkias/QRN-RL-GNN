@@ -15,34 +15,27 @@
 import os
 import numpy as np
 from gnn_env import Environment
+
 from models import GNN
 from rl_loops import QTrainer
 import plot_config
 np.set_printoptions(legacy='1.25')
+#Sorry PEP8 but equal signs are aligned
 
 # SYSTEM CONFIGURATION
 N_TRAIN         = 4
 N_TEST          = 6
 TAU             = 1_000
-P_ENTANGLE      = .99
-P_SWAP          = .99
+P_ENTANGLE      = .85
+P_SWAP          = .85
 KAPPA           = 1 # legacy code
 
 # TRAINING CONFIGURATION
 TRAIN_AGENT     = True
-ALGORITHM       = 'QL'      # Options: 'QL', 'REINFORCE', 'PPO'
-GAMMA           = 0.95
-EPSILON         = 0.2
-
-# DQN COnfig
 TRAIN_STEPS     = 1_000
 LEARNING_RATE   = 3e-4
-
-# PPO CONFIG
-NUM_STEPS       = 10_000 
-EPOCHS          = 5
-BATCH_SIZE      = 10
-
+GAMMA           = 0.95
+EPSILON         = 0.2
 
 # EXPERIMENT CONFIGURATION
 WEIGHT_DECAY    = 1e-5
@@ -92,30 +85,10 @@ if __name__ == "__main__":
     exp.preview()
 
     if TRAIN_AGENT:
-        
-        assert ALGORITHM in ['QL', 'REINFORCE', 'PPO'], "Algorithm not in list"
         trainer = QTrainer(experiment=exp)
-
-        if ALGORITHM == 'QL':
-            trainer.trainQ_tensor(episodes=TRAIN_STEPS, plot=PLOT_METRICS)
-        elif ALGORITHM == 'REINFORCE':
-            raise Exception("REINFORCE not yet implemented")
-        elif ALGORITHM == 'PPO':
-            trainer.train_PPO(num_steps    = NUM_STEPS, 
-                              epochs       = EPOCHS, 
-                              batch_size   = BATCH_SIZE, 
-                              gamma        = GAMMA, 
-                              clip_epsilon = EPSILON,
-                              plot         = PLOT_METRICS)
+        trainer.trainQ_tensor(episodes=TRAIN_STEPS, plot=PLOT_METRICS,)
 
     if EVALUATE_AGENT:
-
-        for kind in ['trained', 'random', 'alternating', 'swapASAP']:
-
-            exp.test(n_test    = N_TEST, 
-                     max_steps = TEST_STEPS, 
-                     kind      = kind, 
-                     plot      = RENDER_EVAL,
-                     algorithm = ALGORITHM)
-
-    print(f" {'-'*15} Simulation end :-) {'-'*15} ")
+            for kind in ['trained', 'random', 'swapASAP', 'alternating']:
+                exp.test(n_test=N_TEST, kind=kind, max_steps=TEST_STEPS,plot=RENDER_EVAL,)
+    print(' :) ')

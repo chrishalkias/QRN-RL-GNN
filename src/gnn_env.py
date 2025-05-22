@@ -26,6 +26,7 @@ from datetime import datetime
 from io import StringIO
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import json
 import torch.nn.functional as F
 from torch_geometric.nn import summary
 from torch_geometric.data import Data
@@ -228,14 +229,13 @@ class Environment():
         return 1 if self.network.endToEndCheck() else -0.1 + bonus_reward
     
 
-    def test(self, n_test, algorithm: str, max_steps=100, kind='trained', plot=True) -> int:
+    def test(self, n_test, max_steps=100, kind='trained', plot=True) -> int:
         """
         Performs an evaluation on a repeater chain of specific length and returns the actions
         and plots of performance. Here the trained model is tested agains heuristics (random, alternating).
 
         Args:
             n_test        (int)  : The length of the repeater chain to perform the test on
-            algorithm     (str)  : The name of the algorithm tested
             max_steps     (int)  : The maximum number of test iterations
             kind          (str)  : The chosen test method. 'trained' means using the trained model
             plot          (bool) : Create fidelity and reward plots
@@ -284,7 +284,7 @@ class Environment():
                 rightlink = net.getLink(edge = (i,i+1), linkType=1) if i != net.n-1 else -1
                 leftlink = net.getLink(edge = (i-1,i), linkType=1) if i != 0 else -1
 
-                if leftlink > 0 and rightlink > 0 and i!=1 and i!=net.n:
+                if leftlink > 0 and rightlink > 0 and i!=0 and i!=net.n:
                     actions.append(f'self.swapAT({i})')
                 elif leftlink == 0 and leftlink != -1:
                     actions.append(f'self.entangle(edge={(i-1,i)})')
@@ -347,7 +347,16 @@ class Environment():
         with open("logs/information.txt", "a") as f:
             f.write(f'{kind}, L={total_links}, t_avg={avg_time:.1f}, t_std={std_time:.1f}\n')
             f.close()
-
+        # Gather test statistics
+        mean_reward, std_reward = statistics.mean(rewardlist), statistics.stdev(rewardlist)
+        mean_fidelity, std_fidelity = statistics.mean(fidelity_per_step), statistics.stdev(fidelity_per_step)
+        test_dict = {kind: 
+                     {'reward': [mean_reward, std_reward], 
+                      'fidelity': [mean_fidelity, std_fidelity]}
+                     }
+        with open('logs/test_metrics.json', 'a') as f:
+            json.dump(test_dict, f, indent=4)
+            json.dump(',',f) 
         if plot:
             fig, (ax1, ax2) = plt.subplots(2, 1)
             plot_title = f"Metrics for {kind} for $(n, p_E, p_S)$= ({self.n}, {self.network.p_entangle}, {self.network.p_swap}) over $10^{int(np.log10(max_steps))}$ steps"
@@ -361,7 +370,7 @@ class Environment():
             ax2.set(ylabel=f'Fidelity of resulting link')
             # ax2.set_xscale("log")
             fig.suptitle(plot_title)
-            label = f'logs/plots/test_({algorithm}).png' if (kind=='trained') else f'logs/plots/test_{kind}.png'
+            label = f'logs/plots/test_{kind}.png'
             plt.savefig(label)
             plt.xlabel('Step')
             return finalstep
