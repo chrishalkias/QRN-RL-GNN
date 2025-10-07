@@ -21,27 +21,19 @@ where, $C_N = (n, p_e, p_s, \tau)$ and $NN$ encodes the neural network parameter
 
 The graph neural network is able to find strategies in order to achieve end-to-end entanglement in quantum networks of fixed size. It achieves high cummulative reward with relativelly few training steps:
 
-<div align='center'>
 ![Alt text](./assets/train.png)
-</div>
 
 This behaviour is pretty robust to the random initialization of the networks weights, indicative of a good quality of the learning algorithm `AgentGNN().train()` in the [agent](./src/agent.py) file:
 
-<div align='center'>
 ![Alt text](./assets/train_stats.png)
-</div>
 
 The validation performance of the network indicates that it can easily outperform the [Swap-asap](https://quantum-journal.org/papers/q-2025-05-15-1744/) strategy
 
-<div align='center'>
 ![Alt text](./assets/test_stats.png)
-</div>
 
 As previous research has suggested, the learning agent performs best (compared to the swap-asap strategy) in the $C_n$ regime where $p_e \ll 1$ and $p_s \ll 1$. This is verified here by the means of a relative performance heatmap:
 
-<div align='center'>
 ![Alt text](./assets/heatmap.png)
-</div>
 
 > [!NOTE]
 >Additionally, there is a simple tabular puzzle game that translates the system into a more interpretable version that can also be played by humans [Qonnect](https://github.com/chrishalkias/qonnect)!
