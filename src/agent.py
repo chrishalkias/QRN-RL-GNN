@@ -70,7 +70,7 @@ class AgentGNN(RepeaterNetwork):
         return random.choice(valid_actions)
 
     with torch.no_grad():
-        q_values = self.model(self.get_state_vector()).flatten()
+        q_values = self.target_model(self.get_state_vector()).flatten()
 
         # Create a mask for valid actions
         mask = torch.full_like(q_values, float('-inf'))

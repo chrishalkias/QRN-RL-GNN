@@ -5,6 +5,12 @@ from stats import train_stats, test_stats, n_scaling_test
 plt.style.use('dark_background')
 np.set_printoptions(legacy='1.25')
 
+# CAUTION!! THE STATISTICS ACQUIRED FROM THIS FILE CANNOT MAKE USE
+# OF THE TRAINED AGENT. SOMWEHERE BETWEEN THE LINES 44-78 SOMETHING
+# GOES WRONG!! FOR AN OVERVIEW OF THE PROJECTS FUNCTIONALITY PLEASE
+# REFER TO THE NOTEBOOK!
+
+
 # This file consists of 3 separete simulations
 # 1) Training statistics of the Agent
 # 2) Testing statistics of the Agent
@@ -38,7 +44,7 @@ if __name__ == '__main__':
 
     #-----------------------PART 2 (ACTUAL TRAINING AND TESTING OF THE AGENT)-----------------------
     if GET_TEST_STATS:
-        TRAIN_STEPS = 10_000
+        TRAIN_STEPS = 1_000
 
         N_TRAIN = 4
         P_ENTANGLE_TRAIN = 0.6
