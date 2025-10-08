@@ -5,46 +5,19 @@ from stats import train_stats, test_stats, n_scaling_test
 plt.style.use('dark_background')
 np.set_printoptions(legacy='1.25')
 
-# CAUTION!! THE STATISTICS ACQUIRED FROM THIS FILE CANNOT MAKE USE
-# OF THE TRAINED AGENT. SOMWEHERE BETWEEN THE LINES 44-78 SOMETHING
-# GOES WRONG!! FOR AN OVERVIEW OF THE PROJECTS FUNCTIONALITY PLEASE
-# REFER TO THE NOTEBOOK!
-
-
-# This file consists of 3 separete simulations
-# 1) Training statistics of the Agent
-# 2) Testing statistics of the Agent
+# This file consists of 2 separete simulations
+# 2) Training and validation of the agent
 # 3) Scaling statistics of the relative performance of the agent
 
 if __name__ == '__main__':
 
     #Toggle which of the 3 parts you want
-    (GET_TRAIN_STATS, GET_TEST_STATS, GET_SCALING_STATS) = (False, True, False)
+    (GET_TEST_STATS, GET_SCALING_STATS) = (True, True)
 
-    #-----------------------PART 1 (GATHER GENERAL TRAINING STATISTICS)-----------------------
-    if GET_TRAIN_STATS:
-
-        TRIALS = 5
-        STEPS = 10_000
-
-        N_STATS = 4
-        P_E_STATS = 0.8
-        P_S_STATS = 0.8
-        TAU_STATS = 700
-
-        # Initialize the agent
-        dummy_agent = AgentGNN(n=N_STATS, 
-                            p_entangle=P_E_STATS, 
-                            p_swap=P_S_STATS, 
-                            tau=TAU_STATS)
-
-        # Gather training statistics
-        train_stats(dummy_agent, N=TRIALS, steps=STEPS)
-
-
-    #-----------------------PART 2 (ACTUAL TRAINING AND TESTING OF THE AGENT)-----------------------
+    #-----------------------PART I (ACTUAL TRAINING AND TESTING OF THE AGENT)-----------------------
     if GET_TEST_STATS:
-        TRAIN_STEPS = 1_000
+
+        TRAIN_STEPS = 30_000
 
         N_TRAIN = 4
         P_ENTANGLE_TRAIN = 0.6
@@ -60,18 +33,17 @@ if __name__ == '__main__':
         #Train ONCE to use for testing (also save the model)
         agent.train(episodes=TRAIN_STEPS, plot=True, save_model=True)
 
-
         # Initialize validation variables
-        TEST_TRIALS = 10
+        TEST_TRIALS = 5
         ROUNDS = 1_000
 
-        N_TEST = 8
+        N_TEST = 6
         P_ENTANGLE_TEST = 0.3
         P_SWAP_TEST = 0.8
         TAU_TEST = 100
 
         # Now gather validation statistics
-        test_stats(agent, 
+        test_stats(agent=agent, 
                 N=TEST_TRIALS, 
                 n_test = N_TEST, 
                 p_entangle=P_ENTANGLE_TEST, 
@@ -79,9 +51,9 @@ if __name__ == '__main__':
                 tau=TAU_TEST, 
                 rounds=ROUNDS) 
 
-    #-----------------------PART 3 (CHECK AGENT RELATIVE SCALING COMPARED TO SWAP-ASAP)-----------------------
+    #-----------------------PART II (CHECK AGENT RELATIVE SCALING COMPARED TO SWAP-ASAP)-----------------------
     if GET_SCALING_STATS:
-        SCALING_TRIALS = 5
+        SCALING_TRIALS = 10
         N_RANGE = range(5, 10)
         TRAIN_STEPS_SCALING = 50_000
 

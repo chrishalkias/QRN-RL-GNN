@@ -21,19 +21,19 @@ where, $C_N = (n, p_e, p_s, \tau)$ and $NN$ encodes the neural network parameter
 
 The graph neural network is able to find strategies in order to achieve end-to-end entanglement in quantum networks of fixed size. It achieves high cummulative reward with relativelly few training steps:
 
-![Alt text](./assets/train.png)
+![Alt text](./assets/display/train_disp.png)
 
 This behaviour is pretty robust to the random initialization of the networks weights, indicative of a good quality of the learning algorithm `AgentGNN().train()` in the [agent](./src/agent.py) file:
 
-![Alt text](./assets/train_stats.png)
+![Alt text](./assets/display/train_stats_disp.png)
 
 The validation performance of the network indicates that it can easily outperform the [Swap-asap](https://quantum-journal.org/papers/q-2025-05-15-1744/) strategy
 
-![Alt text](./assets/test_stats.png)
+![Alt text](./assets/display/test_stats_disp.png)
 
 As previous research has suggested, the learning agent performs best (compared to the swap-asap strategy) in the $C_n$ regime where $p_e \ll 1$ and $p_s \ll 1$. This is verified here by the means of a relative performance heatmap:
 
-![Alt text](./assets/heatmap.png)
+![Alt text](./assets/display/heatmap_disp.png)
 
 > [!NOTE]
 >Additionally, there is a simple tabular puzzle game that translates the system into a more interpretable version that can also be played by humans [Qonnect](https://github.com/chrishalkias/qonnect)!
@@ -45,23 +45,26 @@ The repository's main files are located into the `src` folder. The `assets` fold
 
 ```
 .
-├── src
-│   ├── __init__.py
-│   ├── agent.py
-│   ├── main.py (!)
-│   ├── model.py
-│   ├── notebook.ipynb
-│   ├── repeaters.py
-│   └── stats.py
+
 ├── assets
 │   ├── gnn_model.pth
 │   ├── n_scaling.png
 │   ├── test_stats.png
 │   ├── train_stats.png
 │   └── train.png
-├── tests
-│   ├── __init__.py__
-│   └── test.py
+├── display
+│   ├── n_scaling_disp.png
+│   ├── test_stats_disp.png
+│   ├── train_stats_disp.png
+│   └── train_disp.png
+├── src
+│   ├── agent.py
+│   ├── main.py
+│   ├── model.py
+│   ├── notebook.ipynb
+│   ├── repeaters.py
+│   ├── test.py
+│   └── stats.py
 ├── .gitignore
 ├── LICENSE
 ├── README.md
@@ -81,7 +84,7 @@ git clone https://github.com/chrishalkias/QRN-RL-GNN
 ## Additional Information
 The physical system used is Quantum repeaters. Big picture and outlook YouTube video from [QuTech](https://www.youtube.com/watch?v=9iCFH9Fk184) and [Qunnect (animation)](https://www.youtube.com/watch?v=3_oqkFO4f-A). The project has a similar scope to [Haldar et al.](https://arxiv.org/abs/2303.00777) but the idea is to use more state of the art architectures for the RL agent (such as graph neural netowkrs) to extend to scale ($n$) invariant models.
 
-This work was done as part of my MSc project for Leiden University under the supervision of [Evert van Nieuwenburg](https://github.com/everthemore)
+This work was done as part of my MSc project for Leiden University under the supervision of [Evert van Nieuwenburg](https://github.com/everthemore).
 
 
 

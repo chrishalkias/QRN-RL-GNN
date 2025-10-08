@@ -9,7 +9,7 @@ class RepeaterNetwork():
                n=4,
                directed = False,
                geometry = 'chain',
-               kappa = 1,
+               cutoff = None,
                tau = 1_000,
                p_entangle = 1,
                p_swap = 1
@@ -31,7 +31,6 @@ class RepeaterNetwork():
     ------------------------------------------------------
     Methods:
     ------------------------------------------------------
-
     checkEdgeLink()      > Check whether in grid and correct linkType
     getLink()            > Get a link value for (i,j)
     setLink()            > Update a link value for (i,j) to V
@@ -50,7 +49,7 @@ class RepeaterNetwork():
     global      (bool)   > 1 iff end-to-end entangled 0 therwise
     time        (int)    > Simulation time
     tau         (float)  > Link decay coefficient
-    kappa       (float)  > Link decay coefficient
+    cutoff      (float)  > The cutoff time
     p_entangle  (float)  > Probability of entanglement success
     p_swap      (float)  > Probability of swap success
     geometry    (str)    > The geometry of the network
@@ -79,7 +78,7 @@ class RepeaterNetwork():
     For Reinforcement Learning:
     --------------------------------------------------------------
 
-    1) The agent's action space is entangle((i,j)) or swap((i,j), (j,k))
+    1) The agent's action space is entangle((i,j)) or swapAT(k)
     2) entanglementCheck() acts as an environment reset
     3) global_state can act as the reward (with some slight modifications)
 
@@ -87,7 +86,7 @@ class RepeaterNetwork():
     self.n = n
     self.directed, self.geometry = directed, geometry
     self.global_state = False # Objective: make this into True
-    self.time , self.tau, self.kappa, self.c = 0, tau, kappa, 1
+    self.time , self.tau, self.cutoff, self.c = 0, tau, cutoff, 1
     self.p_entangle, self.p_swap = p_entangle, p_swap
 
     self.combinations = np.array([[a,b] for a in range(n) for b in range(n)])
@@ -163,42 +162,47 @@ class RepeaterNetwork():
       self.setLink(edge=edge, linkType=1, newValue=0)
 
 
-  def isSaturated(self, edge): #chain only
+  def saturated(self, node:int): #chain only
     """
+    Enforces 2 qubits per repeater.
     Checks if node is already doubly entangled and therefore cannot be
     entangled with any more repeaters (used in self.entangle()).
     ------------
-    Outputs:
+    Returns:
     ------------
-    full_saturation > bool  > True iff the node is saturated
-    pals            > tuple > The links involved in the saturation
+    0  : node is fully saturated
+    -1 : left qubit is connected
+    +1 : right qubit is connected
     ------------
     """
-    return False, 0
-    assert self.geometry =='chain', f'Only chain geometry supported'
-    totalEntanglements, pals = 0, []
-    for others in self.matrix.keys():
-      isSelf = (others[0]==edge[0] and others[1]==edge[1])
-      connectivity = (others[1] == edge[0] or others[0] == edge[1]) #chain(ij)(jk)
-      if (not isSelf) and connectivity and (self.getLink(others) > 0.0):
-        totalEntanglements +=1
-        pals.append(others)
+    return 42
 
-    assert totalEntanglements <= 2, f'{edge} contains polysaturated node'
-    return totalEntanglements >= 2, pals
-
+    has_left_connection = (self.tensorState().x[node][0] > 0).item()
+    has_right_connection = (self.tensorState().x[node][1] > 0).item()
+    
+    if has_left_connection and has_right_connection:
+      return 0
+    elif has_left_connection and (not has_right_connection):
+      return -1
+    elif has_right_connection and (not has_left_connection):
+      return 1
+    
 
   def tick(self, T:int):
     """
     Implements the time evolution of the system:
     T timesteps ahead -> age all the links by T*dt (dt=1 by convention)
+    Expires the links according to their age. If a link is older than cutoff/tau it goes to zero
     """
     self.time += int(T)
     for key in self.matrix:
       i,j = key # Needs an extra r_ij here
-      self.matrix[key][1] *= np.exp(-self.kappa * int(T) / (self.tau * self.c))
+      self.matrix[key][1] *= np.exp(-int(T) / (self.tau * self.c))
 
-
+    if self.cutoff != None:
+      for key, (adj, ent) in self.matrix.items():
+        if ent < self.cutoff/self.tau:
+          self.matrix[(key)][1] = 0
 
  #--------------------------------ACTIONS---------------------------------------
 
@@ -213,16 +217,17 @@ class RepeaterNetwork():
 
     self.tick(1)
     getsEntangled = self.p_entangle > np.random.rand()
+    (left_node, right_node) = edge
 
     if not getsEntangled:
       return None
-
-    if self.isSaturated(edge)[0]:
-      linksInvolved = self.isSaturated(edge)[1]
-      saturationDict = {link: self.getLink(link) for link in linksInvolved}
-      oldestLink = sorted(saturationDict.items(), key=lambda item: item[1])[0][0]
-      #print(f'Edge {edge} contains saturated node, dropping oldest link')
-      self.setLink(edge=oldestLink, linkType=1, newValue=0)
+    
+    # both repeaters are saturated
+    if self.saturated(left_node) == 0 or self.saturated(right_node) == 0:
+      return None
+    # qubits looking each other are occupied -> (x x---x x)
+    if self.saturated(left_node) == +1 or self.saturated(left_node) ==-1:
+      return None
 
     areAdjecent = self.getLink(edge=edge, linkType=0)
     self.setLink(linkType = 1, edge=edge,newValue=1) if areAdjecent else None
