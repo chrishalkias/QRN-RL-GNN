@@ -14,6 +14,8 @@ src/.venv
 # Ignore temporary files
 .temp/
 
+# Ignore notebooks for own use
+notebook.ipynb
 # (A nice collection here https://github.com/github/gitignore/tree/main)
 
 
