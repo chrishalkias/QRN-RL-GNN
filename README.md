@@ -86,6 +86,8 @@ The physical system used is Quantum repeaters. Big picture and outlook YouTube v
 
 This work was done as part of my MSc project for Leiden University under the supervision of [Evert van Nieuwenburg](https://github.com/everthemore).
 
+There is an ongoing process for making a ppaper out of this so this is technichally a work in progress.
+
 
 
   

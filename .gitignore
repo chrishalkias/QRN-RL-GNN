@@ -1,21 +1,12 @@
-# Ignore compiled Python files
 src/*.py[cod]
-
-# Ignore cache directories
 __pycache__/
-
-# Ignore environment files
 src/.venv
 .DS_Store
-
-# Ignore IDE-specific files
 .vscode/
-
-# Ignore temporary files
 .temp/
-
-# Ignore notebooks for own use
 notebook.ipynb
-# (A nice collection here https://github.com/github/gitignore/tree/main)
+.venv/
+
+# (Nice template collection here https://github.com/github/gitignore/tree/main)
 
 
