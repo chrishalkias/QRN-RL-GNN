@@ -18,9 +18,9 @@ $$
 \pi(C_n; NN) = \pi
 $$
 
-where, $C_N = (n, p_e, p_s, \tau)$ and $NN$ encodes the neural network parameters. Afterwards, this policy is to be evaluated on a different set of physical parameters $C_{n'}$ and hopefuly we can find an agent that can learn optimal policies that can transfer to systems of different sizes.
+where, $C_N = (n, p_e, p_s, \tau)$ and $NN$ encodes the neural network parameters. Afterwards, this policy is to be evaluated on a different set of physical parameters $C_{n'}$ and hopefuly one can find an agent that can learn optimal policies that can transfer to systems of different sizes.
 
-The graph neural network is able to find strategies in order to achieve end-to-end entanglement in quantum networks of fixed size. It achieves high cummulative reward with relativelly few training steps:
+The RL loop equipped with a GNN as the environmental model is able to find strategies in order to achieve end-to-end entanglement in quantum networks of fixed size. It achieves high cummulative reward with relativelly few training steps:
 
 ![Alt text](./assets/display/train_disp.png)
 
@@ -28,7 +28,16 @@ This behaviour is pretty robust to the random initialization of the networks wei
 
 ![Alt text](./assets/display/train_stats_disp.png)
 
-The validation performance of the network indicates that it can easily outperform the [Swap-asap](https://quantum-journal.org/papers/q-2025-05-15-1744/) strategy
+The MDP includes a base reward that biases towards a high rate of end-to-end (e-e) entanglement:
+
+$$
+r_\text{base} = \begin{cases}
+             -0.1  & \text{if not } \text{e-e} \\
+             1  & \text{if } \text{e-e}
+       \end{cases}
+$$
+
+The validation performance of the network indicates that it can easily outperform the [swap-asap](https://quantum-journal.org/papers/q-2025-05-15-1744/) strategy (swap-asap is the optimal strategy in the limit of deterministic swapping).
 
 ![Alt text](./assets/display/test_stats_disp.png)
 
