@@ -21,13 +21,15 @@ This is the repository for studying entanglement distribution in quantum **repea
 
 ## About the project
 
+<div style="border:2px solid blue; padding:10px">
 The goal of this project is to examine how Reinforcement Learning agents can learn efficient policies for enanglement distribution in 1D repeater chains. The aim is that given a set of physical parameters $C_n$ an agent can establish a policy $\pi_n$ through the mapping:
 
 $$ 
 \pi(C_n; NN) = \pi
 $$
 
-where, $C_N = (n, p_e, p_s, \tau)$ and $NN$ encodes the neural network parameters. Afterwards, this policy is to be evaluated on a different set of physical parameters $C_{n'}$ and hopefuly one can find an agent that can learn optimal policies that can transfer to systems of different sizes.
+where, $C_N = (n, p_e, p_s, \tau)$ and $NN$ encodes the neural network parameters. Afterwards, this policy is evaluated on a different set of physical parameters $C_{n'}$ and one can find an agent that can learn optimal policies that can *transfer to systems of different sizes*.
+</div>
 
 ### Training
 
@@ -64,22 +66,25 @@ As previous research has suggested, the learning agent performs best (compared t
 
 
 ## About the code
+
+The project consists of three main components, seperated in three distinct objects:
+
+- [The system simulator](#quantum-repeater-network)
+- [The Reinforcement Learning agent](#deep-q-learning-agent)
+- [The neural network model]()
+
+![high-level-schematic](/assets/display/project.svg)
+
+
 The repository's main files are located into the `src` folder. The `assets` folder consists of all of the programs output including plots and model files. The full code structure can be found below:
 
-```
+```tree
 .
 
 ├── assets
-│   ├── gnn_model.pth
-│   ├── n_scaling.png
-│   ├── test_stats.png
-│   ├── train_stats.png
-│   └── train.png
-├── display
-│   ├── n_scaling_disp.png
-│   ├── test_stats_disp.png
-│   ├── train_stats_disp.png
-│   └── train_disp.png
+│   ├── display
+│   │   └── ... [README plots]
+│   └── ... [generated plots]
 ├── src
 │   ├── agent.py
 │   ├── main.py
@@ -93,10 +98,21 @@ The repository's main files are located into the `src` folder. The `assets` fold
 ├── README.md
 └── requirements.txt
 ```
->[!WARNING]
-> The `/QRN-RL-GNN/src/notebook.ipynb` is used as the main file of the simulation. This is because of a yet to be fixed bug in the `/QRN-RL-GNN/src/main.ipynb` file.
 
-## Instalation
+### Quantum repeater network
+
+The `src/repeaters.py` module contains the base class for the underlying quantum simulator. This is a computational abstraction of the physical many-body system that is simulated.
+
+### Deep Q-Learning Agent
+
+The `src/agent.py` module acts as the agent that performs actions on the environment (the `RepeaterNetwork` class). Here, the training and validation of the agent are treated as methods of the `AgentGNN` class.
+
+### Graph attention network
+
+The graph attention network is a small class with a simple GNN architecture to be used to store the environment model of the RL agent.
+
+
+## Installation
   You can install the code by cloning the repository:
 ```
 
@@ -109,7 +125,8 @@ The physical system used is Quantum repeaters. Big picture and outlook YouTube v
 
 This work was done as part of my MSc project for Leiden University under the supervision of [Evert van Nieuwenburg](https://github.com/everthemore).
 
-There is an ongoing process for making a ppaper out of this so this is technichally a work in progress.
+>[!WARNING]
+>There is an ongoing process for making a paper out of this so this is technichally a work in progress.
 
 
 
