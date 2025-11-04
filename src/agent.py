@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 
 class AgentGNN(RepeaterNetwork):
+
   def __init__(self,
                n=4,
                directed = False,
@@ -25,7 +26,7 @@ class AgentGNN(RepeaterNetwork):
                epsilon=1):
     
     """
-    This class implements the RL agent used to learn strategies on the Repeater Network.
+    Implements the RL agent used to learn strategies on the Repeater Network.
     It also includes the heuristics tested against.
 
     Composed from: RepeaterNetwork
@@ -50,11 +51,8 @@ class AgentGNN(RepeaterNetwork):
     self.gamma = gamma
     self.epsilon = epsilon
     self.criterion = nn.MSELoss()
-
     states = len(self.get_state_vector())
     actions = len(self.new_actions())
-
-
     self.model = GNN()
     self.target_model = type(self.model)()
     self.target_model.load_state_dict(self.model.state_dict())
@@ -121,7 +119,8 @@ class AgentGNN(RepeaterNetwork):
     return self.reward()
 
   def reward(self) -> float:
-    """Computes the agents reward.
+    """
+    Computes the agents reward.
     This is based off the end-to-end condition(+1/-0.01)
     And a bonus reward that is proportional to the existing links age and length.
     """
