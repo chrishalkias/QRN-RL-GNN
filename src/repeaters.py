@@ -15,31 +15,28 @@ class RepeaterNetwork():
                p_swap = 1
               ):
     """
-    **This class implements the Graph description of the repeater network**
-
-    All of the information about the network is encoded in the edges of it. i.e
-    we consider the nodes to be all zero. The graph description takes the form
-    of a dictionary which is composed by an adjacency list as keys and the edges
-    as values so: adj_list ~ (i,j) : [r_ij, E_ij].
-
-    An adjecency matrix is built for n qubits and the links are initialized
-    to zero by a zero edge matrix. Local 1D connections can be made with
-    (geometry='chain'). More exotic Graphs will be implemented soon.
-
-    The two main methods are entangle(edge) and swap(edge1, edge2).
+    Implements the Graph description of the repeater network
 
     ------------------------------------------------------
     Methods:
     ------------------------------------------------------
+    undirector()         > Remove ij-ji duplicates
+    connect()            > Connects the Graph in specified geometry.
     checkEdgeLink()      > Check whether in grid and correct linkType
     getLink()            > Get a link value for (i,j)
     setLink()            > Update a link value for (i,j) to V
-    director()           > Remove ij-ji duplicates
-    connect()            > Connects the Graph in specified geometry.
+    reset()              > reset the system to the ground state
+    saturated()          > Checks if a repeater has >2 connections [NOT IMPLEMENTED]
     tick()               > Propagates the system in time by dt = 1
     entangle()           > Entangles two repeaters (i,j) (E_ij->1)
-    swap()               > Swaps E_(i,j)(j,k) -> E_(i,k)
+    swap()               > Swaps E_(i,j)(j,k) -> E_(i,k) [LEGACY]
+    swapAT()             > Performs a swap at node k
     endToEndCheck()      > Measures to check if end-to-end-entangled
+    old_actions()        > Previous action accounting [LEGACY]
+    actions()            > A list of all the possible actions
+    new_actions()        > yet another actions function......
+    actionCount()        > Counts the number of all actions
+    tensorState()        > The state description used for the GNN
 
     --------------------------------------------------------
     Attributes:
@@ -54,34 +51,6 @@ class RepeaterNetwork():
     p_swap      (float)  > Probability of swap success
     geometry    (str)    > The geometry of the network
     matrix      (array)  > Complete matrix representaition
-
-    -------------------------------------------------------------
-    Example usage (perform swap-asap on a n=4 chain ad measure):
-    -------------------------------------------------------------
-
-    net=RepeaterNetwork()               # Init to default values
-    initialMatrix = net.matrix          # to compare later
-    net.endToEndCheck()                 # starts disentangled
-    print(net.global_state)             # check if False
-    net.entangle(edge=(0,1))            # entangle (0,1)
-    net.entangle(edge=(1,2))            # entangle (1,2)
-    net.entangle(edge=(2,3))            # entangle (2,3)
-    print(net.matrix)                   # check entanglements
-    net.swap(edge1=(0,1), edge2=(1,2))  # swap (0,1) and (1,2)
-    net.swap(edge1=(0,2), edge2=(2,3))  # swap (0,2) and (2,3)
-    print(net.matrix)                   # check swap
-    net.endToEndCheck()                 # win if true
-    print(net.global_state)             # check if True
-    g.reset()                           # reset all entanglement
-
-    --------------------------------------------------------------
-    For Reinforcement Learning:
-    --------------------------------------------------------------
-
-    1) The agent's action space is entangle((i,j)) or swapAT(k)
-    2) entanglementCheck() acts as an environment reset
-    3) global_state can act as the reward (with some slight modifications)
-
     """
     self.n = n
     self.directed, self.geometry = directed, geometry
@@ -144,7 +113,7 @@ class RepeaterNetwork():
     assert (linkType == 0 or
             linkType == 1), f'Invalid link type (expected 0 or 1 got {linkType}'
 
-  def getLink(self, edge:tuple, linkType:bool = 1):
+  def getLink(self, edge:tuple, linkType:bool = 1) -> float:
     """Get the link (locality/entanglement) from self.matrix"""
     self.checkEdgeLink(edge=edge, linkType=linkType)
     return self.matrix[edge][linkType]
