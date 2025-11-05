@@ -20,15 +20,18 @@ if __name__ == '__main__':
         TRAIN_STEPS = 30_000
 
         N_TRAIN = 4
+
         P_ENTANGLE_TRAIN = 0.6
         P_SWAP_TRAIN = 0.8
-        TAU_TRAIN = 700
+        CUTOFF = 50 # after cutoff/tau time the link is discarded
+        TAU = 100
 
         # Re-initialize the agent, now to be used as a zero-shot learner
         agent = AgentGNN(n=N_TRAIN, 
+                        cutoff = CUTOFF,
                         p_entangle=P_ENTANGLE_TRAIN, 
                         p_swap=P_SWAP_TRAIN, 
-                        tau=TAU_TRAIN)
+                        tau=TAU)
 
         #Train ONCE to use for testing (also save the model)
         agent.train(episodes=TRAIN_STEPS, plot=True, save_model=True)
@@ -59,7 +62,6 @@ if __name__ == '__main__':
 
         P_ENTANGLE_SCALING = 0.3
         P_SWAP_SCALING = 0.8
-        TAU_SCALING = 100
 
         #Train again ONCE to use for testing (also save the model)
         agent.train(episodes=TRAIN_STEPS_SCALING, plot=True, save_model=True)
@@ -70,4 +72,4 @@ if __name__ == '__main__':
                     N_range=N_RANGE, 
                     p_e=P_ENTANGLE_SCALING, 
                     p_s=P_SWAP_SCALING, 
-                    tau=TAU_SCALING)
+                    tau=TAU)

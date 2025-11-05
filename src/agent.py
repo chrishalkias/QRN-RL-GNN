@@ -17,8 +17,8 @@ class AgentGNN(RepeaterNetwork):
                n=4,
                directed = False,
                geometry = 'chain',
-               kappa = 1,
                tau = 1_000,
+               cutoff = None,
                p_entangle = 1,
                p_swap = 1,
                lr=0.001,
@@ -46,7 +46,7 @@ class AgentGNN(RepeaterNetwork):
       test()
     """
 
-    super().__init__(n, directed, geometry, kappa, tau, p_entangle, p_swap)
+    super().__init__(n, directed, geometry, cutoff, tau, p_entangle, p_swap)
     self.lr=lr
     self.gamma = gamma
     self.epsilon = epsilon
