@@ -268,7 +268,7 @@ class RepeaterNetwork():
     timeToWait = 5
     linkToRead = (0,self.n-1)
     self.tick(timeToWait)
-    endToEnd = (self.getLink(edge=linkToRead, linkType=1) > np.random.rand())
+    endToEnd = (self.getLink(edge=linkToRead, linkType=1) > np.random.rand()) #[TODO] change this to the Wehner fidelity (3/4?)
     self.global_state = endToEnd
     # self.setLink(edge=(0,self.n-1), linkType=1, newValue = 0)
     return endToEnd
