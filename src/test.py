@@ -1,42 +1,57 @@
 import unittest
 import numpy as np
 import torch
+import random
 from repeaters import RepeaterNetwork
 from agent import AgentGNN
 from model import GNN
 from torch_geometric.data import Data
 
 class TestRepeaterNetwork(unittest.TestCase):
+    """
+    Tests for the RepeaterNetwork class
+
+    Includes:
+        setUp()
+        test_initialization_parameters()
+        test_connect_chain_different_sizes()
+        test_entanglement_generation_probabilities()
+        test_swap_operation_probabilities()
+        test_link_decay_different_tau()
+        test_end_to_end_different_sizes()
+    """
     
     def setUp(self):
-        """Set up the test parameters for the different tests here"""
-        # Test chain connectivity
-        self.connect_sizes = [3, 4, 5, 6, 8, 10, 25, 30]
 
-        # Test entanglement generation
+        self.num_inits = 10
+        self.connect_sizes = range(3, 30)
+
         self.EG_tests = 100
-        self.EG_probs = [0.01, 0.05, 0.07, 0.1, 0.3, 0.35, 0.5, 0.8, 1.0]
+        self.EG_probs = np.linspace(0.01, 1.0, 100)
 
-        # Test SWAP operation
         self.S_tests = 100
-        self.S_probs = [0.3, 0.6, 0.9, 1.0]
+        self.S_probs = np.linspace(0.3, 1, 100)
 
-        # Test link decay
         self.decay_steps = 10
-        self.tau_values = [50, 100, 500, 1000, 2000, 5000, 10_000, 50_000]
+        self.tau_values = np.linspace(50, 50_000, 200)
 
-        # Test end-to-end measurement chck
-        self.endtoend_sizes = [3, 4, 5, 6]
+        self.cutoff_tests = 100
+        self.cutoff_times = np.linspace(10, 1000, 100)
+
+        self.endtoend_sizes = range(3, 40)
     
     def test_initialization_parameters(self):
         """Test network initialization with different parameters"""
-        test_params = [
-            {'n': 3, 'p_entangle': 0.5, 'p_swap': 0.5, 'tau': 500},
-            {'n': 5, 'p_entangle': 0.8, 'p_swap': 0.9, 'tau': 1000},
-            {'n': 6, 'p_entangle': 1.0, 'p_swap': 1.0, 'tau': 2000},
-            {'n': 8, 'p_entangle': 0.3, 'p_swap': 0.7, 'tau': 1500},
-            {'n': 15, 'p_entangle': 0.3, 'p_swap': 0.7, 'tau': 1500}
-        ]
+        test_params = []
+        for _ in range(self.num_inits):
+            test_params.append(
+                {'n': random.randint(3,30), 
+                 'p_entangle': random.uniform(0.001, 0.99), 
+                 'p_swap': random.uniform(0.1, 0.99), 
+                 'tau': random.randint(100, 1_000),
+                 'cutoff': bool(random.getrandbits(1)),
+                 })
+
         
         for params in test_params:
             with self.subTest(**params):
@@ -49,9 +64,8 @@ class TestRepeaterNetwork(unittest.TestCase):
     
     def test_connect_chain_different_sizes(self):
         """Test chain connectivity for different network sizes"""
-        sizes = self.connect_sizes
-        
-        for n in sizes:
+
+        for n in self.connect_sizes:
             with self.subTest(n=n):
                 net = RepeaterNetwork(n=n, p_entangle=1.0, p_swap=1.0)
                 
@@ -68,67 +82,82 @@ class TestRepeaterNetwork(unittest.TestCase):
         n_tests = self.EG_tests  # Number of tests per probability
         
         for p_entangle in probabilities:
-            success_count = 0
-            net = RepeaterNetwork(n=4, p_entangle=p_entangle, p_swap=1.0, tau=1000)
-            
-            for _ in range(n_tests):
-                net.reset()
-                net.entangle((0, 1))
-                if net.getLink((0, 1), 1) > 0:
-                    success_count += 1
-            
-            # Check that success rate is approximately equal to probability
-            # Allow some tolerance for randomness
-            success_rate = success_count / n_tests
-            tolerance = 0.15  # 15% tolerance
-            self.assertAlmostEqual(success_rate, p_entangle, delta=tolerance,
-                                 msg=f"Success rate {success_rate} should be close to p_entangle={p_entangle}")
+            with self.subTest(p_entangle=p_entangle):
+                success_count = 0
+                net = RepeaterNetwork(
+                    n=random.randint(3, 20), 
+                    p_entangle=p_entangle, 
+                    p_swap=1.0, 
+                    tau=random.randint(100, 1_000)
+                    )
+                
+                for _ in range(n_tests):
+                    net.reset()
+                    net.entangle((0, 1))
+                    if net.getLink((0, 1), 1) > 0:
+                        success_count += 1
+                
+                # Check that success rate is approximately equal to probability
+                # Allow some tolerance for randomness
+                success_rate = success_count / n_tests
+                tolerance = 0.15  # 15% tolerance
+                self.assertAlmostEqual(success_rate, 
+                                    p_entangle, 
+                                    delta=tolerance,
+                                    msg=f"Tested success rate {success_rate} vs true ({p_entangle})")
     
     def test_swap_operation_probabilities(self):
         """Test swap operations with different probabilities"""
-        probabilities = self.S_probs
-        n_tests = self.S_tests
-        
-        for p_swap in probabilities:
-            success_count = 0
-            net = RepeaterNetwork(n=4, p_entangle=1.0, p_swap=p_swap, tau=1000)
-            
-            for _ in range(n_tests):
-                net.reset()
-                net.entangle((0, 1))
-                net.entangle((1, 2))
+        for p_swap in self.S_probs:
+            with self.subTest(p_swap = p_swap):
+                success_count = 0
+                net = RepeaterNetwork(n=random.randint(4, 20), 
+                                    p_entangle=1.0, 
+                                    p_swap=p_swap, 
+                                    tau=random.randint(100, 1_000))
                 
-                initial_entanglement = net.getLink((0, 1), 1)  # Should be 1.0
-                net.swap((0, 1), (1, 2))
+                for _ in range(self.S_tests):
+                    i= random.randint(1,net.n-2)
+                    net.reset()
+                    net.entangle(edge=(i-1, i))
+                    net.entangle(edge=(i, i+1))
+                    
+                    net.swap((i-1, i), (i, i+1))
+                    
+                    # Check if swap was successful
+                    if net.getLink(edge=(i-1, i+1), linkType=1) > 0:
+                        success_count += 1
                 
-                # Check if swap was successful
-                if net.getLink((0, 2), 1) > 0:
-                    success_count += 1
-            
-            success_rate = success_count / n_tests
-            tolerance = 0.2  # 20% tolerance for small sample size
-            self.assertAlmostEqual(success_rate, p_swap, delta=tolerance,
-                                 msg=f"Swap success rate {success_rate} should be close to p_swap={p_swap}")
+                success_rate = success_count / self.S_tests
+                tolerance = 0.2  # 20% tolerance for small sample size
+                self.assertAlmostEqual(success_rate, 
+                                    p_swap, 
+                                    delta=tolerance,
+                                    msg=f"Tested success rate {success_rate} vs true ({p_swap})")
     
     def test_link_decay_different_tau(self):
         """Test link decay with different tau values"""
-        tau_values = self.tau_values
-        time_steps = self.decay_steps
-        
-        for tau in tau_values:
+        for tau in self.tau_values:
             with self.subTest(tau=tau):
-                net = RepeaterNetwork(n=4, p_entangle=1.0, p_swap=1.0, tau=tau)
-                net.entangle((0, 1))
-                initial_entanglement = net.getLink((0, 1), 1)
+                net = RepeaterNetwork(n=random.randint(3, 20), 
+                                      p_entangle=1.0, 
+                                      p_swap=1.0, 
+                                      tau=tau)
+                timestep = random.randint(1, 5000)
+                i = random.randint(1,net.n-1)
+                net.entangle((i-1, i))
+                initial_entanglement = net.getLink(edge=(i-1, i), linkType=1)
                 
                 # Advance time
-                net.tick(time_steps)
+                net.tick(timestep)
                 
-                decayed_entanglement = net.getLink((0, 1), 1)
-                expected_decay = initial_entanglement * np.exp(-time_steps / tau)
+                decayed_entanglement = net.getLink(edge=(i-1, i), linkType=1)
+                expected_decay = initial_entanglement * np.exp(-timestep / tau)
                 
-                self.assertAlmostEqual(decayed_entanglement, expected_decay, places=5,
-                                     msg=f"Decay incorrect for tau={tau}")
+                self.assertAlmostEqual(decayed_entanglement, 
+                                       expected_decay, 
+                                       places=5,
+                                       msg=f"Decay incorrect for tau={tau}")
     
     def test_end_to_end_different_sizes(self):
         """Test end-to-end entanglement for different network sizes"""
@@ -140,26 +169,46 @@ class TestRepeaterNetwork(unittest.TestCase):
                 
                 # Initially should not be end-to-end entangled
                 self.assertFalse(net.endToEndCheck())
-                
+
                 # Create end-to-end link directly
                 net.setLink(linkType=1, edge=(0, n-1), newValue=1.0)
                 
-                # Now should detect end-to-end entanglement
+                # Should now detect end-to-end entanglement
                 self.assertTrue(net.endToEndCheck())
                 self.assertTrue(net.global_state)
 
+
 class TestAgentGNN(unittest.TestCase):
+    """
+    Test AgentGNN class
+
+    Includes:
+        test_agent_initialization_parameters()
+        test_get_valid_actions_different_sizes()
+        test_choose_action_probabilistic()
+        test_choose_action_probabilistic()
+    """
+
+    def setUp(self):
+        self.num_inits = 10
+        self.reward_consistency_checks = 20
+        self.action_tests = 20
+        self.n_range = range(3,20)
+        self.epsilon_values = np.linspace(0,1, 20)
     
     def test_agent_initialization_parameters(self):
         """Test agent initialization with different parameters"""
-        test_params = [
-            {'n': 3, 'p_entangle': 0.5, 'p_swap': 0.5, 'tau': 100, 'lr': 0.001, 'gamma': 0.9},
-            {'n': 4, 'p_entangle': 0.8, 'p_swap': 0.9, 'tau': 500, 'lr': 0.0005, 'gamma': 0.95},
-            {'n': 5, 'p_entangle': 1.0, 'p_swap': 1.0, 'tau': 1000, 'lr': 0.01, 'gamma': 0.99},
-            {'n': 6, 'p_entangle': 0.7, 'p_swap': 0.7, 'tau': 1500, 'lr': 0.002, 'gamma': 0.85},
-            {'n': 8, 'p_entangle': 0.4, 'p_swap': 0.8, 'tau': 2000, 'lr': 0.004, 'gamma': 0.85},
-            {'n': 10, 'p_entangle': 0.9, 'p_swap': 0.8, 'tau': 200, 'lr': 0.002, 'gamma': 0.85}
-        ]
+        test_params = []
+        for _ in range(self.num_inits):
+            test_params.append(
+                {'n': random.randint(3,20), 
+                 'p_entangle': random.uniform(0.001, 0.99), 
+                 'p_swap': random.uniform(0.1, 0.99), 
+                 'tau': random.randint(100, 1_000),
+                 'cutoff': bool(random.getrandbits(1)),
+                 'lr': random.uniform(0.0005, 0.01),
+                 'gamma': random.uniform(0.80, 0.99),
+                 })
         
         for params in test_params:
             with self.subTest(**params):
@@ -174,9 +223,8 @@ class TestAgentGNN(unittest.TestCase):
     
     def test_get_valid_actions_different_sizes(self):
         """Test valid action identification for different network sizes"""
-        sizes = [3, 4, 5, 6, 9, 10, 12]
-        
-        for n in sizes:
+
+        for n in self.n_range:
             with self.subTest(n=n):
                 agent = AgentGNN(n=n, p_entangle=1.0, p_swap=1.0)
                 valid_actions = agent.get_valid_actions()
@@ -192,13 +240,13 @@ class TestAgentGNN(unittest.TestCase):
     
     def test_reward_function_consistency(self):
         """Test reward function consistency across different states"""
-        test_cases = [
-            {'n': 4, 'p_entangle': 0.3, 'p_swap': 0.4},
-            {'n': 5, 'p_entangle': 0.4, 'p_swap': 0.5},
-            {'n': 6, 'p_entangle': 0.5, 'p_swap': 0.6},
-            {'n': 8, 'p_entangle': 0.6, 'p_swap': 0.7},
-            {'n': 9, 'p_entangle': 0.7, 'p_swap': 0.8}
-        ]
+        test_cases = []
+        for _ in range(self.reward_consistency_checks):
+            test_cases.append({
+                'n': random.randint(3, 10),
+                'p_entangle': random.uniform(0.01, 0.90), 
+                'p_swap': random.uniform(0.1, 0.99)
+            })
         
         for params in test_cases:
             with self.subTest(**params):
@@ -216,46 +264,57 @@ class TestAgentGNN(unittest.TestCase):
     
     def test_choose_action_probabilistic(self):
         """Test action selection with different epsilon values"""
-        epsilon_values = [0.0, 0,2, 0.3, 0.5, 0.7, 0,9, 0.95, 0.98, 0.99, 1.0]
-        n_tests = 20
         
-        for epsilon in epsilon_values:
+        for epsilon in self.epsilon_values:
             with self.subTest(epsilon=epsilon):
-                agent = AgentGNN(n=4, p_entangle=0.8, p_swap=0.8, epsilon=epsilon)
+                agent = AgentGNN(n=random.randint(3, 10), 
+                                 p_entangle=random.uniform(0.1, 0.8), 
+                                 p_swap=random.uniform(0.5, 0.99), 
+                                 epsilon=epsilon)
                 
                 # Test multiple action selections
                 actions = []
-                for _ in range(n_tests):
+                for _ in range(self.action_tests):
                     action = agent.choose_action(use_trained_model=False)
                     actions.append(action)
                     self.assertIn(action, range(len(agent.new_actions())))
 
 
+#====================================================================================
 
 class TestIntegration(unittest.TestCase):
-    """Integration tests with different parameters"""
+    """
+    Integration tests with different parameters
+
+    Includes:
+        setUp()
+        test_complete_episode_different_parameters()
+        test_action_execution_robustness()
+        test_swap_asap_policy_different_sizes()
+    
+    """
 
     def setUp(self):
-        # Action execution robustness
-        self.action_probs = [0.5, 0.7, 0.9, 1.0]
-        self.swapasap_sizes = [3, 4, 5, 6]
+        self.action_probs = np.linspace(0.5, 1, 5)
+        self.swapasap_sizes = range(3, 10)
+        self.episode_completion_checks = 20
     
     def test_complete_episode_different_parameters(self):
         """Test complete episodes with different parameters"""
-        test_cases = [
-            {'n': 3, 'p_entangle': 1.0, 'p_swap': 1.0},
-            {'n': 4, 'p_entangle': 0.8, 'p_swap': 0.8},
-            {'n': 5, 'p_entangle': 0.9, 'p_swap': 0.9},
-            {'n': 8, 'p_entangle': 0.7, 'p_swap': 0.6},
-            {'n': 10, 'p_entangle': 0.8, 'p_swap': 0.8},
-        ]
+        test_cases = []
+        for _ in range(self.episode_completion_checks):
+            test_cases.append({
+                'n': random.randint(3, 10),
+                'p_entangle': random.uniform(0.01, 0.90), 
+                'p_swap': random.uniform(0.1, 0.99)
+            })
         
         for params in test_cases:
             with self.subTest(**params):
                 agent = AgentGNN(**params)
                 
                 # Perform actions to try to reach end-to-end
-                max_attempts = 20
+                max_attempts = 50
                 success = False
                 
                 for attempt in range(max_attempts):
@@ -283,7 +342,9 @@ class TestIntegration(unittest.TestCase):
         
         for p in probabilities:
             with self.subTest(p_entangle=p, p_swap=p):
-                agent = AgentGNN(n=4, p_entangle=p, p_swap=p)
+                agent = AgentGNN(n=random.randint(3, 10), 
+                                 p_entangle=p, 
+                                 p_swap=p)
                 actions = agent.new_actions()
                 
                 # Execute first few actions using agent's method instead of exec()
@@ -317,12 +378,26 @@ class TestIntegration(unittest.TestCase):
                     self.assertTrue(action.startswith('self.entangle') or 
                                   action.startswith('self.swapAT'))
 
+
+
+
+
 class TestPerformanceScaling(unittest.TestCase):
-    """Performance and scaling tests"""
+    """
+    Performance and scaling tests
+    
+    Includes:
+        test_memory_usage_different_sizes()
+        test_training_stability()
+        test_state_representation_consistency()
+    """
+
+    def setUp(self):
+        self.stability_consistency_tests = 30
     
     def test_memory_usage_different_sizes(self):
         """Test that models can handle different network sizes"""
-        sizes = [3, 4, 5, 6, 8, 10, 20, 50]
+        sizes = range(3, 50)
         
         for n in sizes:
             with self.subTest(n=n):
@@ -338,11 +413,14 @@ class TestPerformanceScaling(unittest.TestCase):
     
     def test_training_stability(self):
         """Test that training doesn't crash with different parameters"""
-        test_params = [
-            {'n': 4, 'p_entangle': 0.5, 'p_swap': 0.5, 'lr': 0.001},
-            {'n': 4, 'p_entangle': 0.8, 'p_swap': 0.8, 'lr': 0.0001},
-            {'n': 5, 'p_entangle': 0.6, 'p_swap': 0.6, 'lr': 0.005},
-        ]
+        test_params = []
+        for _ in range(self.stability_consistency_tests):
+            test_params.append({
+                'n': random.randint(3, 10),
+                'p_entangle': random.uniform(0.1, 0.9),
+                'p_swap': random.uniform(0.4, 0.95),
+                'lr': random.uniform(0.0001, 0.05)
+            })
         
         for params in test_params:
             with self.subTest(**params):
@@ -363,12 +441,15 @@ class TestPerformanceScaling(unittest.TestCase):
     
     def test_state_representation_consistency(self):
         """Test that state representation is consistent across parameters"""
-        test_cases = [
-            {'n': 3, 'p_entangle': 0.5, 'p_swap': 0.5},
-            {'n': 4, 'p_entangle': 0.8, 'p_swap': 0.8},
-            {'n': 5, 'p_entangle': 1.0, 'p_swap': 1.0},
-        ]
-        
+
+        test_cases = []
+        for _ in range(self.stability_consistency_tests):
+            test_cases.append({
+                'n': random.randint(3, 10),
+                'p_entangle': random.uniform(0.1, 0.9),
+                'p_swap': random.uniform(0.4, 0.95),
+            })
+
         for params in test_cases:
             with self.subTest(**params):
                 agent = AgentGNN(**params)
