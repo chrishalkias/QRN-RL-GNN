@@ -63,7 +63,7 @@ if __name__ == '__main__':
         P_ENTANGLE_SCALING = 0.3
         P_SWAP_SCALING = 0.8
 
-        #Train again ONCE to use for testing (also save the model)
+        #Train again ONCE again to use for testing (also save the model)
         agent.train(episodes=TRAIN_STEPS_SCALING, plot=True, save_model=True)
 
         # Observe the relative performance of tha agent as N varies

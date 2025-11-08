@@ -109,7 +109,7 @@ class RepeaterNetwork():
     """Check whether in grid and correct linkType (for getLink and setLink)"""
     leftBoundary = edge[0] >= 0 and edge[1] >= 0
     rightBoundary = edge[0] <= self.n-1 and edge[1] <= self.n-1
-    assert leftBoundary and rightBoundary, f'Edge {edge} out of bounds'
+    assert leftBoundary and rightBoundary, f'Edge {edge} out of bounds for chain of size {self.n}'
     assert (linkType == 0 or
             linkType == 1), f'Invalid link type (expected 0 or 1 got {linkType}'
 
