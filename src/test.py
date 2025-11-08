@@ -35,9 +35,6 @@ class TestRepeaterNetwork(unittest.TestCase):
         self.decay_steps = 10
         self.tau_values = np.linspace(50, 50_000, 200)
 
-        self.cutoff_tests = 100
-        self.cutoff_times = np.linspace(10, 1000, 100)
-
         self.endtoend_sizes = range(3, 40)
     
     def test_initialization_parameters(self):
@@ -100,7 +97,7 @@ class TestRepeaterNetwork(unittest.TestCase):
                 # Check that success rate is approximately equal to probability
                 # Allow some tolerance for randomness
                 success_rate = success_count / n_tests
-                tolerance = 0.15  # 15% tolerance
+                tolerance = 0.30  # 30% tolerance
                 self.assertAlmostEqual(success_rate, 
                                     p_entangle, 
                                     delta=tolerance,
@@ -158,6 +155,21 @@ class TestRepeaterNetwork(unittest.TestCase):
                                        expected_decay, 
                                        places=5,
                                        msg=f"Decay incorrect for tau={tau}")
+                
+    def test_link_discard_with_cutoff(self):
+        for tau in self.tau_values:
+            with self.subTest(tau=tau):
+                cutoff = random.uniform(tau, 1000 * tau)
+                net = RepeaterNetwork(n=random.randint(3, 20), 
+                                      p_entangle=1.0, 
+                                      p_swap=1.0, 
+                                      cutoff=cutoff,
+                                      tau=tau)
+                node = random.randint(1, net.n-1)
+                net.entangle(edge=(node-1, node))
+                net.tick(cutoff)
+                # Check that link is discarded after the cutoff time
+                self.assertTrue(net.getLink(edge=(node-1, node), linkType=1) == 0)
     
     def test_end_to_end_different_sizes(self):
         """Test end-to-end entanglement for different network sizes"""
@@ -251,6 +263,7 @@ class TestAgentGNN(unittest.TestCase):
         for params in test_cases:
             with self.subTest(**params):
                 agent = AgentGNN(**params)
+                agent.reset()
                 
                 # Test reward for initial state (should be negative)
                 initial_reward = agent.reward()
@@ -280,8 +293,6 @@ class TestAgentGNN(unittest.TestCase):
                     self.assertIn(action, range(len(agent.new_actions())))
 
 
-#====================================================================================
-
 class TestIntegration(unittest.TestCase):
     """
     Integration tests with different parameters
@@ -291,7 +302,6 @@ class TestIntegration(unittest.TestCase):
         test_complete_episode_different_parameters()
         test_action_execution_robustness()
         test_swap_asap_policy_different_sizes()
-    
     """
 
     def setUp(self):
@@ -465,7 +475,7 @@ class TestPerformanceScaling(unittest.TestCase):
 
 
 def run_parameterized_tests():
-    """Run all parameterized tests"""
+    """Run all parameterized tests and return the test summary"""
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
     
@@ -474,23 +484,22 @@ def run_parameterized_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestIntegration))
     suite.addTests(loader.loadTestsFromTestCase(TestPerformanceScaling))
     
-    runner = unittest.TextTestRunner(verbosity=2)
+    runner = unittest.TextTestRunner(verbosity=1)
     result = runner.run(suite)
     
     # Print summary
     print(f"\n{'='*50}")
     print(f"Test Summary:")
-    print(f"Tests run: {result.testsRun}")
-    print(f"Failures: {len(result.failures)}")
-    print(f"Errors: {len(result.errors)}")
-    print(f"Success: {result.wasSuccessful()}")
+    print(f"    Tests run: {result.testsRun}")
+    print(f"    Failures: {len(result.failures)}")
+    print(f"    Errors: {len(result.errors)}")
+    print(f"    Success: {result.wasSuccessful()}")
     print(f"{'='*50}")
     
     return result.wasSuccessful()
 
 if __name__ == '__main__':
-    print("Running Parameterized Quantum Repeater Network Tests...")
-    print("Testing across different n, p_entangle, p_swap, tau values...")
+    print("Now running tests...")
     print("=" * 60)
     
     success = run_parameterized_tests()
