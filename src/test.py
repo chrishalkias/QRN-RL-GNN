@@ -65,6 +65,7 @@ class TestRepeaterNetwork(unittest.TestCase):
         for n in self.connect_sizes:
             with self.subTest(n=n):
                 net = RepeaterNetwork(n=n, p_entangle=1.0, p_swap=1.0)
+                self.assertHasAttr(net, 'connect', msg=None)
                 
                 # Check that only neighboring nodes are connected
                 for (i, j), (adj, ent) in net.matrix.items():
@@ -493,7 +494,7 @@ def run_parameterized_tests():
     print(f"    Tests run: {result.testsRun}")
     print(f"    Failures: {len(result.failures)}")
     print(f"    Errors: {len(result.errors)}")
-    print(f"    Success: {result.wasSuccessful()}")
+    print(f"    Success Rate: {(result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100:.1f}%")
     print(f"{'='*50}")
     
     return result.wasSuccessful()
