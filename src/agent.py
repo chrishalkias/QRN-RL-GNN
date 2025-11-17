@@ -215,21 +215,21 @@ class AgentGNN(RepeaterNetwork):
     """Returns the action with the highest Q-value"""
     return self.choose_action(use_trained_model=True)
 
-  def random_action(self) -> int:
+  def random_action(self) -> list:
       """Perform a random action at each node"""
       waits = ['' for _ in range(self.n)]
       entangles = [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
       swaps = [f'self.swapAT({i})' if (i != 0) and (i !=self.n-1) else '' for i in range(self.n)] # dont swap ad end nodes
       return [random.choice([e, s, w]) for e, s, w in zip(entangles, swaps, waits) if random.choice([e, s, w]) is not None]
 
-  def alternating_action(self, step) -> int:
+  def alternating_action(self, step) -> list:
       """At even timestep entangle all and at odd swap all"""
       if (step % 2) == 0:
           return [f'self.entangle({(i,i+1)})' for i in range(self.n-1)]
       elif (step % 2) == 1:
           return [f'self.swapAT({i})' if (i != 0) and (i !=self.n-1) else '' for i in range(self.n)]
 
-  def swap_asap(self) -> int:
+  def swap_asap(self) -> list:
       """Performs the swap asap"""
       net = self
       actions = []

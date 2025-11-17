@@ -11,8 +11,8 @@ class RepeaterNetwork():
                geometry = 'chain',
                cutoff = None,
                tau = 1_000,
-               p_entangle = 1,
-               p_swap = 1
+               p_entangle = 1.0,
+               p_swap = 1.0
               ):
     """
     Implements the Graph description of the repeater network
@@ -259,13 +259,12 @@ class RepeaterNetwork():
         self.setLink(linkType=1, edge=(i,j), newValue=effectiveValue)
 
 
-  def endToEndCheck(self):
+  def endToEndCheck(self, timeToWait=5):
     """
     Check wheather the graph is in an end-to-end entangled state by waitting
     a specified amount of time then reading the link ((0,n) in the chain case),
     change the global state of the graph to 1 and set the link back to 0
     """
-    timeToWait = 5
     linkToRead = (0,self.n-1)
     self.tick(timeToWait)
     endToEnd = (self.getLink(edge=linkToRead, linkType=1) > np.random.rand()) #[TODO] change this to the Wehner fidelity (3/4?)
