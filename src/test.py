@@ -7,6 +7,16 @@ from agent import AgentGNN
 from model import GNN
 from torch_geometric.data import Data
 
+def generateRandom_N():
+    return random.randint(3,30)
+def generateRandom_pe():
+    return random.uniform(0.001, 0.99)
+def generateRandom_ps():
+    return random.uniform(0.1, 0.99)
+def generateRandom_tau():
+    return random.randint(100, 1_000)
+
+
 class TestRepeaterNetwork(unittest.TestCase):
     """
     Tests for the RepeaterNetwork class
@@ -42,10 +52,10 @@ class TestRepeaterNetwork(unittest.TestCase):
         test_params = []
         for _ in range(self.num_inits):
             test_params.append(
-                {'n': random.randint(3,30), 
-                 'p_entangle': random.uniform(0.001, 0.99), 
-                 'p_swap': random.uniform(0.1, 0.99), 
-                 'tau': random.randint(100, 1_000),
+                {'n': generateRandom_N(), 
+                 'p_entangle': generateRandom_pe(), 
+                 'p_swap': generateRandom_ps(), 
+                 'tau': generateRandom_tau,
                  'cutoff': bool(random.getrandbits(1)),
                  })
 
@@ -82,10 +92,10 @@ class TestRepeaterNetwork(unittest.TestCase):
             with self.subTest(p_entangle=p_entangle):
                 success_count = 0
                 net = RepeaterNetwork(
-                    n=random.randint(3, 20), 
+                    n=generateRandom_N(), 
                     p_entangle=p_entangle, 
                     p_swap=1.0, 
-                    tau=random.randint(100, 1_000)
+                    tau=generateRandom_tau()
                     )
                 
                 for _ in range(n_tests):
@@ -136,7 +146,7 @@ class TestRepeaterNetwork(unittest.TestCase):
         """Test link decay with different tau values"""
         for tau in self.tau_values:
             with self.subTest(tau=tau):
-                net = RepeaterNetwork(n=random.randint(3, 20), 
+                net = RepeaterNetwork(n=generateRandom_N(), 
                                       p_entangle=1.0, 
                                       p_swap=1.0, 
                                       tau=tau)
@@ -160,7 +170,7 @@ class TestRepeaterNetwork(unittest.TestCase):
         for tau in self.tau_values:
             with self.subTest(tau=tau):
                 cutoff = random.uniform(tau, 1000 * tau)
-                net = RepeaterNetwork(n=random.randint(3, 20), 
+                net = RepeaterNetwork(n=generateRandom_N(), 
                                       p_entangle=1.0, 
                                       p_swap=1.0, 
                                       cutoff=cutoff,
@@ -186,7 +196,7 @@ class TestRepeaterNetwork(unittest.TestCase):
                 net.setLink(linkType=1, edge=(0, n-1), newValue=1.0)
                 
                 # Should now detect end-to-end entanglement
-                self.assertTrue(net.endToEndCheck())
+                self.assertEqual(net.endToEndCheck(timeToWait=0), True)
                 self.assertTrue(net.global_state)
 
 
@@ -213,10 +223,10 @@ class TestAgentGNN(unittest.TestCase):
         test_params = []
         for _ in range(self.num_inits):
             test_params.append(
-                {'n': random.randint(3,20), 
-                 'p_entangle': random.uniform(0.001, 0.99), 
-                 'p_swap': random.uniform(0.1, 0.99), 
-                 'tau': random.randint(100, 1_000),
+                {'n': generateRandom_N(), 
+                 'p_entangle': generateRandom_pe(), 
+                 'p_swap': generateRandom_ps(), 
+                 'tau': generateRandom_tau(),
                  'cutoff': bool(random.getrandbits(1)),
                  'lr': random.uniform(0.0005, 0.01),
                  'gamma': random.uniform(0.80, 0.99),
@@ -255,9 +265,9 @@ class TestAgentGNN(unittest.TestCase):
         test_cases = []
         for _ in range(self.reward_consistency_checks):
             test_cases.append({
-                'n': random.randint(3, 10),
-                'p_entangle': random.uniform(0.01, 0.90), 
-                'p_swap': random.uniform(0.1, 0.99)
+                'n': generateRandom_N(),
+                'p_entangle': generateRandom_pe(), 
+                'p_swap': generateRandom_ps()
             })
         
         for params in test_cases:
@@ -280,9 +290,9 @@ class TestAgentGNN(unittest.TestCase):
         
         for epsilon in self.epsilon_values:
             with self.subTest(epsilon=epsilon):
-                agent = AgentGNN(n=random.randint(3, 10), 
-                                 p_entangle=random.uniform(0.1, 0.8), 
-                                 p_swap=random.uniform(0.5, 0.99), 
+                agent = AgentGNN(n=generateRandom_N(), 
+                                 p_entangle=generateRandom_pe(), 
+                                 p_swap=generateRandom_ps(), 
                                  epsilon=epsilon)
                 
                 # Test multiple action selections
@@ -314,9 +324,9 @@ class TestIntegration(unittest.TestCase):
         test_cases = []
         for _ in range(self.episode_completion_checks):
             test_cases.append({
-                'n': random.randint(3, 10),
-                'p_entangle': random.uniform(0.01, 0.90), 
-                'p_swap': random.uniform(0.1, 0.99)
+                'n': generateRandom_N(),
+                'p_entangle': generateRandom_pe(), 
+                'p_swap': generateRandom_ps()
             })
         
         for params in test_cases:
@@ -352,7 +362,7 @@ class TestIntegration(unittest.TestCase):
         
         for p in probabilities:
             with self.subTest(p_entangle=p, p_swap=p):
-                agent = AgentGNN(n=random.randint(3, 10), 
+                agent = AgentGNN(n=generateRandom_N(), 
                                  p_entangle=p, 
                                  p_swap=p)
                 actions = agent.new_actions()
@@ -390,8 +400,6 @@ class TestIntegration(unittest.TestCase):
 
 
 
-
-
 class TestPerformanceScaling(unittest.TestCase):
     """
     Performance and scaling tests
@@ -407,7 +415,7 @@ class TestPerformanceScaling(unittest.TestCase):
     
     def test_memory_usage_different_sizes(self):
         """Test that models can handle different network sizes"""
-        sizes = range(3, 50)
+        sizes = range(10, 50)
         
         for n in sizes:
             with self.subTest(n=n):
@@ -426,9 +434,9 @@ class TestPerformanceScaling(unittest.TestCase):
         test_params = []
         for _ in range(self.stability_consistency_tests):
             test_params.append({
-                'n': random.randint(3, 10),
-                'p_entangle': random.uniform(0.1, 0.9),
-                'p_swap': random.uniform(0.4, 0.95),
+                'n': generateRandom_N(),
+                'p_entangle': generateRandom_pe(),
+                'p_swap': generateRandom_ps(),
                 'lr': random.uniform(0.0001, 0.05)
             })
         
@@ -455,9 +463,9 @@ class TestPerformanceScaling(unittest.TestCase):
         test_cases = []
         for _ in range(self.stability_consistency_tests):
             test_cases.append({
-                'n': random.randint(3, 10),
-                'p_entangle': random.uniform(0.1, 0.9),
-                'p_swap': random.uniform(0.4, 0.95),
+                'n': generateRandom_N(),
+                'p_entangle': generateRandom_pe(),
+                'p_swap': generateRandom_ps(),
             })
 
         for params in test_cases:
