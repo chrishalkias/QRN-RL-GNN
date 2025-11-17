@@ -294,7 +294,7 @@ class RepeaterNetwork():
     operations = []
     for node in range(self.n-1):
       operations.append(f'self.entangle(edge={node, node+1})')
-      operations.append(f'self.swapAT({node})') #if node not in [0,self.n-1]]
+      operations.append(f'self.swapAT({node})') # if node not in [0,self.n-1]]
     return operations
 
   def actionCount(self):
@@ -305,7 +305,7 @@ class RepeaterNetwork():
       """Returns the tensor graph state (to be used for GNN)"""
       sources = torch.arange(self.n - 1, dtype=torch.long)  # 0, 1, ..., n-2
       targets = sources + 1                            # 1, 2, ..., n-1
-      edge_index = torch.stack([sources, targets])     # Shape [2, n-1]
+      edge_index = torch.stack([sources, targets])     # shape [2, n-1]
       edge_attr_list = [list(links)[1] for links in self.matrix.values()]
       edge_attr = torch.tensor(edge_attr_list, dtype=torch.float)
       node_attr = torch.zeros((self.n, 2))

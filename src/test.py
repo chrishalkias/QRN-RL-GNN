@@ -7,6 +7,7 @@ from agent import AgentGNN
 from model import GNN
 from torch_geometric.data import Data
 
+
 def generateRandom_N():
     return random.randint(3,30)
 def generateRandom_pe():
