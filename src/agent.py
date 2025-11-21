@@ -259,7 +259,7 @@ class AgentGNN(RepeaterNetwork):
     """Perform the validation of the agent against the heuristic strategies"""
     super().__init__(n=n_test, tau=tau, p_entangle=p_entangle, p_swap=p_swap)
     totalReward, rewardList = 0, []
-    fidelity, fidelityList = 0,[]
+    fidelity, fidelgitityList = 0,[]
     links_established, linkList = 0, []
     linkrate = []
     lossList = []
