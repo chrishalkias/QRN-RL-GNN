@@ -34,16 +34,35 @@ def train_stats(agent: object, N=3, steps=10_000, savefig=True):
   plt.show()
 
 
-def test_stats(agent, N=3, n_test=4, p_entangle=0.8, p_swap=0.8, tau=1000, rounds=400, quiet=False, savefig=True):
+def test_stats(agent, 
+               experiments=3, 
+               n_test=4, 
+               p_entangle=0.8, 
+               p_swap=0.8, 
+               tau=1000, 
+               cutoff = 10_000,
+               rounds=400, 
+               quiet=False, 
+               savefig=True):
+  
   """Used to gather validation statistics for the agent"""
 
   t_err, s_err, r_err = [], [], []
   t_mean, s_mean, r_mean = [], [], []
 
-  for _ in tqdm(range(N)):
-    rt, _, lt = agent.test(n_test=n_test, p_entangle=p_entangle, p_swap=p_swap, tau=tau, kind='trained', max_steps=rounds);
-    rs, _, ls = agent.test(n_test=n_test, p_entangle=p_entangle, p_swap=p_swap, tau=tau, kind='swap_asap',max_steps=rounds);
-    rr, _, lr = agent.test(n_test=n_test, p_entangle=p_entangle, p_swap=p_swap, tau=tau, kind='random',max_steps=rounds);
+  params = {
+    'n_test': n_test,
+    'p_entangle': p_entangle,
+    'p_swap': p_swap,
+    'tau': tau,
+    'cutoff': cutoff,
+    'max_steps': rounds
+  }
+
+  for _ in tqdm(range(experiments)):
+    rt, _, lt = agent.test(**params, kind='trained',);
+    rs, _, ls = agent.test(**params, kind='swap_asap');
+    rr, _, lr = agent.test(**params, kind='random');
 
     t_mean.append(lt)
     s_mean.append(ls)
@@ -80,7 +99,7 @@ def test_stats(agent, N=3, n_test=4, p_entangle=0.8, p_swap=0.8, tau=1000, round
   plt.fill_between(x, lr-error_r, lr+error_r, color='grey', alpha=0.2)
 
   plt.plot()
-  plt.title(f'Average performance over {N} runs')
+  plt.title(f'Average performance over {experiments} runs')
   plt.xlabel('Round')
   plt.ylabel(f'Link rate for $(n, p_E, p_S, τ)$= {n_test, p_entangle, p_swap, tau}')
   plt.legend()
@@ -89,7 +108,14 @@ def test_stats(agent, N=3, n_test=4, p_entangle=0.8, p_swap=0.8, tau=1000, round
 
 
 
-def n_scaling_test(N, agent, N_range:range, p_e, p_s, tau, savefig=False):
+def n_scaling_test(experiments, 
+                   agent, 
+                   N_range:range, 
+                   p_e, 
+                   p_s, 
+                   tau, 
+                   cutoff,
+                   savefig=False):
   """Used to test the agents relative scaling"""
 
   n_test=[n for n in N_range]
@@ -97,7 +123,14 @@ def n_scaling_test(N, agent, N_range:range, p_e, p_s, tau, savefig=False):
   t_err_list, s_err_list = [], []
 
   for n in n_test:
-    lt, ls, _, t_err, s_err, _ = test_stats(agent, N=N, n_test = n, p_entangle=p_e, p_swap=p_s, tau=tau, quiet=True)
+    lt, ls, _, t_err, s_err, _ = test_stats(agent, 
+                                            experiments=experiments, 
+                                            n_test = n, 
+                                            p_entangle=p_e, 
+                                            p_swap=p_s, 
+                                            cutoff=cutoff,
+                                            tau=tau, 
+                                            quiet=True)
 
     lt_list.append(lt)
     ls_list.append(ls)

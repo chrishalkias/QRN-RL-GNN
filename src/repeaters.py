@@ -55,7 +55,7 @@ class RepeaterNetwork():
     self.n = n
     self.directed, self.geometry = directed, geometry
     self.global_state = False # Objective: make this into True
-    self.time , self.tau, self.cutoff, self.c = 0, tau, cutoff, 1
+    self.time , self.tau, self.cutoff = 0, tau, cutoff
     self.p_entangle, self.p_swap = p_entangle, p_swap
 
     self.combinations = np.array([[a,b] for a in range(n) for b in range(n)])
@@ -166,11 +166,11 @@ class RepeaterNetwork():
     self.time += int(T)
     for key in self.matrix:
       i,j = key # Needs an extra r_ij here
-      self.matrix[key][1] *= np.exp(-int(T) / (self.tau * self.c))
+      self.matrix[key][1] *= np.exp(-int(T) / self.tau)
 
     if self.cutoff != None:
       for key, (adj, ent) in self.matrix.items():
-        if ent < self.cutoff/self.tau:
+        if ent < np.exp(-self.cutoff / self.tau):
           self.matrix[(key)][1] = 0
 
  #--------------------------------ACTIONS---------------------------------------

@@ -252,12 +252,13 @@ class AgentGNN(RepeaterNetwork):
            p_entangle=1, 
            p_swap=1, 
            tau=1000, 
+           cutoff = 10_000,
            max_steps=100, 
            verbose=False, 
            kind='trained') -> list:
     
     """Perform the validation of the agent against the heuristic strategies"""
-    super().__init__(n=n_test, tau=tau, p_entangle=p_entangle, p_swap=p_swap)
+    super().__init__(n=n_test, tau=tau, cutoff=cutoff, p_entangle=p_entangle, p_swap=p_swap)
     totalReward, rewardList = 0, []
     fidelity, fidelityList = 0,[]
     links_established, linkList = 0, []
