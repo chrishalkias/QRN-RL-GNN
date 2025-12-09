@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import statistics
 import numpy as np
+import seaborn as sns
 import matplotlib as mpl
 from tqdm import tqdm
 from matplotlib.pyplot import figure
@@ -104,6 +105,32 @@ def test_stats(agent,
   plt.ylabel(f'Link rate for $(n, p_E, p_S, τ)$= {n_test, p_entangle, p_swap, tau}')
   plt.legend()
   plt.savefig('assets/test_stats.png') if savefig else None
+  plt.show()
+
+   #--- Plot performance stats ---
+  means = [np.mean(lt), np.mean(ls), np.mean(lr)]
+  mean_errors = [np.mean(t_err), np.mean(s_err), np.mean(r_err)]
+
+  labels = ["Agent", "Swap ASAP", "Random"]
+  plt.figure(figsize=(8, 6))
+  plt.bar(
+      x=labels,
+      height=means,
+      yerr=mean_errors,
+      capsize=10,  # Cap width
+      color=(0, 0, 0, 0), # Transparent fill
+      edgecolor=".5",     # Gray outline
+      linewidth=2.5,      # Thick outline
+      error_kw={
+          "ecolor": ".5",      # Color of error bars
+          "elinewidth": 2.5,   # Width of error bar lines
+          "markeredgewidth": 2.5 # Thickness of the caps
+          })
+
+  plt.ylabel("Mean Performance")
+  plt.title("Performance by Strategy")
+  sns.despine()
+  plt.savefig('assets/test_comp.png') if savefig else None
   plt.show()
 
 

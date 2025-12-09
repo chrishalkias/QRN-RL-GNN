@@ -13,28 +13,28 @@ np.set_printoptions(legacy='1.25')
 if __name__ == '__main__':
 
 	#Toggle if scaling performance is evaluated
-	GET_SCALING_STATS = 0
+	GET_SCALING_STATS = False
 
 
 	# Re-initialize the agent, now to be used as a zero-shot learner
 	agent = AgentGNN(n=4, 
 					cutoff = 100,
 					tau=100,
-					p_entangle=0.6, 
-					p_swap=0.8)
+					p_entangle=.1, 
+					p_swap=.85)
 
 	#Train ONCE to use for testing (also save the model)
-	agent.train(episodes=30_000, plot=True, save_model=True)
+	agent.train(episodes=40_000, plot=True, save_model=True)
 
 	# Now gather validation statistics
 	test_stats(agent=agent, 
 			experiments=5, 
 			n_test = 6, 
-			p_entangle=0.1, 
-			p_swap=0.7, 
+			p_entangle=.05, 
+			p_swap=.95, 
 			cutoff = 1000,
 			tau=1000, 
-			rounds=1_000) 
+			rounds=10_000) 
 
 	# Observe the relative performance of tha agent as N varies
 	n_scaling_test(experiments=10, 
@@ -43,3 +43,4 @@ if __name__ == '__main__':
 				p_e=0.3, 
 				p_s=0.8, 
 				tau=100) if GET_SCALING_STATS else None
+	
