@@ -7,7 +7,7 @@ from tqdm import tqdm
 from matplotlib.pyplot import figure
 from torch_geometric.nn import summary
 
-mpl.rcParams['figure.dpi'] = 300
+mpl.rcParams['figure.dpi'] = 200
 
 def train_stats(agent: object, N=3, steps=10_000, savefig=True):
   """Used to gather training statistics for the agent"""
@@ -105,7 +105,7 @@ def test_stats(agent,
   plt.ylabel(f'Link rate for $(n, p_E, p_S, τ)$= {n_test, p_entangle, p_swap, tau}')
   plt.legend()
   plt.savefig('assets/test_stats.png') if savefig else None
-  plt.show()
+  plt.close()
 
    #--- Plot performance stats ---
   means = [np.mean(lt), np.mean(ls), np.mean(lr)]
@@ -131,7 +131,7 @@ def test_stats(agent,
   plt.title("Performance by Strategy")
   sns.despine()
   plt.savefig('assets/test_comp.png') if savefig else None
-  plt.show()
+  plt.close()
 
 
 

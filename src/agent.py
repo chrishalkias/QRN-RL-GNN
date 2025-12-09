@@ -155,7 +155,7 @@ class AgentGNN(RepeaterNetwork):
 
       # Forward pass (preserve gradients)
       q_values = self.model(state).flatten()  # Shape: [2*num_nodes]
-      q_value = q_values[action]    # Gradient-friendly indexing
+      q_value = q_values[action]    # gradient-friendly indexing
       # print(f'q_val: {q_value}')
 
     #   print(f'Edge attr :{state.edge_attr}, Action: {self.new_actions()[action][5:]}, qval:{q_value:.3f}')
@@ -184,8 +184,11 @@ class AgentGNN(RepeaterNetwork):
       linkList = [self.getLink(node,1) for node in self.matrix.keys()]
       entanglementDegree = np.mean(linkList) /self.n
       entanglementlist.append(entanglementDegree)
-      self.reset() if self.endToEndCheck() else None
-      links_established +=1 if self.endToEndCheck() else 0
+
+      win = self.endToEndCheck()
+      if win:
+        links_established +=1
+        self.reset()
 
 
     if plot:
@@ -202,7 +205,7 @@ class AgentGNN(RepeaterNetwork):
       plt.legend()
       # plt.savefig('logs/plots/GNN_train_plot.png')
       plt.savefig('assets/train.png') if savefig else None
-      plt.show()
+      plt.close()
 
     self.saveModel() if save_model else None
     return rewardList, links_established
@@ -217,7 +220,6 @@ class AgentGNN(RepeaterNetwork):
     return self.choose_action(use_trained_model=True)
 
   
-
   def test(self, 
            n_test=5, 
            p_entangle=1, 
@@ -231,7 +233,7 @@ class AgentGNN(RepeaterNetwork):
     """Perform the validation of the agent against the heuristic strategies"""
     super().__init__(n=n_test, tau=tau, cutoff=cutoff, p_entangle=p_entangle, p_swap=p_swap)
     totalReward, rewardList = 0, []
-    fidelity, fidelgitityList = 0,[]
+    fidelity, fidelityList = 0,[]
     links_established, linkList = 0, []
     linkrate = []
     self.reset()
@@ -240,37 +242,57 @@ class AgentGNN(RepeaterNetwork):
     for step in range(max_steps):
       reward=0
 
-      if kind == 'trained':
-        for _ in range(self.n):
+      # allow for self.n actions per round for normalization
+      if kind=='trained':
+        for _ in range(self.n**2):
           action = self.trained_action()
           reward += self.update_environment(action)
-          links_established +=1 if self.endToEndCheck() else 0
-          self.reset() if self.endToEndCheck() else None
-
-      elif kind == 'random':
-        actions = strategies.random_action()
-        for action in actions:
+      elif kind=='swap_asap':
+        for _ in range(self.n**2):
+          action = strategies.random_swap_asap()
           exec(action)
           reward += self.reward()
-          links_established +=1 if self.endToEndCheck() else 0
-          self.reset() if self.endToEndCheck() else None
-
-      elif kind == 'swap_asap':
-        actions = strategies.swap_asap()
-        for action in actions:
+      elif kind=='random':
+        for _ in range(self.n**2):
+          action = strategies.stochastic_action()
           exec(action)
           reward += self.reward()
-          links_established +=1 if self.endToEndCheck() else 0
-          self.reset() if self.endToEndCheck() else None
+      
+      links_established +=1 if self.endToEndCheck() else 0
+      self.reset() if self.endToEndCheck() else None
 
 
-      elif kind == 'alternating':
-        actions = strategies.alternating_action(step)
-        for action in actions:
-          exec(action)
-          reward += self.reward()
-          links_established +=1 if self.endToEndCheck() else 0
-          self.reset() if self.endToEndCheck() else None
+      # if kind == 'trained':
+      #   for _ in range(self.n):
+      #     action = self.trained_action()
+      #     reward += self.update_environment(action)
+      #     links_established +=1 if self.endToEndCheck() else 0
+      #     self.reset() if self.endToEndCheck() else None
+
+      # elif kind == 'random':
+      #   actions = strategies.random_action()
+      #   for action in actions:
+      #     exec(action)
+      #     reward += self.reward()
+      #     links_established +=1 if self.endToEndCheck() else 0
+      #     self.reset() if self.endToEndCheck() else None
+
+      # elif kind == 'swap_asap':
+      #   actions = strategies.swap_asap()
+      #   for action in actions:
+      #     exec(action)
+      #     reward += self.reward()
+      #     links_established +=1 if self.endToEndCheck() else 0
+      #     self.reset() if self.endToEndCheck() else None
+
+
+      # elif kind == 'alternating':
+      #   actions = strategies.alternating_action(step)
+      #   for action in actions:
+      #     exec(action)
+      #     reward += self.reward()
+      #     links_established +=1 if self.endToEndCheck() else 0
+      #     self.reset() if self.endToEndCheck() else None
 
       print(f"Round: {step}, Reward: {reward:.3f}") if verbose else None
       totalReward += reward
