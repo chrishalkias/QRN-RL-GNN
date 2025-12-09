@@ -150,15 +150,15 @@ class AgentGNN(RepeaterNetwork):
       state = self.get_state_vector()
       action = self.choose_action()
       reward = self.update_environment(action)
-      # print(f'action: {action}({self.new_actions()[action][5:]}), reward: {reward}')
       next_state = self.get_state_vector()
 
       # Forward pass (preserve gradients)
       q_values = self.model(state).flatten()  # Shape: [2*num_nodes]
       q_value = q_values[action]    # gradient-friendly indexing
+      # DEBUGGING
+      # print(f'action: {action}({self.new_actions()[action][5:]}), reward: {reward}')
       # print(f'q_val: {q_value}')
-
-    #   print(f'Edge attr :{state.edge_attr}, Action: {self.new_actions()[action][5:]}, qval:{q_value:.3f}')
+      #print(f'Edge attr :{state.edge_attr}, Action: {self.new_actions()[action][5:]}, qval:{q_value:.3f}')
       # Target computation
       with torch.no_grad():
           next_q_values = self.target_model(next_state).flatten()
@@ -185,17 +185,14 @@ class AgentGNN(RepeaterNetwork):
       entanglementDegree = np.mean(linkList) /self.n
       entanglementlist.append(entanglementDegree)
 
-      win = self.endToEndCheck()
-      if win:
+      wincon = self.endToEndCheck()
+      if wincon:
         links_established +=1
         self.reset()
 
 
     if plot:
       print(f'Total links established = {links_established}')
-      # plt.axline((0,1),slope=0, ls='--')
-      # plt.plot(fidelityList, ls=':', label='Total Fidelity')
-      # plt.plot(entanglementlist, ls='-', label=r'Entanglement per node')
       plt.plot(lossList, ls='-', label='Loss')
       plt.plot(rewardList,ls='-', label='Cummulative reward')
       plt.title(f'Training metrics over {episodes} steps')
@@ -203,21 +200,11 @@ class AgentGNN(RepeaterNetwork):
       plt.ylabel(f'Reward for $(n, p_E, p_S)$= {self.n, self.p_entangle, self.p_swap}')
       plt.yscale("symlog")
       plt.legend()
-      # plt.savefig('logs/plots/GNN_train_plot.png')
       plt.savefig('assets/train.png') if savefig else None
       plt.close()
 
-    self.saveModel() if save_model else None
+    torch.save(self.model.state_dict(), 'assets/gnn_model.pth') if save_model else None
     return rewardList, links_established
-
-  def saveModel(self, dir= 'assets/gnn_model.pth'):
-    """Saves the model"""
-    torch.save(self.model.state_dict(), dir)
-    print(f"Model saved to {dir}")
-
-  def trained_action(self) -> int:
-    """Returns the action with the highest Q-value"""
-    return self.choose_action(use_trained_model=True)
 
   
   def test(self, 
@@ -230,7 +217,11 @@ class AgentGNN(RepeaterNetwork):
            verbose=False, 
            kind='trained') -> list:
     
-    """Perform the validation of the agent against the heuristic strategies"""
+    """
+    
+    Perform the validation of the agent against the heuristic strategies
+    
+    """
     super().__init__(n=n_test, tau=tau, cutoff=cutoff, p_entangle=p_entangle, p_swap=p_swap)
     totalReward, rewardList = 0, []
     fidelity, fidelityList = 0,[]
@@ -244,56 +235,22 @@ class AgentGNN(RepeaterNetwork):
 
       # allow for self.n actions per round for normalization
       if kind=='trained':
-        for _ in range(self.n**2):
-          action = self.trained_action()
+        for _ in range(self.n):
+          action = self.choose_action(use_trained_model=True)
           reward += self.update_environment(action)
       elif kind=='swap_asap':
-        for _ in range(self.n**2):
+        for _ in range(self.n):
           action = strategies.random_swap_asap()
           exec(action)
           reward += self.reward()
       elif kind=='random':
-        for _ in range(self.n**2):
+        for _ in range(self.n):
           action = strategies.stochastic_action()
           exec(action)
           reward += self.reward()
       
       links_established +=1 if self.endToEndCheck() else 0
       self.reset() if self.endToEndCheck() else None
-
-
-      # if kind == 'trained':
-      #   for _ in range(self.n):
-      #     action = self.trained_action()
-      #     reward += self.update_environment(action)
-      #     links_established +=1 if self.endToEndCheck() else 0
-      #     self.reset() if self.endToEndCheck() else None
-
-      # elif kind == 'random':
-      #   actions = strategies.random_action()
-      #   for action in actions:
-      #     exec(action)
-      #     reward += self.reward()
-      #     links_established +=1 if self.endToEndCheck() else 0
-      #     self.reset() if self.endToEndCheck() else None
-
-      # elif kind == 'swap_asap':
-      #   actions = strategies.swap_asap()
-      #   for action in actions:
-      #     exec(action)
-      #     reward += self.reward()
-      #     links_established +=1 if self.endToEndCheck() else 0
-      #     self.reset() if self.endToEndCheck() else None
-
-
-      # elif kind == 'alternating':
-      #   actions = strategies.alternating_action(step)
-      #   for action in actions:
-      #     exec(action)
-      #     reward += self.reward()
-      #     links_established +=1 if self.endToEndCheck() else 0
-      #     self.reset() if self.endToEndCheck() else None
-
       print(f"Round: {step}, Reward: {reward:.3f}") if verbose else None
       totalReward += reward
       rewardList.append(totalReward)

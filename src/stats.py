@@ -61,9 +61,9 @@ def test_stats(agent,
   }
 
   for _ in tqdm(range(experiments)):
-    rt, _, lt = agent.test(**params, kind='trained',);
-    rs, _, ls = agent.test(**params, kind='swap_asap');
-    rr, _, lr = agent.test(**params, kind='random');
+    _, _, lt = agent.test(**params, kind='trained',);
+    _, _, ls = agent.test(**params, kind='swap_asap');
+    _, _, lr = agent.test(**params, kind='random');
 
     t_mean.append(lt)
     s_mean.append(ls)
