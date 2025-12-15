@@ -174,10 +174,10 @@ def n_scaling_test(experiments,
     errors = np.sqrt((t_err / (ls +1e-5))**2 + (lt*np.log(ls)*s_err)**2) #correctly propagate the error
 
   figure(figsize=(12, 4), dpi=100)
-  plt.plot([n_test[0],n_test[-1]], [0,0], color='g')
+  plt.plot([n_test[0],n_test[-1]], [0,0], color='green')
   plt.fill_between(n_test, -s_err, s_err, color='green', alpha=0.1)
 
-  plt.plot(n_test, performance_array, 'gD', color='b', label=f'Relative performance')
+  plt.plot(n_test, performance_array, 'gD', color='blue', label=f'Relative performance')
   plt.fill_between(n_test, performance_array-errors, performance_array+errors, color='blue', alpha=0.1)
   plt.legend()
   plt.ylabel(f'$(p_e, p_s, τ)=(0.5, 0.5, 100)$')
@@ -186,4 +186,8 @@ def n_scaling_test(experiments,
   plt.xticks(n_test)
   plt.savefig('assets/n_scaling.png') if savefig else None
   plt.show()
+
+
+def test_relevant_experimental_regime():
+  pass
 

@@ -32,13 +32,19 @@ if __name__ == '__main__':
 	test_stats(agent=agent, 
 			experiments=2, 
 			n_test = 6, 
-			p_entangle=0.3, 
-			p_swap=0.85, 
+			p_entangle=0.5, 
+			p_swap=0.95, 
 			cutoff = 1000,
 			tau=1000, 
 			rounds=1000) 
 
 	# Observe the relative performance of tha agent as N varies
-	n_scaling_test(experiments=10, agent=agent, N_range=range(5,10), p_e=0.3, p_s=0.8, tau=100) if GET_SCALING_STATS else None
-	print(f'Exited in {((time()-t_0)/60):.3f} min')
+	n_scaling_test(experiments=10, 
+				agent=agent, 
+				N_range=range(5,10), 
+				p_e=0.3, 
+				p_s=0.8, 
+				tau=100) if GET_SCALING_STATS else None
+	
+	print(f'Exited in {((time()-t_0)/60):.3f} min :)')
 	

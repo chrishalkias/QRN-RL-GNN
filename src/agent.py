@@ -240,7 +240,7 @@ class AgentGNN(RepeaterNetwork):
           reward += self.update_environment(action)
       elif kind=='swap_asap':
         for _ in range(self.n):
-          action = strategies.random_swap_asap()
+          action = strategies.swap_asap()
           exec(action)
           reward += self.reward()
       elif kind=='random':
