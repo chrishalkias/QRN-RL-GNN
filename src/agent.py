@@ -201,7 +201,7 @@ class AgentGNN(RepeaterNetwork):
       plt.yscale("symlog")
       plt.legend()
       plt.savefig('assets/train.png') if savefig else None
-      plt.close()
+      plt.show()
 
     torch.save(self.model.state_dict(), 'assets/gnn_model.pth') if save_model else None
     return rewardList, links_established

@@ -131,7 +131,7 @@ def test_stats(agent,
   plt.title("Performance by Strategy")
   sns.despine()
   plt.savefig('assets/test_comp.png') if savefig else None
-  plt.close()
+  plt.show()
 
 
 
