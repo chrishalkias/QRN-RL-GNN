@@ -105,6 +105,7 @@ def test_stats(agent,
   plt.ylabel(f'Link rate for $(n, p_E, p_S, τ)$= {n_test, p_entangle, p_swap, tau}')
   plt.legend()
   plt.savefig('assets/test_stats.png') if savefig else None
+  plt.show()
   plt.close()
 
    #--- Plot performance stats ---
@@ -177,10 +178,10 @@ def n_scaling_test(experiments,
   plt.plot([n_test[0],n_test[-1]], [0,0], color='green')
   plt.fill_between(n_test, -s_err, s_err, color='green', alpha=0.1)
 
-  plt.plot(n_test, performance_array, 'gD', color='blue', label=f'Relative performance')
+  plt.plot(n_test, performance_array, color='blue', label=f'Relative performance')
   plt.fill_between(n_test, performance_array-errors, performance_array+errors, color='blue', alpha=0.1)
   plt.legend()
-  plt.ylabel(f'$(p_e, p_s, τ)=(0.5, 0.5, 100)$')
+  plt.ylabel(f'$(p_e, p_s, τ)=({p_e}, {p_s}, {tau})$')
   plt.title(f'Relative performance scaling')
   plt.xlabel(f'$n$')
   plt.xticks(n_test)
