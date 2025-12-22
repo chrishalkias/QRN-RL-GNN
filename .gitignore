@@ -6,6 +6,7 @@ src/.venv
 .temp/
 notebook.ipynb
 .venv/
+.todo.txt
 
 # (Nice template collection here https://github.com/github/gitignore/tree/main)
 
