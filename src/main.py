@@ -26,13 +26,13 @@ if __name__ == '__main__':
 					p_swap=0.85)
 
 	#Train ONCE to use for testing (also save the model)
-	agent.train(episodes=20_000, plot=True, save_model=False)
+	agent.train(episodes=30_000, plot=True, save_model=False)
 
 	# Now gather validation statistics
 	test_stats(agent=agent, 
 			experiments=10, 
 			n_test = 6, 
-			p_entangle=0.5, 
+			p_entangle=0.1, 
 			p_swap=0.95, 
 			cutoff = 1000,
 			tau=1000, 
