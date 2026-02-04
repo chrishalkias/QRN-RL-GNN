@@ -90,13 +90,13 @@ def test_stats(agent,
 
   x = np.arange(len(lt))
 
-  plt.plot(x, lt, 'tab:blue', ls='-', label=f'Trained agent (rate: {lt[-1]:.3f})')
+  plt.plot(x, lt, 'tab:blue', ls='-', label=f'Trained agent (rate: {lt[-1]:.5f})')
   plt.fill_between(x, lt-error_t, lt+error_t, color='blue', alpha=0.2)
 
-  plt.plot(x, ls, 'tab:green', ls='-', label=f'Swap asap (rate: {ls[-1]:.3f})')
+  plt.plot(x, ls, 'tab:green', ls='-', label=f'Swap asap (rate: {ls[-1]:.5f})')
   plt.fill_between(x, ls-error_s, ls+error_s, color='green', alpha=0.2)
 
-  plt.plot(x, lr, 'tab:grey', ls='-', label=f'Random (rate: {lr[-1]:.3f})')
+  plt.plot(x, lr, 'tab:grey', ls='-', label=f'Random (rate: {lr[-1]:.5f})')
   plt.fill_between(x, lr-error_r, lr+error_r, color='grey', alpha=0.2)
 
   plt.plot()

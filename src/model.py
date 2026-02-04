@@ -1,6 +1,17 @@
 from torch_geometric.nn import GATv2Conv
 import torch.nn as nn
 
+'''
+Using a trained model:
+
+model_state_dict = torch.load("/Users/chrischalkias/GitHub/QRN-RL-GNN/assets/gnn_model.pth")
+net = RepeaterNetwork(n=4) # for example
+state = net.tensorState()
+model = GNN()
+model.load_state_dict(model_state_dict)
+model(state)
+'''
+
 class GNN(nn.Module):
     """Defines the GNN model used"""
     def __init__(self, node_dim=2,

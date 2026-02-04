@@ -119,7 +119,7 @@ class RepeaterNetwork():
     return self.matrix[edge][linkType]
 
 
-  def setLink(self, linkType, edge:tuple, newValue:float):
+  def setLink(self, edge:tuple, newValue:float, linkType=1):
     """Set the link value (only this and tick() allowed to change matrix)"""
     self.checkEdgeLink(edge=edge, linkType=linkType)
     self.matrix[edge][linkType] = newValue

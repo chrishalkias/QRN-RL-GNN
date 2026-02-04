@@ -193,12 +193,15 @@ class AgentGNN(RepeaterNetwork):
     
     """Trains the agent"""
     self.reset()
-    links_established, totalReward, rewardList = 0, 0, []
+    totalReward, rewardList = 0, []
+    links_established = 0
 
     for step in tqdm(range(episodes)):
+
       state, action, reward, next_state = self.step()
       q_value, target = self.Q_estimate(state, action, reward, next_state)
       loss = self.backprop(q_value, target)
+
       self.epsilon = self.epsilon * (1 - step / episodes) #epsilon decay like deepmind
 
       if step % 100 == 0:

@@ -6,34 +6,36 @@ from stats import test_stats, n_scaling_test
 plt.style.use('dark_background')
 np.set_printoptions(legacy='1.25')
 
-# This file consists of 2 separete simulations
-# 
-# 1) Training and validation
-# 2) Scaling statistics of the relative performance 
+'''
 
+	This file consists of 2 separete simulations
+ 
+		1) Training and validation
+		2) Scaling statistics of the relative performance 
+
+'''
 if __name__ == '__main__':
 
 	t_0 = time()
-	#Toggle if scaling performance is evaluated
-	GET_SCALING_STATS = False
+	GET_SCALING_STATS = False # Toggle if u want to see scaling
 
 
-	# Re-initialize the agent, now to be used as a zero-shot learner
+	# Initialize the agent
 	agent = AgentGNN(n=4, 
 					cutoff = 1000,
 					tau=1000,
-					p_entangle=0.3, 
-					p_swap=0.85)
+					p_entangle=0.99, 
+					p_swap=0.99)
 
-	#Train ONCE to use for testing (also save the model)
-	agent.train(episodes=30_000, plot=True, save_model=False)
+	# Run training loop
+	agent.train(episodes=50_000)
 
-	# Now gather validation statistics
+	# Gather validation statistics
 	test_stats(agent=agent, 
-			experiments=10, 
+			experiments=1, 
 			n_test = 6, 
-			p_entangle=0.1, 
-			p_swap=0.95, 
+			p_entangle=0.3, 
+			p_swap=0.90, 
 			cutoff = 1000,
 			tau=1000, 
 			rounds=1000) 
