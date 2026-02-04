@@ -3,6 +3,7 @@ import numpy as np
 from repeaters import RepeaterNetwork
 from strategies import Heuristics
 from model import GNN
+from buffer import Buffer
 import random
 import torch
 import matplotlib.pyplot as plt
@@ -59,7 +60,7 @@ class AgentGNN(RepeaterNetwork):
     self.target_model.load_state_dict(self.model.state_dict())
     self.target_model.eval()
     self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
-
+    self.memory = Buffer(max_size = 10_000)
 
   def store_obs(self):
     """Store SAR pairs to use in the replay buffer"""
@@ -140,6 +141,50 @@ class AgentGNN(RepeaterNetwork):
         bonus_reward +=  entanglement*(j-i)/(self.n**2) if entanglement else 0
     return 1 if self.endToEndCheck() else -0.01 + bonus_reward/10
 
+
+  def step(self):
+    """
+    Perform one observation-action-reward-store step.
+    > To be fed into `Q-estimate`
+
+    Returns: The (S, A, R, S') tuple
+    """
+    state = self.get_state_vector()
+    action = self.choose_action()
+    reward = self.update_environment(action)
+    next_state = self.get_state_vector()
+
+    self.memory.add(state = state, 
+            action=action, 
+            reward=reward, 
+            next_state=next_state)
+    
+    return state, action, reward, next_state
+
+
+  def Q_estimate(self, state, action, reward, next_state):
+    """
+    Estimates the current and next q_values.
+    To be fed into `backprop`
+
+    Returns: q_value, target
+    """
+    q_values = self.model(state).flatten()  # Shape: [2*num_nodes]
+    q_value = q_values[action]    # gradient-friendly indexing
+    with torch.no_grad():
+          next_q_values = self.target_model(next_state).flatten()
+          target = reward + self.gamma * torch.max(next_q_values)
+    return q_value, target
+  
+  def backprop(self, q_value, target):
+    """Performs the backwards pass"""
+    loss = self.criterion(q_value, target)
+    self.optimizer.zero_grad()
+    loss.backward()
+    self.optimizer.step()
+    return loss
+
+    
   def train(self, 
             episodes=1000, 
             plot=True, 
@@ -148,54 +193,21 @@ class AgentGNN(RepeaterNetwork):
     
     """Trains the agent"""
     self.reset()
-
-    totalReward, rewardList = 0, []
-    fidelity, fidelityList = 0,[]
-    links_established = 0
-    entanglementDegree, entanglementlist = 0,[]
-    lossList = []
+    links_established, totalReward, rewardList = 0, 0, []
 
     for step in tqdm(range(episodes)):
-
-      state = self.get_state_vector()
-      action = self.choose_action()
-      reward = self.update_environment(action)
-      next_state = self.get_state_vector()
-
-      # Forward pass (preserve gradients)
-      q_values = self.model(state).flatten()  # Shape: [2*num_nodes]
-      q_value = q_values[action]    # gradient-friendly indexing
-      # DEBUGGING
-      # print(f'action: {action}({self.new_actions()[action][5:]}), reward: {reward}')
-      # print(f'q_val: {q_value}')
-      #print(f'Edge attr :{state.edge_attr}, Action: {self.new_actions()[action][5:]}, qval:{q_value:.3f}')
-      # Target computation
-      with torch.no_grad():
-          next_q_values = self.target_model(next_state).flatten()
-          target = reward + self.gamma * torch.max(next_q_values)
-
-      loss = self.criterion(q_value, target)
-      self.optimizer.zero_grad()
-      loss.backward()
-      self.optimizer.step()
-
-      #epsilon decay:
-      self.epsilon = self.epsilon * (1 - step / episodes) #like deepmind
+      state, action, reward, next_state = self.step()
+      q_value, target = self.Q_estimate(state, action, reward, next_state)
+      loss = self.backprop(q_value, target)
+      self.epsilon = self.epsilon * (1 - step / episodes) #epsilon decay like deepmind
 
       if step % 100 == 0:
         self.target_model.load_state_dict(self.model.state_dict())
 
       totalReward += reward
       rewardList.append(totalReward)
-      # some extra metrics
-      fidelity +=self.getLink((0,self.n-1),1)
-      fidelityList.append(fidelity)
-      lossList.append(loss.item())
-      linkList = [self.getLink(node,1) for node in self.matrix.keys()]
-      entanglementDegree = np.mean(linkList) /self.n
-      entanglementlist.append(entanglementDegree)
-
       wincon = self.endToEndCheck()
+
       if wincon:
         links_established +=1
         self.reset()
@@ -203,7 +215,6 @@ class AgentGNN(RepeaterNetwork):
 
     if plot:
       print(f'Total links established = {links_established}')
-      plt.plot(lossList, ls='-', label='Loss')
       plt.plot(rewardList,ls='-', label='Cummulative reward')
       plt.title(f'Training metrics over {episodes} steps')
       plt.xlabel('Episode')

@@ -4,7 +4,9 @@ class Heuristics():
     def __init__(self, network):
         """
         This class provides a bundle of the used heuristics.
-        All of the strategies 
+        All of the strategies have the following Markovian I/O:
+
+        state -> [strategy] -> action
 
         Methods:
             stochastic_action()
