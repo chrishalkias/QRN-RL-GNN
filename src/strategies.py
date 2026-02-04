@@ -4,11 +4,10 @@ class Heuristics():
     def __init__(self, network):
         """
         This class provides a bundle of the used heuristics.
+        All of the strategies 
 
         Methods:
-            has_left_link()
-            has_right_link()
-            random_action()
+            stochastic_action()
             alternating_action()
             swap_asap()
         """
@@ -19,9 +18,7 @@ class Heuristics():
     
     def stochastic_action(self) -> list:
         """
-
         Perform a random action at each node
-
         """
         waits = ['' for _ in range(self.network.n)]
         entangles = [f'self.entangle({(i,i+1)})' for i in range(self.network.n-1)]
@@ -30,9 +27,7 @@ class Heuristics():
 
     def alternating_action(self, step) -> list:
         """
-        
         At even timestep entangle all and at odd swap all
-        
         """
         if (step % 2) == 0:
             return [f'self.entangle({(i,i+1)})' for i in range(self.network.n-1)]
@@ -41,7 +36,9 @@ class Heuristics():
 
 
     def swap_asap(self, variant='random'):
-
+        """
+        Performs (a variant of) the swap-asap strategy.
+        """
         if variant not in ['random', 'FN', 'SN']:
             raise ValueError('Variant not supported')
         swaps = []
