@@ -60,6 +60,16 @@ class AgentGNN(RepeaterNetwork):
     self.target_model.eval()
     self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
 
+
+  def store_obs(self):
+    """Store SAR pairs to use in the replay buffer"""
+
+    state = self.get_state_vector()
+    action = self.choose_action()
+    reward = self.update_environment(action)
+
+    
+
   def get_state_vector(self) -> torch.tensor:
     """Returns the state of entanglements in the network (pyG.Data)"""
     return self.tensorState() #Data structure with x=torch.ones and edge_attr

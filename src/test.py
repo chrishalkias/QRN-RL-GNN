@@ -303,6 +303,8 @@ class TestAgentGNN(unittest.TestCase):
                     actions.append(action)
                     self.assertIn(action, range(len(agent.new_actions())))
 
+def test_replay_buffer(self): #TODO: include tests
+    ...
 
 class TestIntegration(unittest.TestCase):
     """
