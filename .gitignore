@@ -5,6 +5,7 @@ src/.venv
 .vscode/
 .temp/
 notebook.ipynb
+test_nb.ipynb
 .venv/
 .todo.txt
 
