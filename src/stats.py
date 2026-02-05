@@ -61,9 +61,9 @@ def test_stats(agent,
   }
 
   for _ in tqdm(range(experiments)):
-    _, _, lt = agent.test(**params, kind='trained',);
-    _, _, ls = agent.test(**params, kind='swap_asap');
-    _, _, lr = agent.test(**params, kind='random');
+    _, lt, _ = agent.test(**params, kind='trained',);
+    _, ls, _ = agent.test(**params, kind='swap_asap');
+    _, lr, _ = agent.test(**params, kind='random');
 
     t_mean.append(lt)
     s_mean.append(ls)
@@ -90,19 +90,19 @@ def test_stats(agent,
 
   x = np.arange(len(lt))
 
-  plt.plot(x, lt, 'tab:blue', ls='-', label=f'Trained agent (rate: {lt[-1]:.5f})')
+  plt.plot(x, lt, 'tab:blue', ls='-', label=f'Trained agent (rate: {lt[-1]})')
   plt.fill_between(x, lt-error_t, lt+error_t, color='blue', alpha=0.2)
 
-  plt.plot(x, ls, 'tab:green', ls='-', label=f'Swap asap (rate: {ls[-1]:.5f})')
+  plt.plot(x, ls, 'tab:green', ls='-', label=f'Swap asap (rate: {ls[-1]})')
   plt.fill_between(x, ls-error_s, ls+error_s, color='green', alpha=0.2)
 
-  plt.plot(x, lr, 'tab:grey', ls='-', label=f'Random (rate: {lr[-1]:.5f})')
+  plt.plot(x, lr, 'tab:grey', ls='-', label=f'Random (rate: {lr[-1]})')
   plt.fill_between(x, lr-error_r, lr+error_r, color='grey', alpha=0.2)
 
   plt.plot()
-  plt.title(f'Average performance over {experiments} runs')
+  plt.title(f'Average end-to-end links over {experiments} runs')
   plt.xlabel('Round')
-  plt.ylabel(f'Link rate for $(n, p_E, p_S, τ)$= {n_test, p_entangle, p_swap, tau}')
+  plt.ylabel(f'Total links for $(n, p_E, p_S, τ)$= {n_test, p_entangle, p_swap, tau}')
   plt.legend()
   plt.savefig('assets/test_stats.png') if savefig else None
   plt.show()
@@ -128,7 +128,7 @@ def test_stats(agent,
           "markeredgewidth": 2.5 # Thickness of the caps
           })
 
-  plt.ylabel("Mean Performance")
+  plt.ylabel("Average number of succesfull links")
   plt.title("Performance by Strategy")
   sns.despine()
   plt.savefig('assets/test_comp.png') if savefig else None
