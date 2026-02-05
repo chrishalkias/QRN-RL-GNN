@@ -17,28 +17,29 @@ np.set_printoptions(legacy='1.25')
 if __name__ == '__main__':
 
 	t_0 = time()
-	GET_SCALING_STATS = False # Toggle if u want to see scaling
+	GET_SCALING_STATS = False
+	GET_TESTING_RES = True
 
 
 	# Initialize the agent
 	agent = AgentGNN(n=4, 
 					cutoff = 1000,
 					tau=1000,
-					p_entangle=0.99, 
-					p_swap=0.99)
+					p_entangle=0.3, 
+					p_swap=0.8)
 
 	# Run training loop
 	agent.train(episodes=50_000)
 
 	# Gather validation statistics
 	test_stats(agent=agent, 
-			experiments=1, 
+			experiments=10, 
 			n_test = 6, 
-			p_entangle=0.3, 
-			p_swap=0.90, 
+			p_entangle=0.2, 
+			p_swap=0.85, 
 			cutoff = 1000,
 			tau=1000, 
-			rounds=1000) 
+			rounds=1000) if GET_TESTING_RES else None
 
 	# Observe the relative performance of tha agent as N varies
 	n_scaling_test(experiments=10, 

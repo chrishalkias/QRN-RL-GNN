@@ -2,6 +2,7 @@
 import numpy as np
 from repeaters import RepeaterNetwork
 from strategies import Heuristics
+from torch_geometric.data import Batch
 from model import GNN
 from buffer import Buffer
 import random
@@ -23,8 +24,8 @@ class AgentGNN(RepeaterNetwork):
                cutoff = None,
                p_entangle = 1,
                p_swap = 1,
-               lr=0.001,
-               gamma=0.95,
+               lr=0.0005,
+               gamma=0.93,
                epsilon=1):
     
     """
@@ -62,18 +63,10 @@ class AgentGNN(RepeaterNetwork):
     self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
     self.memory = Buffer(max_size = 10_000)
 
-  def store_obs(self):
-    """Store SAR pairs to use in the replay buffer"""
-
-    state = self.get_state_vector()
-    action = self.choose_action()
-    reward = self.update_environment(action)
-
-    
 
   def get_state_vector(self) -> torch.tensor:
     """Returns the state of entanglements in the network (pyG.Data)"""
-    return self.tensorState() #Data structure with x=torch.ones and edge_attr
+    return self.tensorState() # Data structure with x=torch.ones and edge_attr
 
   def get_valid_actions(self) -> list:
     """
@@ -123,12 +116,26 @@ class AgentGNN(RepeaterNetwork):
         return torch.multinomial(action_probs, 1).item()
 
   def update_environment(self, action) -> float:
-    """Applies the action to the environment and returns the reward.
-    The action is of the form `self.entangle((i,j))` or `self.swapAT(k)`.
-    See the `RepeaterNetwork` documentation for refference.
-    """
-    exec(self.new_actions()[action])
-    return self.reward()
+        """
+        Applies action directly without exec().
+        Assumes action mapping:
+        Even (0, 2...) -> Entangle
+        Odd  (1, 3...) -> Swap
+        """
+        
+        # Calculate which node this action belongs to
+        # Each node 'k' has 2 actions: 2*k and 2*k+1
+        node_index = action // 2
+        action_type = action % 2 
+
+        if action_type == 0:
+            if node_index < self.n - 1: #kinda redundant since mask handles this
+                self.entangle((node_index, node_index + 1))
+                
+        elif action_type == 1:
+            self.swapAT(node_index)
+
+        return self.reward()
 
   def reward(self) -> float:
     """
@@ -138,10 +145,24 @@ class AgentGNN(RepeaterNetwork):
     """
     bonus_reward = 0 # some function f(d, e; n)
     for (i,j), (adj, entanglement) in self.matrix.items():
-        bonus_reward +=  entanglement*(j-i)/(self.n**2) if entanglement else 0
+        bonus_reward +=  entanglement*(j-i)/10 if entanglement else 0
     return 1 if self.endToEndCheck() else -0.01 + bonus_reward/10
 
-
+  def get_valid_mask(self) -> torch.Tensor:
+        """
+        Converts the list of valid actions into a tensor mask 
+        where invalid actions are -inf and valid actions are 0.0.
+        """
+        # Total possible actions = 2 per node (rntangle, swap)
+        total_actions = self.n * 2 
+        mask = torch.full((total_actions,), float('-inf'))
+        
+        valid_indices = self.get_valid_actions()
+        if valid_indices:
+            mask[valid_indices] = 0.0
+            
+        return mask
+  
   def step(self):
     """
     Perform one observation-action-reward-store step.
@@ -154,71 +175,139 @@ class AgentGNN(RepeaterNetwork):
     reward = self.update_environment(action)
     next_state = self.get_state_vector()
 
-    self.memory.add(state = state, 
+    # Calculate the mask for the state we just arrived in
+    next_mask = self.get_valid_mask()
+
+    self.memory.add(state=state, 
             action=action, 
             reward=reward, 
-            next_state=next_state)
+            next_state=next_state,
+            next_mask=next_mask)
     
     return state, action, reward, next_state
 
+#=========================================================================================================
 
-  def Q_estimate(self, state, action, reward, next_state):
-    """
-    Estimates the current and next q_values.
-    To be fed into `backprop`
+  def Q_estimate(self, state_batch, action_batch, reward_batch, next_state_batch, next_mask_batch):
+      """
+      Calculates Q-values and Targets for a BATCH of data.
+      """
+      BATCH_SIZE = len(reward_batch)
 
-    Returns: q_value, target
-    """
-    q_values = self.model(state).flatten()  # Shape: [2*num_nodes]
-    q_value = q_values[action]    # gradient-friendly indexing
-    with torch.no_grad():
-          next_q_values = self.target_model(next_state).flatten()
-          target = reward + self.gamma * torch.max(next_q_values)
-    return q_value, target
+      # 1. Get Q-values for current states
+      # Model output shape: [Total_Nodes_In_Batch, 2]
+      # Total_Nodes_In_Batch = BATCH_SIZE * self.n
+      q_out = self.model(state_batch) 
+      
+      # Reshape to [Batch, Nodes, 2] so we can index by batch
+      q_out_reshaped = q_out.view(BATCH_SIZE, self.n, 2)
+      
+      # Flatten to [Batch, Total_Actions] (Total_Actions = Nodes * 2)
+      # The layout is: [Node0_Entangle, Node0_Swap, Node1_Entangle, Node1_Swap...]
+      q_flat = q_out_reshaped.view(BATCH_SIZE, -1)
+
+      # Gather the specific Q-value for the action taken in each batch item
+      # action_batch shape is [Batch, 1], gather collects along dim 1
+      q_value = q_flat.gather(1, action_batch.unsqueeze(1)).squeeze(1)
+
+      # 2. Calculate Target Q-values
+      with torch.no_grad():
+        # online to select
+        next_q_online = self.model(next_state_batch).view(BATCH_SIZE, -1)
+        masked_next_q_online = next_q_online + next_mask_batch
+        best_actions = torch.argmax(masked_next_q_online, dim=1)
+
+        # target to eval
+        next_q_target = self.target_model(next_state_batch).view(BATCH_SIZE, -1)
+        q_target_values = next_q_target.gather(1, best_actions.unsqueeze(1)).squeeze(1)
+        
+        target = reward_batch + self.gamma * q_target_values
+
+      return q_value, target
   
+#=========================================================================================================
+
+  def stacker(self, samples):
+    """Manual stacking of the obs"""
+    # --- COLLATION LOGIC ---
+    # We must manually stack the data into Batches
+
+    # a. Create Graph Batches for states
+    state_list = [item['s'] for item in samples]
+    next_state_list = [item['s_'] for item in samples]
+    state_batch = Batch.from_data_list(state_list)
+    next_state_batch = Batch.from_data_list(next_state_list)
+
+    # b. Stack simple tensors
+    # torch.stack creates [Batch, ...]
+    action_batch = torch.tensor([item['a'] for item in samples], dtype=torch.long)
+    reward_batch = torch.tensor([item['r'] for item in samples], dtype=torch.float)
+    mask_batch = torch.stack([item['m_'] for item in samples]) # Shape [Batch, Action_Size]
+    avg_batch_reward = reward_batch.mean().item()
+    return state_batch, action_batch, reward_batch, next_state_batch, mask_batch, avg_batch_reward
+
+
   def backprop(self, q_value, target):
     """Performs the backwards pass"""
     loss = self.criterion(q_value, target)
     self.optimizer.zero_grad()
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0) # failsafe prevents "exploding gradient" crashes
     self.optimizer.step()
     return loss
 
     
   def train(self, 
-            episodes=1000, 
+            episodes=1000,
+            batch_size=64, 
             plot=True, 
             save_model=True, 
             savefig=True) -> list:
     
     """Trains the agent"""
     self.reset()
-    totalReward, rewardList = 0, []
+    total_batch_reward, rewardList = 0, []
     links_established = 0
+    epsilon_start = 1.0
+    epsilon_end = 0.05
+    decay_rate = epsilon_start - epsilon_end
 
     for step in tqdm(range(episodes)):
 
-      state, action, reward, next_state = self.step()
-      q_value, target = self.Q_estimate(state, action, reward, next_state)
-      loss = self.backprop(q_value, target)
 
-      self.epsilon = self.epsilon * (1 - step / episodes) #epsilon decay like deepmind
+      self.step() # just stores data
 
-      if step % 100 == 0:
-        self.target_model.load_state_dict(self.model.state_dict())
+      if self.memory.size() > batch_size:
+          
+        # Sample TensorDicts
+        samples = self.memory.sample(batch_size)
+        # Stack samples
+        state_batch, action_batch, reward_batch, next_state_batch, mask_batch, avg_batch_reward = self.stacker(samples)
+        #run bellman
+        q_value, target = self.Q_estimate(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
+        # backprop
+        loss = self.backprop(q_value, target)
 
-      totalReward += reward
-      rewardList.append(totalReward)
-      wincon = self.endToEndCheck()
+        # Decay epsilon
+        self.epsilon = max(epsilon_end, epsilon_start - (step / episodes) * decay_rate)
 
-      if wincon:
-        links_established +=1
-        self.reset()
+        # Polyak Averaging: soft update (0.5% transfer per step)
+        tau_update = 0.005 
+        for target_param, local_param in zip(self.target_model.parameters(), self.model.parameters()):
+          target_param.data.copy_(tau_update * local_param.data + (1.0 - tau_update) * target_param.data)
+
+        total_batch_reward += avg_batch_reward
+        rewardList.append(total_batch_reward)
+        wincon = self.endToEndCheck()
+
+        if wincon:
+          links_established +=1
+          self.reset()
 
 
     if plot:
       print(f'Total links established = {links_established}')
-      plt.plot(rewardList,ls='-', label='Cummulative reward')
+      plt.plot(rewardList,ls='-', label='Average batch-reward')
       plt.title(f'Training metrics over {episodes} steps')
       plt.xlabel('Episode')
       plt.ylabel(f'Reward for $(n, p_E, p_S)$= {self.n, self.p_entangle, self.p_swap}')

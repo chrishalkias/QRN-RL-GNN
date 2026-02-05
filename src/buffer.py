@@ -23,13 +23,19 @@ class Buffer():
                            collate_fn=lambda x: x)
         
 
-    def add(self, state, action, reward, next_state) -> None:
-        data = TensorDict({
-            's' : state,
-            'a' : action,
-            'r' : reward,
-            's_' : next_state})
-        self.buffer_list.add(data)
+    def add(self, state, action, reward, next_state, next_mask) -> None:
+            """
+            Adds a SARSM tuple to the buffer. Also stores the validity mask
+            for the next state to prevent hallucination during training.
+            """
+            data = TensorDict({
+                's' : state,
+                'a' : action,
+                'r' : reward,
+                's_' : next_state,
+                'm_' : next_mask  # Store action masks
+                })
+            self.buffer_list.add(data)
 
     def sample(self, samples = 1) -> list:
         return self.buffer_list.sample(samples)

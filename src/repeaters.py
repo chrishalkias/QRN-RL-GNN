@@ -240,7 +240,7 @@ class RepeaterNetwork():
     if not getsSwapped:
       return None
 
-    swapEficciency = 1
+
     assert node <= self.n-1, f'Node {node} not in system withn={self.n}'
 
     for i,j in self.matrix.keys():
@@ -253,7 +253,7 @@ class RepeaterNetwork():
       if isnt_looped and is_ordered and has_links:
         link1, link2 = (i,node), (node,j)
         Eij, Ejk = self.getLink(link1), self.getLink(link2)
-        effectiveValue = 0.5*swapEficciency*(Eij + Ejk)
+        effectiveValue = 0.5*(Eij + Ejk)
         self.setLink(linkType=1, edge=link1, newValue=0.0)
         self.setLink(linkType=1, edge=link2, newValue=0.0)
         self.setLink(linkType=1, edge=(i,j), newValue=effectiveValue)
@@ -302,26 +302,47 @@ class RepeaterNetwork():
     return len(self.actions())
 
   def tensorState(self) -> Data:
-      """Returns the tensor graph state (to be used for GNN)"""
-      sources = torch.arange(self.n - 1, dtype=torch.long)  # 0, 1, ..., n-2
-      targets = sources + 1                            # 1, 2, ..., n-1
-      edge_index = torch.stack([sources, targets])     # shape [2, n-1]
-      edge_attr_list = [list(links)[1] for links in self.matrix.values()]
-      edge_attr = torch.tensor(edge_attr_list, dtype=torch.float)
+      """ Returns a pyG.Data object to be used by the GNN"""
+      sources_fwd = torch.arange(self.n - 1, dtype=torch.long)
+      targets_fwd = sources_fwd + 1
+      
+      # Stack forward and backward edges
+      edge_index = torch.stack([
+          torch.cat([sources_fwd, targets_fwd]),
+          torch.cat([targets_fwd, sources_fwd])
+      ])
+
+      # Extract Attributes in the EXACT order of edge_index
+      attr_list = []
+      
+      for i in range(edge_index.shape[1]):
+          u = edge_index[0, i].item()
+          v = edge_index[1, i].item()
+          
+          # Sort (u,v) because self.matrix only stores sorted keys i.e (0,1) not (1,0)
+          key = tuple(sorted((u, v)))
+          
+          # Retrieve fidelity from the matrix
+          fidelity = self.matrix[key][1]
+          attr_list.append(fidelity)
+
+      edge_attr = torch.tensor(attr_list, dtype=torch.float).unsqueeze(1) # [Edges, 1]
+
+      # Node Attributes
       node_attr = torch.zeros((self.n, 2))
-      for n1 in range(self.n):
-          for n2 in range(self.n):
-              if n2 < n1:
-                  if (self.getLink((n2, n1), 1) > 0):
-                      node_attr[n2, 1] = 1
-                      node_attr[n1, 0] = 1
-              elif n1 < n2:
-                  if (self.getLink((n1, n2), 1) > 0):
-                      node_attr[n1, 1] = 1
-                      node_attr[n2, 0] = 1
+      for n_idx in range(self.n):
+          # Left neighbor check
+          if n_idx > 0:
+             if self.getLink((n_idx-1, n_idx), 1) > 0:
+                 node_attr[n_idx, 0] = 1
+          # Right neighbor check
+          if n_idx < self.n - 1:
+             if self.getLink((n_idx, n_idx+1), 1) > 0:
+                 node_attr[n_idx, 1] = 1
+
       data = Data(x=node_attr,
                   edge_index=edge_index,
-                  edge_attr = edge_attr)
+                  edge_attr=edge_attr)
       return data
 
 
