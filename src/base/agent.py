@@ -1,16 +1,17 @@
 #@title Agent GNN
 import numpy as np
-from repeaters import RepeaterNetwork
-from strategies import Heuristics
+from base.repeaters import RepeaterNetwork
+from base.strategies import Heuristics
 from torch_geometric.data import Batch
-from model import GNN
-from buffer import Buffer
+from base.model import GNN
+from base.buffer import Buffer
 import random
 import torch
 import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
+np.set_printoptions(legacy='1.25')
 
 
 
@@ -55,13 +56,30 @@ class AgentGNN(RepeaterNetwork):
     self.epsilon = epsilon
     self.criterion = nn.MSELoss()
     states = len(self.get_state_vector())
-    actions = len(self.new_actions())
+    actions = len(self.actions_list())
     self.model = GNN()
     self.target_model = type(self.model)()
     self.target_model.load_state_dict(self.model.state_dict())
     self.target_model.eval()
     self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
     self.memory = Buffer(max_size = 10_000)
+
+  def reinitialize(self, n=None, tau=None, cutoff=None, p_entangle=None, p_swap=None) ->None:
+    """Reinitialize the agent with different parameters"""
+    new_n = n if n is not None else self.n
+    new_tau = tau if tau is not None else self.tau
+    new_p_entangle = p_entangle if p_entangle is not None else self.p_entangle
+    new_p_swap = p_swap if p_swap is not None else self.p_swap
+    new_cutoff = cutoff if cutoff is not None else self.cutoff
+    super().__init__(
+        n=new_n, 
+        tau=new_tau, 
+        cutoff=new_cutoff, 
+        p_entangle=new_p_entangle, 
+        p_swap=new_p_swap,
+        directed=self.directed, # Preserve existing structure
+        geometry=self.geometry  # Preserve existing geometry
+    )
 
 
   def get_state_vector(self) -> torch.tensor:
@@ -117,24 +135,10 @@ class AgentGNN(RepeaterNetwork):
 
   def update_environment(self, action) -> float:
         """
-        Applies action directly without exec().
-        Assumes action mapping:
-        Even (0, 2...) -> Entangle
-        Odd  (1, 3...) -> Swap
+        Execute the chosen action
         """
-        
-        # Calculate which node this action belongs to
-        # Each node 'k' has 2 actions: 2*k and 2*k+1
-        node_index = action // 2
-        action_type = action % 2 
-
-        if action_type == 0:
-            if node_index < self.n - 1: #kinda redundant since mask handles this
-                self.entangle((node_index, node_index + 1))
-                
-        elif action_type == 1:
-            self.swapAT(node_index)
-
+        action_string = self.actions_list()[action]
+        exec(action_string)
         return self.reward()
 
   def reward(self) -> float:
@@ -145,7 +149,7 @@ class AgentGNN(RepeaterNetwork):
     """
     bonus_reward = 0 # some function f(d, e; n)
     for (i,j), (adj, entanglement) in self.matrix.items():
-        bonus_reward +=  entanglement*(j-i)/10 if entanglement else 0
+        bonus_reward +=0#  entanglement*(j-i)/10 if entanglement else 0
     return 1 if self.endToEndCheck() else -0.01 + bonus_reward/10
 
   def get_valid_mask(self) -> torch.Tensor:
@@ -261,6 +265,8 @@ class AgentGNN(RepeaterNetwork):
             episodes=1000,
             batch_size=64, 
             plot=True, 
+            jitter = None,
+            n_range = [4,6],
             save_model=True, 
             savefig=True) -> list:
     
@@ -273,7 +279,14 @@ class AgentGNN(RepeaterNetwork):
     decay_rate = epsilon_start - epsilon_end
 
     for step in tqdm(range(episodes)):
-
+      
+      #jitter condition
+      if jitter and not step%jitter:
+          new_n = np.random.choice(n_range)
+          # clear the buffer (cannot stack observations of different size)
+          self.memory.clear() if new_n != self.n else ...
+          self.reinitialize(n=new_n)
+          
 
       self.step() # just stores data
 
@@ -310,7 +323,7 @@ class AgentGNN(RepeaterNetwork):
       plt.plot(rewardList,ls='-', label='Average batch-reward')
       plt.title(f'Training metrics over {episodes} steps')
       plt.xlabel('Episode')
-      plt.ylabel(f'Reward for $(n, p_E, p_S)$= {self.n, self.p_entangle, self.p_swap}')
+      plt.ylabel(f'Reward for $(n, p_E, p_S)$= {n_range, self.p_entangle, self.p_swap}')
       plt.yscale("symlog")
       plt.legend()
       plt.savefig('assets/train.png') if savefig else None
@@ -335,38 +348,44 @@ class AgentGNN(RepeaterNetwork):
     Perform the validation of the agent against the heuristic strategies
     
     """
-    super().__init__(n=n_test, tau=tau, cutoff=cutoff, p_entangle=p_entangle, p_swap=p_swap)
-    totalReward, rewardList = 0, []
-    fidelity, fidelityList = 0,[]
     links_established, linkList = 0, []
-    linkrate = []
-    self.reset()
+
+    self.reinitialize(n=n_test, tau=tau, cutoff=cutoff, p_entangle=p_entangle, p_swap=p_swap)
     strategies = Heuristics(self)
 
-    for step in range(max_steps):
-      reward=0
+    for _ in tqdm(range(max_steps)):
 
-      # allow for self.n actions per round for normalization
       if kind=='trained':
-        for _ in range(self.n):
           action = self.choose_action(use_trained_model=True)
-          reward += self.update_environment(action)
+          self.update_environment(action)
       elif kind=='swap_asap':
-        for _ in range(self.n):
           action = strategies.swap_asap()
           exec(action)
-          reward += self.reward()
       elif kind=='random':
-        for _ in range(self.n):
           action = strategies.stochastic_action()
           exec(action)
-          reward += self.reward()
       
-      links_established +=1 if self.endToEndCheck() else 0
-      self.reset() if self.endToEndCheck() else None
-      print(f"Round: {step}, Reward: {reward:.3f}") if verbose else None
-      totalReward += reward
-      rewardList.append(totalReward)
+
+         
+      wincon = self.getLink((0,self.n-1)) > 0
+
+      if wincon:
+        links_established +=1 
+        self.reset() 
+
       linkList.append(links_established)
-      linkrate.append(links_established/(step+1))
-    return rewardList, linkList, linkrate
+
+    return linkList
+  
+
+  def action_to_string(self, action):
+    """DEBUGGING"""
+    node_index = action // 2
+    action_type = action % 2 
+
+    if action_type == 0:
+        if node_index < self.n - 1: #kinda redundant since mask handles this
+            return f'self.entangle(({node_index}, {node_index + 1}))'
+            
+    elif action_type == 1:
+        return f'self.swapAT({node_index})'

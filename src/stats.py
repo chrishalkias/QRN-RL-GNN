@@ -6,6 +6,7 @@ import matplotlib as mpl
 from tqdm import tqdm
 from matplotlib.pyplot import figure
 from torch_geometric.nn import summary
+np.set_printoptions(legacy='1.25')
 
 mpl.rcParams['figure.dpi'] = 200
 
@@ -42,7 +43,7 @@ def test_stats(agent,
                p_swap=0.8, 
                tau=1000, 
                cutoff = 10_000,
-               rounds=400, 
+               max_steps=400, 
                quiet=False, 
                savefig=True):
   
@@ -57,13 +58,14 @@ def test_stats(agent,
     'p_swap': p_swap,
     'tau': tau,
     'cutoff': cutoff,
-    'max_steps': rounds
+    'max_steps': max_steps
   }
 
   for _ in tqdm(range(experiments)):
-    _, lt, _ = agent.test(**params, kind='trained',);
-    _, ls, _ = agent.test(**params, kind='swap_asap');
-    _, lr, _ = agent.test(**params, kind='random');
+
+    lt = agent.test(**params, kind='trained',)
+    ls = agent.test(**params, kind='swap_asap')
+    lr = agent.test(**params, kind='random')
 
     t_mean.append(lt)
     s_mean.append(ls)
@@ -81,28 +83,28 @@ def test_stats(agent,
   s_err = statistics.mean(s_err)
   r_err = statistics.mean(r_err)
 
-  error_t = np.random.normal(0, t_err, size=len(lt))
-  error_s = np.random.normal(0, s_err, size=len(ls))
-  error_r = np.random.normal(0, r_err, size=len(ls))
+  error_t = t_err * np.ones_like(t_err)
+  error_s = t_err * np.ones_like(s_err)
+  error_r = t_err * np.ones_like(r_err)
 
   if quiet == True:
       return lt[-1], ls[-1], lr[-1], t_err, s_err, r_err
 
   x = np.arange(len(lt))
 
-  plt.plot(x, lt, 'tab:blue', ls='-', label=f'Trained agent (rate: {lt[-1]})')
-  plt.fill_between(x, lt-error_t, lt+error_t, color='blue', alpha=0.2)
+  plt.plot(x, lt, 'tab:blue', ls='-', label=f'Trained agent (avg: {lt[-1]})')
+  plt.fill_between(x, lt-error_t, lt+error_t, color='blue', alpha=0.1)
 
-  plt.plot(x, ls, 'tab:green', ls='-', label=f'Swap asap (rate: {ls[-1]})')
-  plt.fill_between(x, ls-error_s, ls+error_s, color='green', alpha=0.2)
+  plt.plot(x, ls, 'tab:green', ls='-', label=f'Swap asap (avg: {ls[-1]})')
+  plt.fill_between(x, ls-error_s, ls+error_s, color='green', alpha=0.1)
 
-  plt.plot(x, lr, 'tab:grey', ls='-', label=f'Random (rate: {lr[-1]})')
-  plt.fill_between(x, lr-error_r, lr+error_r, color='grey', alpha=0.2)
+  plt.plot(x, lr, 'tab:grey', ls='-', label=f'Random (avg: {lr[-1]})')
+  plt.fill_between(x, lr-error_r, lr+error_r, color='grey', alpha=0.1)
 
   plt.plot()
   plt.title(f'Average end-to-end links over {experiments} runs')
   plt.xlabel('Round')
-  plt.ylabel(f'Total links for $(n, p_E, p_S, τ)$= {n_test, p_entangle, p_swap, tau}')
+  plt.ylabel(f'Total links for $(n, p_E, p_S, τ, c)$= {n_test, p_entangle, p_swap, tau, cutoff}')
   plt.legend()
   plt.savefig('assets/test_stats.png') if savefig else None
   plt.show()

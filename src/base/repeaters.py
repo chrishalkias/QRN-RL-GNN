@@ -272,25 +272,7 @@ class RepeaterNetwork():
     self.setLink(edge=(0,self.n-1), linkType=1, newValue = 0) if endToEnd else None
     return endToEnd
 
-
-  def old_actions(self, split = False):
-    """Creates a dict() with all the possible actions"""
-    entangles= {f'Entangle {key}': f'self.entangle(edge={key})' for key in self.matrix.keys() if self.matrix[key][0]==1}
-    edgeList = list(itertools.combinations(self.matrix.keys(), 2))
-    print(edgeList)
-    def noLoopChain(x, y):
-      return (x[1] == y[0]) and (x[0]!=x[1]) and (y[0]!=y[1])
-    combList = [(first, second) for first, second in edgeList if noLoopChain(first, second)]
-    print(combList)
-    swaps = {f'Swap {comb}': f'self.swap(edge1={comb[0]}, edge2={comb[1]})' for comb in combList}
-    return np.array([*(entangles| swaps).values()]) if not split else (entangles, swaps)
-
-  def actions(self, split = False):
-    entangles= [f'self.entangle(edge={key})' for key in self.matrix.keys() if self.matrix[key][0]==1]
-    swaps = [f'self.swapAT({node})' for node in range(self.n) if node not in [0,self.n]]
-    return entangles + swaps
-
-  def new_actions(self):
+  def actions_list(self):
     operations = []
     for node in range(self.n-1):
       operations.append(f'self.entangle(edge={node, node+1})')
@@ -303,46 +285,42 @@ class RepeaterNetwork():
 
   def tensorState(self) -> Data:
       """ Returns a pyG.Data object to be used by the GNN"""
-      sources_fwd = torch.arange(self.n - 1, dtype=torch.long)
-      targets_fwd = sources_fwd + 1
-      
-      # Stack forward and backward edges
-      edge_index = torch.stack([
-          torch.cat([sources_fwd, targets_fwd]),
-          torch.cat([targets_fwd, sources_fwd])
-      ])
-
-      # Extract Attributes in the EXACT order of edge_index
+      sources = []
+      targets = []
       attr_list = []
       
-      for i in range(edge_index.shape[1]):
-          u = edge_index[0, i].item()
-          v = edge_index[1, i].item()
-          
-          # Sort (u,v) because self.matrix only stores sorted keys i.e (0,1) not (1,0)
-          key = tuple(sorted((u, v)))
-          
-          # Retrieve fidelity from the matrix
-          fidelity = self.matrix[key][1]
-          attr_list.append(fidelity)
+      # Iterate ALL potential links
+      for key, (adj, ent) in self.matrix.items():
+          if ent > 0 or adj > 0: # Keep physical links AND entangled links
+              u, v = key
+              # Add edge (u, v)
+              sources.append(u)
+              targets.append(v)
+              attr_list.append(ent)
+              
+              # Add edge (v, u) - undirected
+              sources.append(v)
+              targets.append(u)
+              attr_list.append(ent)
 
-      edge_attr = torch.tensor(attr_list, dtype=torch.float).unsqueeze(1) # [Edges, 1]
-
+      edge_index = torch.tensor([sources, targets], dtype=torch.long)
+      edge_attr = torch.tensor(attr_list, dtype=torch.float).unsqueeze(1)
       # Node Attributes
       node_attr = torch.zeros((self.n, 2))
-      for n_idx in range(self.n):
-          # Left neighbor check
-          if n_idx > 0:
-             if self.getLink((n_idx-1, n_idx), 1) > 0:
-                 node_attr[n_idx, 0] = 1
-          # Right neighbor check
-          if n_idx < self.n - 1:
-             if self.getLink((n_idx, n_idx+1), 1) > 0:
-                 node_attr[n_idx, 1] = 1
 
+      for n1 in range(self.n):
+        for n2 in range(self.n):
+            if n2 < n1:
+                if (self.getLink((n2, n1), 1) > 0):
+                    node_attr[n2, 1] = 1
+                    node_attr[n1, 0] = 1
+            elif n1 < n2:
+                if (self.getLink((n1, n2), 1) > 0):
+                    node_attr[n1, 1] = 1
+                    node_attr[n2, 0] = 1
       data = Data(x=node_attr,
                   edge_index=edge_index,
-                  edge_attr=edge_attr)
+                  edge_attr = edge_attr)
       return data
 
 

@@ -1,7 +1,7 @@
 from torchrl.data import ReplayBuffer
 from torchrl.data import LazyMemmapStorage, LazyTensorStorage, ListStorage
 import numpy as np
-from repeaters import RepeaterNetwork
+from base.repeaters import RepeaterNetwork
 import random
 from tensordict import TensorDict
 import torch
@@ -42,6 +42,10 @@ class Buffer():
 
     def size(self) -> int:
         return len(self.buffer_list)
+    
+    def clear(self) -> None:
+         self.buffer_list = ReplayBuffer(storage=ListStorage(self.max_size), 
+                           collate_fn=lambda x: x)
 
 
 

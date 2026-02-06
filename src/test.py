@@ -2,9 +2,9 @@ import unittest
 import numpy as np
 import torch
 import random
-from repeaters import RepeaterNetwork
-from agent import AgentGNN
-from model import GNN
+from base.repeaters import RepeaterNetwork
+from base.agent import AgentGNN
+from base.model import GNN
 from torch_geometric.data import Data
 
 
