@@ -1,72 +1,27 @@
 import numpy as np
-import itertools
 import torch
 from torch_geometric.data import Data
-from typing import List, Tuple
 
 class RepeaterNetwork():
   def __init__(self,
-               n=4,
-               directed = False,
-               geometry = 'chain',
+               n:int=4,
                cutoff = None,
-               tau = 1_000,
-               p_entangle = 1.0,
-               p_swap = 1.0
-              ):
+               tau:int = 1_000,
+               p_entangle:float = 1.0,
+               p_swap:float = 1.0
+              )-> None:
     """
-    Implements the Graph description of the repeater network
-
-    ------------------------------------------------------
-    Methods:
-    ------------------------------------------------------
-    undirector()         > Remove ij-ji duplicates
-    connect()            > Connects the Graph in specified geometry.
-    checkEdgeLink()      > Check whether in grid and correct linkType
-    getLink()            > Get a link value for (i,j)
-    setLink()            > Update a link value for (i,j) to V
-    reset()              > reset the system to the ground state
-    saturated()          > Checks if a repeater has >2 connections [NOT IMPLEMENTED]
-    tick()               > Propagates the system in time by dt = 1
-    entangle()           > Entangles two repeaters (i,j) (E_ij->1)
-    swap()               > Swaps E_(i,j)(j,k) -> E_(i,k) [LEGACY]
-    swapAT()             > Performs a swap at node k
-    endToEndCheck()      > Measures to check if end-to-end-entangled
-    old_actions()        > Previous action accounting [LEGACY]
-    actions()            > A list of all the possible actions
-    new_actions()        > yet another actions function......
-    actionCount()        > Counts the number of all actions
-    tensorState()        > The state description used for the GNN
-
-    --------------------------------------------------------
-    Attributes:
-    --------------------------------------------------------
-    n_nodes     (int)    > Number of qubits
-    directed    (bool)   > If the Graph is directed and looped
-    global      (bool)   > 1 iff end-to-end entangled 0 therwise
-    time        (int)    > Simulation time
-    tau         (float)  > Link decay coefficient
-    cutoff      (float)  > The cutoff time
-    p_entangle  (float)  > Probability of entanglement success
-    p_swap      (float)  > Probability of swap success
-    geometry    (str)    > The geometry of the network
-    matrix      (array)  > Complete matrix representaition
+        Fast Quantum network simulator
+        [TODO] write a docstring (again)
     """
+    #---Initialize class attributes
     self.n = n
-    self.directed, self.geometry = directed, geometry
-    self.global_state = False # Objective: make this into True
     self.time , self.tau, self.cutoff = 0, tau, cutoff
     self.p_entangle, self.p_swap = p_entangle, p_swap
-
     self.combinations = np.array([[a,b] for a in range(n) for b in range(n)])
     self.matrix = {tuple(self.combinations[i]): [0, 0] for i in range(n**2)}
 
-    self.undirector() if not directed else None
-    self.connect(geometry = geometry)
-
-
-  def undirector(self):
-    """Makes the graph directed and un-looped by modifying the state self.Matrix"""
+    #---Make undirected graph
     uniquePairs = set()
     for pair in self.combinations:
         uniquePairs.add(tuple(sorted(pair))) if pair[0] != pair[1] else None
@@ -76,42 +31,24 @@ class RepeaterNetwork():
     edges = [edge_matrix[i][0] for i in combinations]
     self.matrix = {tuple(undirected_matrix[i]): [edges[i], edges[i]]  for i in combinations}
 
-  def connect(self, geometry='chain', p=0.5, distList=None):
-    """
-    Connects the graph by creating locality links. The directionality
-    of the graph is adjusted and afterwards locality links are filled
-    out accorging to the input.
-    -------------
-    Args:
-    -------------
-    geometry        >str ('chain' , 'ER')   > The type of connectivity to be used
-    p (float)       >float                  > For ER only the probability of connection
-    distList [TODO] >np.array               > A distance list for each node
-    --------------
-    Outputs:
-    --------------
-    Sets self.matrix to the correct adjeceny values and prints that the system has
-    been initialized with the desired adjecency and directionality properties.
-    """
-    assert not self.directed, f'Directed Graph'
+    #---Set the linear network topology
     for key in self.matrix:
-      i, j = key
-      if geometry == 'chain':
-        areNeighbours = (j==i+1)
-      elif geometry == 'ER':
-        areNeighbours = (np.random.rand() < p)
-      else:
-        raise Exception(f'Geometry {geometry} not supported')
+      node1, node2 = key
+      areNeighbours = (node2==node1+1)
       if areNeighbours:
         self.setLink(edge=(key), linkType = 0, newValue=1)
+
 
   def checkEdgeLink(self, edge:tuple, linkType:bool =0):
     """Check whether in grid and correct linkType (for getLink and setLink)"""
     leftBoundary = edge[0] >= 0 and edge[1] >= 0
     rightBoundary = edge[0] <= self.n-1 and edge[1] <= self.n-1
-    assert leftBoundary and rightBoundary, f'Edge {edge} out of bounds for chain of size {self.n}'
-    assert (linkType == 0 or
-            linkType == 1), f'Invalid link type (expected 0 or 1 got {linkType}'
+
+    if not (leftBoundary and rightBoundary):
+      raise IndexError(f'Edge {edge} out of bounds for chain of size {self.n}')
+    if linkType not in (0,1):
+      raise ValueError(f'Invalid link type (expected 0 or 1 got {linkType}')
+
 
   def getLink(self, edge:tuple, linkType:bool = 1) -> float:
     """Get the link (locality/entanglement) from self.matrix"""
@@ -119,13 +56,13 @@ class RepeaterNetwork():
     return self.matrix[edge][linkType]
 
 
-  def setLink(self, edge:tuple, newValue:float, linkType=1):
+  def setLink(self, edge:tuple, newValue:float, linkType=1) -> None:
     """Set the link value (only this and tick() allowed to change matrix)"""
     self.checkEdgeLink(edge=edge, linkType=linkType)
     self.matrix[edge][linkType] = newValue
 
 
-  def reset(self):
+  def reset(self) -> None:
     """resets all entanglements to 0"""
     for edge in self.matrix.keys():
       self.setLink(edge=edge, linkType=1, newValue=0)
@@ -157,15 +94,11 @@ class RepeaterNetwork():
       return 1
     
 
-  def tick(self, T:int):
-    """
-    Implements the time evolution of the system:
-    T timesteps ahead -> age all the links by T*dt (dt=1 by convention)
-    Expires the links according to their age. If a link is older than cutoff/tau it goes to zero
-    """
+  def tick(self, T:int) -> None:
+    """Implements the time evolution of the system"""
     self.time += int(T)
     for key in self.matrix:
-      i,j = key # Needs an extra r_ij here
+      i,j = key 
       self.matrix[key][1] *= np.exp(-int(T) / self.tau)
 
     if self.cutoff != None:
@@ -173,79 +106,43 @@ class RepeaterNetwork():
         if ent < np.exp(-self.cutoff / self.tau):
           self.matrix[(key)][1] = 0
 
- #--------------------------------ACTIONS---------------------------------------
-
-
-
-  def entangle(self, edge):
+  def entangle(self, edge) -> None:
     """
     Check if two nodes are adjecent and not saturated and
     entangle them with success probability p_entangle.
     """
     self.checkEdgeLink(edge=edge)
-
-    self.tick(1)
     getsEntangled = self.p_entangle > np.random.rand()
     (left_node, right_node) = edge
 
     if not getsEntangled:
-      return None
+      return
     
     # both repeaters are saturated
     if self.saturated(left_node) == 0 or self.saturated(right_node) == 0:
-      return None
+      return
     # qubits looking each other are occupied -> (x x---x x)
     if self.saturated(left_node) == +1 or self.saturated(left_node) ==-1:
-      return None
-
+      return
+    
+    self.tick(1)
     areAdjecent = self.getLink(edge=edge, linkType=0)
     self.setLink(linkType = 1, edge=edge,newValue=1) if areAdjecent else None
 
 
-  def swap(self, edge1, edge2): #chain only
-    """
-    Perform the SWAP operation between the qubits of edge1=(i,j)
-    and edge2=(j,k) with probability p_swap. Swap sets the entanglement
-     between (i,j) and (j,k) to 0 and the entanglement (i,k) equal to the
-    average value of the two previous entanglements.
-    """
-    swapEficciency = 1
-    self.checkEdgeLink(edge=edge1)
-    self.checkEdgeLink(edge=edge2)
-    self.tick(1)
+  def swapAT(self, node):
+    """Perform the swap operation on a node"""
     getsSwapped = self.p_swap > np.random.rand()
 
     if not getsSwapped:
       return None
 
-    (i, j), (k, l) = edge1, edge2
-    Eij= self.getLink(edge=(i,j))
-    Ejk = self.getLink(edge=(k,l))
-    effectiveValue = 0.5*swapEficciency*(Eij + Ejk) if (Eij>0 and Ejk>0) else 0
-
-    assert j==k, f'Edges need to share a repeater, got {edge1, edge2} instead'
-
-    self.setLink(linkType=1, edge=(i, j), newValue=0.0)
-    self.setLink(linkType=1, edge=(k, l), newValue=0.0)
-    self.setLink(linkType=1, edge=(i,l), newValue=effectiveValue)
-
-
-  def swapAT(self, node): #chain only
-    """Perform the swap operation by specifying a certain node i. Let the system
-    choose which links get updated depending on the nodes {j} with which i is
-    entangled with.
-    """
-    getsSwapped = self.p_swap > np.random.rand()
-
-    if not getsSwapped:
-      return None
-
-
-    assert node <= self.n-1, f'Node {node} not in system withn={self.n}'
+    if node not in range(1, self.n-1):
+      raise ValueError(f'Node {node} not in system withn={self.n}')
 
     for i,j in self.matrix.keys():
       isnt_looped = (i!= node and j!=node)
-      is_ordered = (i<node) and (node<j) # for chain
+      is_ordered = (i<node) and (node<j) 
 
       if isnt_looped and is_ordered:
         has_links = (self.getLink((i,node))>0 and self.getLink((node,j))>0)
@@ -259,32 +156,29 @@ class RepeaterNetwork():
         self.setLink(linkType=1, edge=(i,j), newValue=effectiveValue)
 
 
-  def endToEndCheck(self, timeToWait=5):
-    """
-    Check wheather the graph is in an end-to-end entangled state by waitting
-    a specified amount of time then reading the link ((0,n) in the chain case),
-    change the global state of the graph to 1 and set the link back to 0
-    """
+  def endToEndCheck(self, timeToWait=0):
+    """Check if the 'win' condition is satisfied"""
     linkToRead = (0,self.n-1)
     self.tick(timeToWait)
     endToEnd = (self.getLink(edge=linkToRead, linkType=1) > np.random.rand()) #[TODO] change this to the Wehner fidelity (3/4?)
-    self.global_state = endToEnd
     self.setLink(edge=(0,self.n-1), linkType=1, newValue = 0) if endToEnd else None
     return endToEnd
 
-  def actions_list(self):
+  def all_actions(self) -> np.array:
+    """Creates a list of all possible actions"""
     operations = []
     for node in range(self.n-1):
       operations.append(f'self.entangle(edge={node, node+1})')
-      operations.append(f'self.swapAT({node})') # if node not in [0,self.n-1]]
-    return operations
+      if node not in [0,self.n-1]:
+        operations.append(f'self.swapAT({node})')
+    return np.array(operations)
 
   def actionCount(self):
     """Returns the number of possible actions"""
-    return len(self.actions())
+    return len(self.all_actions())
 
   def tensorState(self) -> Data:
-      """ Returns a pyG.Data object to be used by the GNN"""
+      """Returns a pyG.Data object to be used by the GNN"""
       sources = []
       targets = []
       attr_list = []
@@ -322,9 +216,3 @@ class RepeaterNetwork():
                   edge_index=edge_index,
                   edge_attr = edge_attr)
       return data
-
-
-  def shortestPath(self):
-    # When graphs become more complex we'll need to find the shortest path first
-    # https://www.geeksforgeeks.org/generate-graph-using-dictionary-python/
-    pass
