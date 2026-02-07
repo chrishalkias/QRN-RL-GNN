@@ -20,7 +20,7 @@ if __name__ == '__main__':
             experiments=1, 
             n_test = 6, 
             p_entangle=0.1, 
-            p_swap=0.9, 
+            p_swap=0.8, 
             cutoff = 1000,
             tau=1000, 
             max_steps=2_000,

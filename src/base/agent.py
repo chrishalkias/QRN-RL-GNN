@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
+from torch_geometric.data import Data
 np.set_printoptions(legacy='1.25')
 
 
@@ -82,9 +83,8 @@ class AgentGNN(RepeaterNetwork):
     )
 
 
-  def get_state_vector(self) -> torch.tensor:
-    """Returns the state of entanglements in the network (pyG.Data)"""
-    return self.tensorState() # Data structure with x=torch.ones and edge_attr
+  def get_state_vector(self) -> Data:
+    return self.tensorState() 
 
   def get_valid_actions(self) -> list:
     """
@@ -98,7 +98,7 @@ class AgentGNN(RepeaterNetwork):
     """
     valid_actions = []
     for node in range(self.n):
-        if node < self.n - 1:  # Can entangle right
+        if node != self.n - 1:  # Can entangle right
             valid_actions.append(node * 2)
 
         if 0 < node < self.n - 1:  # Is intermediate node
@@ -108,6 +108,7 @@ class AgentGNN(RepeaterNetwork):
               linked_left = (self.getLink((node, other_node), 1) > 0)
             elif node > other_node:
               linked_right = (self.getLink((other_node, node), 1) > 0)
+
             if linked_left and linked_right:
               valid_actions.append(node * 2 + 1)
     return valid_actions
@@ -134,23 +135,13 @@ class AgentGNN(RepeaterNetwork):
         return torch.multinomial(action_probs, 1).item()
 
   def update_environment(self, action) -> float:
-        """
-        Execute the chosen action
-        """
+        """ Apply action"""
         action_string = self.actions_list()[action]
         exec(action_string)
         return self.reward()
 
   def reward(self) -> float:
-    """
-    Computes the agents reward.
-    This is based off the end-to-end condition(+1/-0.01)
-    And a bonus reward that is proportional to the existing links age and length.
-    """
-    bonus_reward = 0 # some function f(d, e; n)
-    for (i,j), (adj, entanglement) in self.matrix.items():
-        bonus_reward +=0#  entanglement*(j-i)/10 if entanglement else 0
-    return 1 if self.endToEndCheck() else -0.01 + bonus_reward/10
+    return 1 if self.endToEndCheck() else -0.01 
 
   def get_valid_mask(self) -> torch.Tensor:
         """
