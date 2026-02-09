@@ -26,7 +26,7 @@ class AgentGNN(RepeaterNetwork):
                cutoff = None,
                p_entangle = 1,
                p_swap = 1,
-               lr=0.0005,
+               lr=0.005,
                gamma=0.93,
                epsilon=1):
     
@@ -51,13 +51,13 @@ class AgentGNN(RepeaterNetwork):
       test()
     """
 
-    super().__init__(n, directed, geometry, cutoff, tau, p_entangle, p_swap)
+    super().__init__(n, cutoff, tau, p_entangle, p_swap)
     self.lr=lr
     self.gamma = gamma
     self.epsilon = epsilon
     self.criterion = nn.MSELoss()
     states = len(self.get_state_vector())
-    actions = len(self.actions_list())
+    actions = len(self.all_actions())
     self.model = GNN()
     self.target_model = type(self.model)()
     self.target_model.load_state_dict(self.model.state_dict())
@@ -77,9 +77,7 @@ class AgentGNN(RepeaterNetwork):
         tau=new_tau, 
         cutoff=new_cutoff, 
         p_entangle=new_p_entangle, 
-        p_swap=new_p_swap,
-        directed=self.directed, # Preserve existing structure
-        geometry=self.geometry  # Preserve existing geometry
+        p_swap=new_p_swap
     )
 
 
@@ -131,12 +129,15 @@ class AgentGNN(RepeaterNetwork):
         masked_q_values = q_values + mask
         action_probs = torch.softmax(masked_q_values, dim=0)
 
+        if use_trained_model:
+           return torch.argmax(action_probs).item()
+        else: # TODO: check if this actually helps the agent learn or not
         # Select action with highest probability (equivalent to argmax but safer)
-        return torch.multinomial(action_probs, 1).item()
+          return torch.multinomial(action_probs, 1).item()
 
   def update_environment(self, action) -> float:
         """ Apply action"""
-        action_string = self.actions_list()[action]
+        action_string = self.all_actions()[action]
         exec(action_string)
         return self.reward()
 
@@ -161,13 +162,15 @@ class AgentGNN(RepeaterNetwork):
   def step(self):
     """
     Perform one observation-action-reward-store step.
+    Store the observation in the buffer
     > To be fed into `Q-estimate`
 
-    Returns: The (S, A, R, S') tuple
+    Returns: The (S, A, R, S', D) tuple
     """
     state = self.get_state_vector()
     action = self.choose_action()
     reward = self.update_environment(action)
+    done = self.endToEndCheck()
     next_state = self.get_state_vector()
 
     # Calculate the mask for the state we just arrived in
@@ -179,7 +182,7 @@ class AgentGNN(RepeaterNetwork):
             next_state=next_state,
             next_mask=next_mask)
     
-    return state, action, reward, next_state
+    return done
 
 #=========================================================================================================
 
@@ -189,23 +192,20 @@ class AgentGNN(RepeaterNetwork):
       """
       BATCH_SIZE = len(reward_batch)
 
-      # 1. Get Q-values for current states
-      # Model output shape: [Total_Nodes_In_Batch, 2]
-      # Total_Nodes_In_Batch = BATCH_SIZE * self.n
-      q_out = self.model(state_batch) 
+      #--------Get Q-values for current states
+      q_out = self.model(state_batch)  # Shape: [BATCH_SIZE * self.n, 2]
       
-      # Reshape to [Batch, Nodes, 2] so we can index by batch
+      # Reshape to [Batch, Nodes, 2] (batch indexing)
       q_out_reshaped = q_out.view(BATCH_SIZE, self.n, 2)
       
       # Flatten to [Batch, Total_Actions] (Total_Actions = Nodes * 2)
-      # The layout is: [Node0_Entangle, Node0_Swap, Node1_Entangle, Node1_Swap...]
+      # The layout is: [e0, s0, e1, s1...]
       q_flat = q_out_reshaped.view(BATCH_SIZE, -1)
 
       # Gather the specific Q-value for the action taken in each batch item
-      # action_batch shape is [Batch, 1], gather collects along dim 1
-      q_value = q_flat.gather(1, action_batch.unsqueeze(1)).squeeze(1)
+      q_value = q_flat.gather(1, action_batch.unsqueeze(1)).squeeze(1) # Shape: [Batch, 1]
 
-      # 2. Calculate Target Q-values
+      #--------Calculate Target Q-values
       with torch.no_grad():
         # online to select
         next_q_online = self.model(next_state_batch).view(BATCH_SIZE, -1)
@@ -223,9 +223,7 @@ class AgentGNN(RepeaterNetwork):
 #=========================================================================================================
 
   def stacker(self, samples):
-    """Manual stacking of the obs"""
-    # --- COLLATION LOGIC ---
-    # We must manually stack the data into Batches
+    """Manual stacking of the data into Batches"""
 
     # a. Create Graph Batches for states
     state_list = [item['s'] for item in samples]
@@ -263,23 +261,20 @@ class AgentGNN(RepeaterNetwork):
     
     """Trains the agent"""
     self.reset()
-    total_batch_reward, rewardList = 0, []
-    links_established = 0
-    epsilon_start = 1.0
-    epsilon_end = 0.05
-    decay_rate = epsilon_start - epsilon_end
+    total_links, total_batch_reward, rewardList = 0, 0, []
 
     for step in tqdm(range(episodes)):
       
       #jitter condition
       if jitter and not step%jitter:
           new_n = np.random.choice(n_range)
-          # clear the buffer (cannot stack observations of different size)
-          self.memory.clear() if new_n != self.n else ...
+          if new_n != self.n: # clear the buffer (cannot stack observations of different size)
+            self.memory.clear()
           self.reinitialize(n=new_n)
           
 
-      self.step() # just stores data
+      done = self.step() # run one step and store obs in buffer
+      total_links += 1 if done else 0
 
       if self.memory.size() > batch_size:
           
@@ -293,24 +288,17 @@ class AgentGNN(RepeaterNetwork):
         loss = self.backprop(q_value, target)
 
         # Decay epsilon
-        self.epsilon = max(epsilon_end, epsilon_start - (step / episodes) * decay_rate)
+        self.epsilon = max(0.05, 1 - (step / episodes) * (1-0.05)) # decay from e=1 to e=0.05
 
-        # Polyak Averaging: soft update (0.5% transfer per step)
-        tau_update = 0.005 
+        # Polyak Averaging: soft update (1% transfer per step)
+        tau_update = 0.01 
         for target_param, local_param in zip(self.target_model.parameters(), self.model.parameters()):
           target_param.data.copy_(tau_update * local_param.data + (1.0 - tau_update) * target_param.data)
 
-        total_batch_reward += avg_batch_reward
+        total_batch_reward = avg_batch_reward
         rewardList.append(total_batch_reward)
-        wincon = self.endToEndCheck()
-
-        if wincon:
-          links_established +=1
-          self.reset()
-
-
+      
     if plot:
-      print(f'Total links established = {links_established}')
       plt.plot(rewardList,ls='-', label='Average batch-reward')
       plt.title(f'Training metrics over {episodes} steps')
       plt.xlabel('Episode')
@@ -321,7 +309,8 @@ class AgentGNN(RepeaterNetwork):
       plt.show()
 
     torch.save(self.model.state_dict(), 'assets/gnn_model.pth') if save_model else None
-    return rewardList, links_established
+    print(total_links)
+    return rewardList
 
   
   def test(self, 

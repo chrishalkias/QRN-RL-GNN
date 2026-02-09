@@ -1,3 +1,4 @@
 TODO LIST:
 
     - Add training Jitter
+    - Grid search? [https://discuss.pytorch.org/t/what-is-the-best-way-to-perform-hyper-parameter-search-in-pytorch/19943/3]

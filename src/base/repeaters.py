@@ -106,7 +106,7 @@ class RepeaterNetwork():
         if ent < np.exp(-self.cutoff / self.tau):
           self.matrix[(key)][1] = 0
 
-  def entangle(self, edge) -> None:
+  def entangle(self:tuple, edge) -> None:
     """
     Check if two nodes are adjecent and not saturated and
     entangle them with success probability p_entangle.
@@ -130,7 +130,7 @@ class RepeaterNetwork():
     self.setLink(linkType = 1, edge=edge,newValue=1) if areAdjecent else None
 
 
-  def swapAT(self, node):
+  def swapAT(self, node:int) -> None:
     """Perform the swap operation on a node"""
     getsSwapped = self.p_swap > np.random.rand()
 
@@ -156,11 +156,16 @@ class RepeaterNetwork():
         self.setLink(linkType=1, edge=(i,j), newValue=effectiveValue)
 
 
-  def endToEndCheck(self, timeToWait=0):
-    """Check if the 'win' condition is satisfied"""
+  def endToEndCheck(self, timeToWait=5):
+    """
+    Check wheather the graph is in an end-to-end entangled state by waitting
+    a specified amount of time then reading the link ((0,n) in the chain case),
+    change the global state of the graph to 1 and set the link back to 0
+    """
     linkToRead = (0,self.n-1)
     self.tick(timeToWait)
     endToEnd = (self.getLink(edge=linkToRead, linkType=1) > np.random.rand()) #[TODO] change this to the Wehner fidelity (3/4?)
+    self.global_state = endToEnd
     self.setLink(edge=(0,self.n-1), linkType=1, newValue = 0) if endToEnd else None
     return endToEnd
 
@@ -169,8 +174,7 @@ class RepeaterNetwork():
     operations = []
     for node in range(self.n-1):
       operations.append(f'self.entangle(edge={node, node+1})')
-      if node not in [0,self.n-1]:
-        operations.append(f'self.swapAT({node})')
+      operations.append(f'self.swapAT({node})')
     return np.array(operations)
 
   def actionCount(self):
@@ -178,31 +182,27 @@ class RepeaterNetwork():
     return len(self.all_actions())
 
   def tensorState(self) -> Data:
-      """Returns a pyG.Data object to be used by the GNN"""
-      sources = []
-      targets = []
-      attr_list = []
-      
-      # Iterate ALL potential links
-      for key, (adj, ent) in self.matrix.items():
-          if ent > 0 or adj > 0: # Keep physical links AND entangled links
-              u, v = key
-              # Add edge (u, v)
-              sources.append(u)
-              targets.append(v)
-              attr_list.append(ent)
-              
-              # Add edge (v, u) - undirected
-              sources.append(v)
-              targets.append(u)
-              attr_list.append(ent)
+    """Returns the tensor graph state (to be used for GNN)"""
+    sources = torch.arange(self.n - 1, dtype=torch.long)  # 0, 1, ..., n-2
+    targets = sources + 1                            # 1, 2, ..., n-1
 
-      edge_index = torch.tensor([sources, targets], dtype=torch.long)
-      edge_attr = torch.tensor(attr_list, dtype=torch.float).unsqueeze(1)
-      # Node Attributes
-      node_attr = torch.zeros((self.n, 2))
+    edge_index = torch.stack([
+          torch.cat([sources, targets]),
+          torch.cat([targets, sources])])     # shape [2, n-1]
+    
+    edge_attr_list = []
+    # Loop over the edges we defined in edge_index
+    for i in range(edge_index.shape[1]):
+        u = edge_index[0, i].item()
+        v = edge_index[1, i].item()
+        # Retrieve the specific link from the matrix
+        # Note: self.matrix keys are tuples, might need sorting if keys are undirected
+        key = tuple(sorted((u, v))) 
+        edge_attr_list.append(self.matrix[key][1])
+    edge_attr = torch.tensor(edge_attr_list, dtype=torch.float)
+    node_attr = torch.zeros((self.n, 2))
 
-      for n1 in range(self.n):
+    for n1 in range(self.n):
         for n2 in range(self.n):
             if n2 < n1:
                 if (self.getLink((n2, n1), 1) > 0):
@@ -212,7 +212,5 @@ class RepeaterNetwork():
                 if (self.getLink((n1, n2), 1) > 0):
                     node_attr[n1, 1] = 1
                     node_attr[n2, 0] = 1
-      data = Data(x=node_attr,
-                  edge_index=edge_index,
-                  edge_attr = edge_attr)
-      return data
+
+    return Data(x=node_attr, edge_index=edge_index,edge_attr = edge_attr)
