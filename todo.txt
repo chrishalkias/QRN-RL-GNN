@@ -1,4 +1,7 @@
 TODO LIST:
 
-    - Add training Jitter
+    - Add star graph (one central node and all nodes around it)
+        nodes can only EG with the central node. Now it is the other way around
+        i.e 1 swap per node but can only EG with the middle node
+        still 2 operations per node
     - Grid search? [https://discuss.pytorch.org/t/what-is-the-best-way-to-perform-hyper-parameter-search-in-pytorch/19943/3]

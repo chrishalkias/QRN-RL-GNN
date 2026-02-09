@@ -1,18 +1,21 @@
-from base.agent import AgentGNN
+from base.agent import QRNAgent
+import numpy
+numpy.set_printoptions(legacy='1.25')
+
 
 if __name__ == '__main__':
 
-	#Initialize Agent
-	agent = AgentGNN(n=3, 
-					cutoff = 1000,
-					tau=1000,
-					p_entangle=1, 
-					p_swap=1)
+	agent = QRNAgent(buffer_size=10_000)
 
-	# Run training loop
-	agent.train(episodes=5_000,
-				save_model=True,
-				jitter=None,
-				n_range=[3,3],
-				savefig=False)
+	agent.train(episodes=1000, 
+			 max_steps=100, 
+			 savemodel=True, 
+			 plot=True, 
+			 savefig=True,
+			 jitter=200, 
+			 n_range=[4, 6], 
+			 p_e=0.85, 
+			 p_s=0.95,
+			 tau=1000,
+			 cutoff=None)
 	

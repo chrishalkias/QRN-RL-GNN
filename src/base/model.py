@@ -30,11 +30,10 @@ class GNN(nn.Module):
           nn.Linear(hidden_dim, output_dim),
           )
     def forward(self, data):
-      x, edge_index = data.x, data.edge_index
+      x, edge_index, edge_attr = data.x, data.edge_index, data.edge_attr
 
-      # GNN forward pass
       for layer in self.encoder:
-          x = layer(x, edge_index)
+          x = layer(x, edge_index, edge_attr=edge_attr)
       q_values = self.decoder(x)  # Shape: [num_nodes, 2]
 
       return q_values

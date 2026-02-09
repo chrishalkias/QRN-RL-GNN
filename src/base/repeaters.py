@@ -191,7 +191,7 @@ class RepeaterNetwork():
           torch.cat([targets, sources])])     # shape [2, n-1]
     
     edge_attr_list = []
-    # Loop over the edges we defined in edge_index
+    # Loop over the edges defined in edge_index
     for i in range(edge_index.shape[1]):
         u = edge_index[0, i].item()
         v = edge_index[1, i].item()
@@ -200,6 +200,7 @@ class RepeaterNetwork():
         key = tuple(sorted((u, v))) 
         edge_attr_list.append(self.matrix[key][1])
     edge_attr = torch.tensor(edge_attr_list, dtype=torch.float)
+    edge_attr.view(-1,1) #GNN expects [num_edges, feature_dim]
     node_attr = torch.zeros((self.n, 2))
 
     for n1 in range(self.n):
