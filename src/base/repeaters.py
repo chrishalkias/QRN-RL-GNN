@@ -16,7 +16,7 @@ class RepeaterNetwork():
     """
     #---Initialize class attributes
     self.n = n
-    self.time , self.tau, self.cutoff = 0, tau, cutoff
+    self.tau, self.cutoff = tau, cutoff
     self.p_entangle, self.p_swap = p_entangle, p_swap
     self.combinations = np.array([[a,b] for a in range(n) for b in range(n)])
     self.matrix = {tuple(self.combinations[i]): [0, 0] for i in range(n**2)}
@@ -96,12 +96,10 @@ class RepeaterNetwork():
 
   def tick(self, T:int) -> None:
     """Implements the time evolution of the system"""
-    self.time += int(T)
-    for key in self.matrix:
-      i,j = key 
-      self.matrix[key][1] *= np.exp(-int(T) / self.tau)
+    for key in self.matrix: #age all by 1 time unit
+      self.matrix[key][1] *= np.exp(-1 / self.tau)
 
-    if self.cutoff != None:
+    if self.cutoff != None: #if age>cutoff kill
       for key, (adj, ent) in self.matrix.items():
         if ent < np.exp(-self.cutoff / self.tau):
           self.matrix[(key)][1] = 0
@@ -135,7 +133,7 @@ class RepeaterNetwork():
     getsSwapped = self.p_swap > np.random.rand()
 
     if not getsSwapped:
-      return None
+      return 
 
     if node not in range(1, self.n-1):
       raise ValueError(f'Node {node} not in system withn={self.n}')
@@ -150,18 +148,14 @@ class RepeaterNetwork():
       if isnt_looped and is_ordered and has_links:
         link1, link2 = (i,node), (node,j)
         Eij, Ejk = self.getLink(link1), self.getLink(link2)
-        effectiveValue = 0.5*(Eij + Ejk)
+        effectiveValue = (Eij * Ejk)
         self.setLink(linkType=1, edge=link1, newValue=0.0)
         self.setLink(linkType=1, edge=link2, newValue=0.0)
         self.setLink(linkType=1, edge=(i,j), newValue=effectiveValue)
 
 
   def endToEndCheck(self, timeToWait=5):
-    """
-    Check wheather the graph is in an end-to-end entangled state by waitting
-    a specified amount of time then reading the link ((0,n) in the chain case),
-    change the global state of the graph to 1 and set the link back to 0
-    """
+    """Check wheather the graph is in an end-to-end entangled state"""
     linkToRead = (0,self.n-1)
     self.tick(timeToWait)
     endToEnd = (self.getLink(edge=linkToRead, linkType=1) > np.random.rand()) #[TODO] change this to the Wehner fidelity (3/4?)
@@ -169,17 +163,6 @@ class RepeaterNetwork():
     self.setLink(edge=(0,self.n-1), linkType=1, newValue = 0) if endToEnd else None
     return endToEnd
 
-  def all_actions(self) -> np.array:
-    """Creates a list of all possible actions"""
-    operations = []
-    for node in range(self.n-1):
-      operations.append(f'self.entangle(edge={node, node+1})')
-      operations.append(f'self.swapAT({node})')
-    return np.array(operations)
-
-  def actionCount(self):
-    """Returns the number of possible actions"""
-    return len(self.all_actions())
 
   def tensorState(self) -> Data:
     """Returns the tensor graph state (to be used for GNN)"""

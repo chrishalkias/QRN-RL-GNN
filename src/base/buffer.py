@@ -50,27 +50,4 @@ class Buffer():
 
 
 
-if False:
-    agent = AgentGNN(n=4)
-    buffer = Buffer(max_size = 10_000)
-
-    # collect data
-    state = agent.get_state_vector()
-    action = agent.choose_action()
-    reward = agent.update_environment(action)
-    next_state = agent.get_state_vector()
-
-    buffer.add(state = state, 
-            action=action, 
-            reward=reward, 
-            next_state=next_state)
-
-    x = buffer.sample(3)
-
-    #print the (S,A,R) tuple
-
-    print(x[0]['s'])
-    print(x[0]['a'])
-    print(x[0]['r'])
-    print(x[0]['s_'])
 

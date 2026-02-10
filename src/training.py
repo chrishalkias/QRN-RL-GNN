@@ -17,5 +17,5 @@ if __name__ == '__main__':
 			 p_e=0.85, 
 			 p_s=0.95,
 			 tau=1000,
-			 cutoff=None)
+			 cutoff=1000)
 	

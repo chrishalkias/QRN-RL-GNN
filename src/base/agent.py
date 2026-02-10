@@ -11,7 +11,7 @@ from tqdm import tqdm
 from base.repeaters import RepeaterNetwork
 from base.buffer import Buffer
 from base.model import GNN
-from base.strategies import Heuristics
+from base.strategies import Strategies
 
 class QRNAgent:
     def __init__(self, 
@@ -22,7 +22,7 @@ class QRNAgent:
                  epsilon_decay=0.995,
                  buffer_size=10000,
                  batch_size=64,
-                 target_update_freq=10):
+                 target_update_freq=100):
         
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
@@ -247,107 +247,123 @@ class QRNAgent:
             plt.plot(scores,ls='-', label='Average batch-reward')
             plt.title(f'Training metrics over {episodes} episodes')
             plt.xlabel('Episode')
-            plt.ylabel(f'Reward for $(n, p_E, p_S)$= {n_nodes, p_e, p_s}')
+            plt.ylabel(f'Reward for $n, p_E, p_S$= {n_range[0]}-{n_range[-1]}, {p_e}, {p_s}')
             plt.legend()
             plt.savefig('assets/train.png') if savefig else None
             plt.show()
 
     def validate(self, 
-                 n_episodes=100, 
-                 max_steps=100, 
-                 n_nodes=4, 
-                 p_e=1.0, 
-                 p_s=1.0,
-                 tau=1000,
-                 cutoff=None):
-        
-
-        def log(msg):
-            print(msg)
-            with open("./assets/validation_results.txt", "a") as f:
-                f.write(msg + "\n")
-        # -----------------------------
-
-        log(f"\n--- Validation (N={n_nodes}, P_ent={p_e}, P_swap={p_s}) ---")
-        
-        results = {
-            'Agent': {'steps': [], 'fidelities': []},
-            'SwapASAP': {'steps': [], 'fidelities': []},
-            'Random': {'steps': [], 'fidelities': []}
-        }
-        
-        # 1. Test Agent
-        temp_epsilon = self.epsilon
-        self.epsilon = 0.0 # Force Greedy
-        
-        for _ in range(n_episodes):
-            env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
-            steps = 0
-            done = False
-            while not done and steps < max_steps:
-                state = env.tensorState()
-                action_idx = self.select_action(state, n_nodes, training=False)
-                
-                # step_environment now handles the "peek" logic and returns fidelity in info
-                _, done, info = self.step_environment(env, action_idx)
-                
-                if done:
-                    results['Agent']['fidelities'].append(info['fidelity'])
-                
-                steps += 1
-            results['Agent']['steps'].append(steps if done else max_steps)
+                    n_episodes=100, 
+                    max_steps=100, 
+                    n_nodes=4, 
+                    p_e=1.0, 
+                    p_s=1.0,
+                    tau=1000,
+                    cutoff=None):
             
-        self.epsilon = temp_epsilon
 
-        # 2. Test Heuristics
-        heuristics_map = {'SwapASAP': 'swap_asap', 'Random': 'stochastic_action'}
-        
-        for name, method_name in heuristics_map.items():
+            def log(msg):
+                print(msg)
+                with open("./assets/validation_results.txt", "a") as f:
+                    f.write(msg + "\n")
+            # -----------------------------
+
+            log(f"\n--- Validation (N:{n_nodes}, Pe:{p_e}, Ps:{p_s}, tau:{tau}, cutoff:{cutoff}) ---")
+            log(f"--- Max_steps: {max_steps}, n_episodes:{n_episodes} ---")
+            
+
+            results = {
+                'Agent': {'steps': [], 'fidelities': []},
+                'FN_Swap': {'steps': [], 'fidelities': []},
+                'SN_Swap': {'steps': [], 'fidelities': []},
+                'SwapASAP': {'steps': [], 'fidelities': []},
+                'Doubling': {'steps': [], 'fidelities': []},
+                'Random': {'steps': [], 'fidelities': []},
+            }
+            
+    
+            temp_epsilon = self.epsilon
+            self.epsilon = 0.0 # Force greedy
+            
             for _ in range(n_episodes):
                 env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
-                heuristic = Heuristics(env)
                 steps = 0
                 done = False
-                
                 while not done and steps < max_steps:
-                    if method_name == 'swap_asap':
-                        action_str = heuristic.swap_asap()
-                    else:
-                        action_str = heuristic.stochastic_action()
+                    state = env.tensorState()
+                    action_idx = self.select_action(state, n_nodes, training=False)
+                    _, done, info = self.step_environment(env, action_idx)
                     
-                    try:
-                        if action_str:
-                            # HACK: Execute heuristic string on local env
-                            exec(action_str.replace("self.", "env."))
-                        
-                        current_fid = env.getLink((0, env.n-1), 1)
-                        is_success = env.endToEndCheck(timeToWait=0)
-
-                        if is_success:
-                            done = True
-                            results[name]['fidelities'].append(current_fid)
-                            
-                    except:
-                        pass
+                    if done:
+                        results['Agent']['fidelities'].append(info['fidelity'])
+                    
                     steps += 1
-                results[name]['steps'].append(steps if done else max_steps)
-
-        # Print Statistics
-        log("=" * 60)
-        log(f"{'Strategy':<15} | {'Avg Steps':<10} | {'Avg Fidelity':<12} | {'Success':<9} | ")
-        log("-" * 60)
-        for strategy, data in results.items():
-            avg_steps = np.mean(data['steps'])
-            std_steps = np.std(data['steps'])
-            
-            # Success rate calculation
-            success_count = sum(1 for s in data['steps'] if s < max_steps)
-            success_rate = (success_count / n_episodes) * 100
-            
-            # Average fidelity (only for successful runs)
-            if len(data['fidelities']) > 0:
-                avg_fid = np.mean(data['fidelities'])
-            else:
-                avg_fid = 0.0
+                results['Agent']['steps'].append(steps if done else max_steps)
                 
-            log(f"{strategy:<15} | {avg_steps:<10.2f} | {avg_fid:<12.4f} | {success_rate:<8.1f}% ")
+            self.epsilon = temp_epsilon
+
+            # ------ Test Heuristics ------
+
+            heuristics_map = {
+                'FN_Swap': 'FN_swap',
+                'SN_Swap': 'SN_swap',
+                'SwapASAP': 'swap_asap', 
+                'Doubling': 'doubling',
+                'Random': 'stochastic_action',
+            }
+            
+            for name, method_name in heuristics_map.items():
+                for _ in range(n_episodes):
+                    env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+                    heuristic = Strategies(env)
+                    steps = 0
+                    done = False
+                    
+                    while not done and steps < max_steps:
+                        if method_name == 'swap_asap':
+                            action_str = heuristic.swap_asap()
+                        elif method_name == 'FN_swap':
+                            action_str = heuristic.FN_swap()
+                        elif method_name == 'SN_swap':
+                            action_str = heuristic.SN_swap()
+                        elif method_name == 'doubling':
+                            action_str = heuristic.doubling_swap()
+                        else:
+                            action_str = heuristic.stochastic_action()
+                        
+                        try:
+                            if action_str:
+                                # HACK: execute heuristic string on local env
+                                exec(action_str.replace("self.", "env."))
+                            
+                            current_fid = env.getLink((0, env.n-1), 1)
+                            is_success = env.endToEndCheck(timeToWait=0)
+
+                            if is_success:
+                                done = True
+                                results[name]['fidelities'].append(current_fid)
+                                
+                        except:
+                            pass
+                        steps += 1
+                    results[name]['steps'].append(steps if done else max_steps)
+
+            # Print Statistics
+            log("=" * 60)
+            log(f"{'Strategy':<15} | {'Avg Steps':<10} | {'Avg Fidelity':<12} | {'Success':<9} | ")
+            log("-" * 60)
+            for strategy, data in results.items():
+                avg_steps = np.mean(data['steps'])
+                std_steps = np.std(data['steps'])
+                
+                # Success rate calculation
+                success_count = sum(1 for s in data['steps'] if s < max_steps)
+                success_rate = (success_count / n_episodes) * 100
+                
+                # Average fidelity (only for successful runs)
+                if len(data['fidelities']) > 0:
+                    avg_fid = np.mean(data['fidelities'])
+                else:
+                    avg_fid = 0.0
+
+                log(f"{strategy:<15} | {avg_steps:<10.2f} | {avg_fid:<12.4f} | {success_rate:<8.1f}% ")
