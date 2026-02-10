@@ -360,10 +360,10 @@ class QRNAgent:
             else:
                 agent_fid_avg = 0.0
 
-            log("=" * 90)
+            log("=" * 70)
             # Updated Header for Ratios
             log(f"{'Strategy':<12} | {'Avg Steps (std)':<17} | {'Avg Fidelity (std)':<17} | {'S%':<4} | {'F%':<5}")
-            log("-" * 90)
+            log("-" * 70)
             
             for strategy, data in results.items():
                 avg_steps = np.mean(data['steps'])
