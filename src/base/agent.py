@@ -313,7 +313,7 @@ class QRNAgent:
             }
             
             for name, method_name in heuristics_map.items():
-                for _ in range(n_episodes):
+                for _ in tqdm(range(n_episodes)):
                     env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
                     heuristic = Strategies(env)
                     steps = 0

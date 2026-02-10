@@ -9,10 +9,10 @@ if __name__ == '__main__':
     agent_val = QRNAgent()
     agent_val.policy_net.load_state_dict(trained_dict)
 
-    agent_val.validate(n_episodes=30, 
-                       max_steps=300, 
-                       n_nodes=7, 
-                       p_e=0.1, 
+    agent_val.validate(n_episodes=40, 
+                       max_steps=2000, 
+                       n_nodes=6, 
+                       p_e=0.05, 
                        p_s=0.9,
                        tau = 1000,
                        cutoff=500)
