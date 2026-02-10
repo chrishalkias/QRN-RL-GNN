@@ -4,18 +4,18 @@ from base.agent import QRNAgent
 
 if __name__ == '__main__':
 
-    dict_dir = "./assets/gnn_model.pth"
-    trained_dict = torch.load(dict_dir)
-    agent_val = QRNAgent()
-    agent_val.policy_net.load_state_dict(trained_dict)
 
-    agent_val.validate(n_episodes=20, 
-                       max_steps=200, 
-                       n_nodes=5, 
-                       p_e=0.1, 
-                       p_s=0.9,
+    agent_val = QRNAgent()
+    dict_dir = "./assets/trained_models/d(9-2)l4u6e1000m100p85a85tNcN.pth"
+
+    agent_val.validate(dict_dir=dict_dir,
+                       n_episodes=100, 
+                       max_steps=600, 
+                       n_nodes=6,
+                       p_e=0.05, 
+                       p_s=0.95,
                        tau = 1000,
-                       cutoff=100, 
+                       cutoff=50, 
                        logging=True)
     
     # early termination seems to
