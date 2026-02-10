@@ -6,6 +6,16 @@ from base.agent import AgentGNN
 from torch_geometric.data import Data
 from generators import *
 
+
+
+
+"""
+LEGACY CODE
+"""
+
+
+
+
 class TestIntegration(unittest.TestCase):
     """
     Integration tests with different parameters

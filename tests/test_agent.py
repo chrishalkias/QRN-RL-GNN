@@ -5,6 +5,12 @@ from base.agent import AgentGNN
 from base.model import GNN
 from generators import *
 
+
+"""LEGACY CODE"""
+
+
+
+
 class TestAgentGNN(unittest.TestCase):
     """
     Test AgentGNN class
@@ -107,5 +113,3 @@ class TestAgentGNN(unittest.TestCase):
                     actions.append(action)
                     self.assertIn(action, range(len(agent.new_actions())))
 
-def test_replay_buffer(self): #TODO: include tests
-    ...

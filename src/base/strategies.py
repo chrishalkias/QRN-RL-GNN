@@ -6,20 +6,22 @@ class Strategies():
         This class provides a bundle of the used heuristics.
         All of the strategies have the following Markovian I/O:
 
-        state -> [strategy] -> action
+            state -> [strategy] -> action
 
-        2 * node -> entangle right at node
-        2*node + 1 -> swap at node
+            2 * node -> entangle right at node
+
+            2*node + 1 -> swap at node
 
         Methods:
             stochastic_action()
             swap_asap()
+            SN_swap()
+            FN_swap()
+            doubling()
         """
+
         self.network = network
-        pass
 
-
-    
     def stochastic_action(self) -> list:
         """
         Perform a random action at each node
@@ -28,7 +30,6 @@ class Strategies():
         swaps = [f'self.swapAT({node})' for node in range(1, self.network.n-1)] # dont swap ad end nodes
         action = random.choice(entangles + swaps)
         return action
-
 
 
     def swap_asap(self):
@@ -56,7 +57,6 @@ class Strategies():
             action = random.choice(entangles)
         return action
     
-
 
     def FN_swap(self):
         """
@@ -107,6 +107,7 @@ class Strategies():
             return random.choice(entangles)
         
         return None
+
 
     def SN_swap(self):
         """

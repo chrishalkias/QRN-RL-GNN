@@ -259,19 +259,21 @@ class QRNAgent:
                     p_e=1.0, 
                     p_s=1.0,
                     tau=1000,
-                    cutoff=None):
+                    cutoff=None, 
+                    logging=True):
             
 
             def log(msg):
                 print(msg)
-                with open("./assets/validation_results.txt", "a") as f:
-                    f.write(msg + "\n")
+                if logging:
+                    with open("./assets/validation_results.txt", "a") as f:
+                        f.write(msg + "\n")
             # -----------------------------
 
             log(f"\n--- Validation (N:{n_nodes}, Pe:{p_e}, Ps:{p_s}, tau:{tau}, cutoff:{cutoff}) ---")
             log(f"--- Max_steps: {max_steps}, n_episodes:{n_episodes} ---")
             
-
+            # 1. Collect Data
             results = {
                 'Agent': {'steps': [], 'fidelities': []},
                 'FN_Swap': {'steps': [], 'fidelities': []},
@@ -281,7 +283,7 @@ class QRNAgent:
                 'Random': {'steps': [], 'fidelities': []},
             }
             
-    
+            # --- Test Agent ---
             temp_epsilon = self.epsilon
             self.epsilon = 0.0 # Force greedy
             
@@ -302,8 +304,7 @@ class QRNAgent:
                 
             self.epsilon = temp_epsilon
 
-            # ------ Test Heuristics ------
-
+            # --- Test Heuristics ---
             heuristics_map = {
                 'FN_Swap': 'FN_swap',
                 'SN_Swap': 'SN_swap',
@@ -312,10 +313,13 @@ class QRNAgent:
                 'Random': 'stochastic_action',
             }
             
-            for name, method_name in heuristics_map.items():
-                for _ in tqdm(range(n_episodes)):
+            
+            pbar = tqdm(heuristics_map.items())
+            for name, method_name in pbar:
+                pbar.set_description(f"Agent VS {name}")
+                for _ in range(n_episodes):
                     env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
-                    heuristic = Strategies(env)
+                    heuristic = Strategies(env) 
                     steps = 0
                     done = False
                     
@@ -348,22 +352,43 @@ class QRNAgent:
                         steps += 1
                     results[name]['steps'].append(steps if done else max_steps)
 
-            # Print Statistics
-            log("=" * 60)
-            log(f"{'Strategy':<15} | {'Avg Steps':<10} | {'Avg Fidelity':<12} | {'Success':<9} | ")
-            log("-" * 60)
+
+            # Calculate Baseline (Agent) Averages first
+            agent_steps_avg = np.mean(results['Agent']['steps'])
+            if len(results['Agent']['fidelities']) > 0:
+                agent_fid_avg = np.mean(results['Agent']['fidelities'])
+            else:
+                agent_fid_avg = 0.0
+
+            log("=" * 90)
+            # Updated Header for Ratios
+            log(f"{'Strategy':<12} | {'Avg Steps (std)':<17} | {'Avg Fidelity (std)':<17} | {'S%':<4} | {'F%':<5}")
+            log("-" * 90)
+            
             for strategy, data in results.items():
                 avg_steps = np.mean(data['steps'])
                 std_steps = np.std(data['steps'])
                 
-                # Success rate calculation
-                success_count = sum(1 for s in data['steps'] if s < max_steps)
-                success_rate = (success_count / n_episodes) * 100
-                
                 # Average fidelity (only for successful runs)
                 if len(data['fidelities']) > 0:
                     avg_fid = np.mean(data['fidelities'])
+                    std_fid = np.std(data['fidelities'])
                 else:
-                    avg_fid = 0.0
-
-                log(f"{strategy:<15} | {avg_steps:<10.2f} | {avg_fid:<12.4f} | {success_rate:<8.1f}% ")
+                    avg_fid, std_fid = 0.0, 0.0
+                
+                # --- RATIO CALCULATION ---
+                # Step Ratio: (Current / Agent) * 100
+                # < 100% means faster than agent, > 100% means slower
+                step_ratio = (avg_steps / agent_steps_avg) * 100 if agent_steps_avg > 0 else 0.0
+                
+                # Fidelity Ratio: (Current / Agent) * 100
+                # > 100% means higher fidelity than agent
+                if agent_fid_avg > 1e-9:
+                    fid_ratio = (avg_fid / agent_fid_avg) * 100
+                elif avg_fid > 1e-9: 
+                    fid_ratio = float('inf') # Improvement over 0
+                else:
+                    fid_ratio = 100.0 # Both are 0
+                
+                pm = u"\u00B1"
+                log(f"{strategy:<12} | {avg_steps:<8.2f} ({pm}{std_steps:<5.2f}) | {avg_fid:<8.4f} ({pm}{std_fid:.4f}) | {f'{step_ratio:.0f}%':<4} | {f'{fid_ratio:.0f}%':<5}")
