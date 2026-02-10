@@ -6,6 +6,7 @@ import random
 from torch_geometric.data import Batch
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from datetime import datetime
 
 # Import provided modules
 from base.repeaters import RepeaterNetwork
@@ -49,8 +50,7 @@ class QRNAgent:
         self.memory = Buffer(max_size=buffer_size)
 
     def get_valid_actions_mask(self, n_nodes):
-        """
-        Creates a boolean mask for the flattened action space of size 2 * n_nodes.
+        """Creates a boolean mask for the flattened action space of size 2 * n_nodes.
         """
         mask = torch.zeros(n_nodes * 2, dtype=torch.bool)
         
@@ -66,8 +66,7 @@ class QRNAgent:
         return mask.to(self.device)
 
     def select_action(self, state, n_nodes, training=True):
-        """
-        Selects an action using Epsilon-Greedy strategy with dynamic masking.
+        """Selects an action using Epsilon-Greedy strategy with dynamic masking.
         """
         mask = self.get_valid_actions_mask(n_nodes)
         
@@ -98,16 +97,13 @@ class QRNAgent:
         return action_idx
 
     def decode_action(self, action_idx):
-        """
-        Decodes flattened action index back to (node, operation)
-        """
+        """Decodes flattened action index back to (node, operation)"""
         node = action_idx // 2
         op_type = action_idx % 2 # 0 = Entangle, 1 = Swap
         return node, op_type
 
     def step_environment(self, env, action_idx):
-        """
-        Executes the action on the environment.
+        """Executes the action on the environment.
         Returns: reward, done, info
         """
         node, op_type = self.decode_action(action_idx)
@@ -193,7 +189,6 @@ class QRNAgent:
               cutoff=None):
         
 
-
         print(f"Starting training: {episodes} episodes | N={n_range[0]}-{n_range[-1]} | P_ent={p_e} | P_swap={p_s}")
         
         # Clear buffer to prevent batch shape mismatch
@@ -240,19 +235,22 @@ class QRNAgent:
             self.epsilon = max(0.05, 1 - (e / episodes) * (1-0.05)) # decay from e=1 to e=0.05
             scores.append(score)
             pbar.set_description(f"Ep {e+1} | Score: {score:.1f} | Eps: {self.epsilon:.2f}")
+
+        model_name = f"d({datetime.now().day}-{datetime.now().month})l{n_range[0]}u{n_range[-1]}e{episodes}m{max_steps}p{str(p_e)[-2:]}a{str(p_s)[-2:]}t{tau}c{cutoff}"
         if savemodel:
-            torch.save(self.policy_net.state_dict(), 'assets/gnn_model.pth')
+            torch.save(self.policy_net.state_dict(), f'assets/trained_models/{model_name}.pth')
 
         if plot:
             plt.plot(scores,ls='-', label='Average batch-reward')
             plt.title(f'Training metrics over {episodes} episodes')
             plt.xlabel('Episode')
-            plt.ylabel(f'Reward for $n, p_E, p_S$= {n_range[0]}-{n_range[-1]}, {p_e}, {p_s}')
+            plt.ylabel(f'Reward for $n, p_E, p_S, T, c$= {n_range[0]}-{n_range[-1]}, {p_e}, {p_s}')
             plt.legend()
-            plt.savefig('assets/train.png') if savefig else None
+            plt.savefig(f'assets/trained_models/{model_name}.png') if savefig else None
             plt.show()
 
     def validate(self, 
+                    dict_dir=None,
                     n_episodes=100, 
                     max_steps=100, 
                     n_nodes=4, 
@@ -264,6 +262,7 @@ class QRNAgent:
             
 
             def log(msg):
+                """Used to print on STDOUT and log to file"""
                 print(msg)
                 if logging:
                     with open("./assets/validation_results.txt", "a") as f:
@@ -272,7 +271,7 @@ class QRNAgent:
 
             log(f"\n--- Validation (N:{n_nodes}, Pe:{p_e}, Ps:{p_s}, tau:{tau}, cutoff:{cutoff}) ---")
             log(f"--- Max_steps: {max_steps}, n_episodes:{n_episodes} ---")
-            
+            log(f"- Model: {dict_dir.split("models/",1)[1]}")
             # 1. Collect Data
             results = {
                 'Agent': {'steps': [], 'fidelities': []},
@@ -282,7 +281,15 @@ class QRNAgent:
                 'Doubling': {'steps': [], 'fidelities': []},
                 'Random': {'steps': [], 'fidelities': []},
             }
+            # --- Load model ---
+            if dict_dir == None:
+                raise RuntimeWarning(
+                    ' No trained dic_dir. Pass a dictionary as kwarg `validate(trained_dict= ...)`' \
+                    'Trained dicts can be found at ./assets/trained_models')
             
+            trained_dict = torch.load(dict_dir)
+            self.policy_net.load_state_dict(trained_dict)
+
             # --- Test Agent ---
             temp_epsilon = self.epsilon
             self.epsilon = 0.0 # Force greedy
@@ -312,8 +319,7 @@ class QRNAgent:
                 'Doubling': 'doubling',
                 'Random': 'stochastic_action',
             }
-            
-            
+                 
             pbar = tqdm(heuristics_map.items())
             for name, method_name in pbar:
                 pbar.set_description(f"Agent VS {name}")
@@ -345,8 +351,7 @@ class QRNAgent:
 
                             if is_success:
                                 done = True
-                                results[name]['fidelities'].append(current_fid)
-                                
+                                results[name]['fidelities'].append(current_fid)    
                         except:
                             pass
                         steps += 1
@@ -362,7 +367,7 @@ class QRNAgent:
 
             log("=" * 70)
             # Updated Header for Ratios
-            log(f"{'Strategy':<12} | {'Avg Steps (std)':<17} | {'Avg Fidelity (std)':<17} | {'S%':<4} | {'F%':<5}")
+            log(f"{'Strategy':<12} | {'Avg Steps (std)':<19} | {'Avg Fidelity (std)':<17} | {'S%':<4} | {'F%':<5}")
             log("-" * 70)
             
             for strategy, data in results.items():
@@ -391,4 +396,4 @@ class QRNAgent:
                     fid_ratio = 100.0 # Both are 0
                 
                 pm = u"\u00B1"
-                log(f"{strategy:<12} | {avg_steps:<8.2f} ({pm}{std_steps:<5.2f}) | {avg_fid:<8.4f} ({pm}{std_fid:.4f}) | {f'{step_ratio:.0f}%':<4} | {f'{fid_ratio:.0f}%':<5}")
+                log(f"{strategy:<12} | {avg_steps:<9.2f} ({pm}{std_steps:<6.2f}) | {avg_fid:<8.4f} ({pm}{std_fid:.4f}) | {f'{step_ratio:.0f}%':<4} | {f'{fid_ratio:.0f}%':<5}")
