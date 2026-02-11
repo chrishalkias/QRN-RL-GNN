@@ -1,5 +1,5 @@
 from torchrl.data import ReplayBuffer
-from torchrl.data import LazyMemmapStorage, LazyTensorStorage, ListStorage
+from torchrl.data import ListStorage
 import numpy as np
 from base.repeaters import RepeaterNetwork
 import random

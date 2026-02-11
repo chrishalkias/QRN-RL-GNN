@@ -7,15 +7,15 @@ if __name__ == '__main__':
 
 	agent = QRNAgent(buffer_size=10_000)
 
-	agent.train(episodes=500, 
-			 	max_steps=100, 
+	agent.train(episodes=4000, 
+			 	max_steps=80, 
 			 	savemodel=True,
 			 	plot=True, 
 			 	savefig=True,
-			 	jitter=500, 
-			 	n_range=[4, 6], 
-			 	p_e=0.99, 
-			 	p_s=0.95,
-			 	tau=1000,
-			 	cutoff=100)
+			 	jitter=None, 
+			 	n_range=[4, 4], 
+			 	p_e=0.50, 
+			 	p_s=0.99,
+			 	tau=50,
+			 	cutoff=15)
 	

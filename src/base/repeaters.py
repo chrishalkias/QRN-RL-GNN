@@ -183,7 +183,7 @@ class RepeaterNetwork():
         key = tuple(sorted((u, v))) 
         edge_attr_list.append(self.matrix[key][1])
     edge_attr = torch.tensor(edge_attr_list, dtype=torch.float)
-    edge_attr.view(-1,1) #GNN expects [num_edges, feature_dim]
+    edge_attr = edge_attr.view(-1,1) #GNN expects [num_edges, feature_dim]
     node_attr = torch.zeros((self.n, 2))
 
     for n1 in range(self.n):
@@ -197,4 +197,4 @@ class RepeaterNetwork():
                     node_attr[n1, 1] = 1
                     node_attr[n2, 0] = 1
 
-    return Data(x=node_attr, edge_index=edge_index,edge_attr = edge_attr)
+    return Data(x=node_attr, edge_index=edge_index,edge_attr=edge_attr)

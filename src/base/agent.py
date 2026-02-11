@@ -7,6 +7,7 @@ from torch_geometric.data import Batch
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from datetime import datetime
+import os
 
 # Import provided modules
 from base.repeaters import RepeaterNetwork
@@ -189,7 +190,7 @@ class QRNAgent:
               cutoff=None):
         
 
-        print(f"Starting training: {episodes} episodes | N={n_range[0]}-{n_range[-1]} | P_ent={p_e} | P_swap={p_s}")
+        print(f"Starting training: {episodes} episodes (truncate={max_steps}) | N={n_range[0]}-{n_range[-1]} | P_ent={p_e} | P_swap={p_s} | T={tau} | c={cutoff}")
         
         # Clear buffer to prevent batch shape mismatch
         self.memory.clear() 
@@ -236,17 +237,19 @@ class QRNAgent:
             scores.append(score)
             pbar.set_description(f"Ep {e+1} | Score: {score:.1f} | Eps: {self.epsilon:.2f}")
 
-        model_name = f"d({datetime.now().day}-{datetime.now().month})l{n_range[0]}u{n_range[-1]}e{episodes}m{max_steps}p{str(p_e)[-2:]}a{str(p_s)[-2:]}t{tau}c{cutoff}"
+        model_name = f"d({datetime.now().day}-{datetime.now().month})l{n_range[0]}u{n_range[-1]}e{episodes}m{max_steps}p{f'{p_e:.2f}'[-2:]}a{f'{p_s:.2f}'[-2:]}t{tau}c{cutoff}"
         if savemodel:
-            torch.save(self.policy_net.state_dict(), f'assets/trained_models/{model_name}.pth')
+            os.makedirs(f'assets/trained_models/{model_name}/', exist_ok=True)
+            torch.save(self.policy_net.state_dict(), f'assets/trained_models/{model_name}/{model_name}.pth')
 
         if plot:
             plt.plot(scores,ls='-', label='Average batch-reward')
             plt.title(f'Training metrics over {episodes} episodes')
             plt.xlabel('Episode')
-            plt.ylabel(f'Reward for $n, p_E, p_S, T, c$= {n_range[0]}-{n_range[-1]}, {p_e}, {p_s}')
+            plt.ylabel(f'Reward for $n, p_E, p_S, T, c$= {n_range[0]}-{n_range[-1]}, {p_e}, {p_s}, {tau}, {cutoff}')
             plt.legend()
-            plt.savefig(f'assets/trained_models/{model_name}.png') if savefig else None
+            os.makedirs(f'assets/trained_models/{model_name}/', exist_ok=True)
+            plt.savefig(f'assets/trained_models/{model_name}/{model_name}.png') if savefig else None
             plt.show()
 
     def validate(self, 
@@ -258,21 +261,105 @@ class QRNAgent:
                     p_s=1.0,
                     tau=1000,
                     cutoff=None, 
-                    logging=True):
+                    logging=True,
+                    plot_actions=True,
+                    savefig=True):
             
+            import matplotlib.pyplot as plt
+            import matplotlib.colors as mcolors
+            import matplotlib.patches as mpatches
+            import re
 
             def log(msg):
                 """Used to print on STDOUT and log to file"""
                 print(msg)
                 if logging:
-                    with open("./assets/validation_results.txt", "a") as f:
+                    with open("./assets/validation_results/validation_results.txt", "a") as f:
                         f.write(msg + "\n")
+            
+            # --- Helper: Action Parser for Plotting ---
+            def parse_action_label(action_raw, is_agent=False):
+                """Converts raw action (int or string) to shorthand label E(x) or S(x)."""
+                if action_raw is None: return "None"
+                
+                if is_agent:
+                    # Agent uses int index: even=Entangle, odd=Swap
+                    node = action_raw // 2
+                    op_type = action_raw % 2 
+                    if op_type == 0: return f"E({node})"
+                    return f"S({node})"
+                else:
+                    # Heuristics use strings
+                    if "entangle" in action_raw:
+                        # Extract first number from "self.entangle((X, Y))"
+                        match = re.search(r"\((\d+),", action_raw)
+                        if match: return f"E({match.group(1)})"
+                    elif "swapAT" in action_raw:
+                        # Extract number from "self.swapAT(X)"
+                        match = re.search(r"\((\d+)\)", action_raw)
+                        if match: return f"S({match.group(1)})"
+                    return "None"
+
+            # --- Helper: Plotting Function ---
+            def plot_action_timeline(action_history):
+                strategies = list(action_history.keys())
+                
+                # 1. Collect all unique labels to assign colors
+                unique_labels = set()
+                for seq in action_history.values():
+                    for act in seq:
+                        if act != "Done": unique_labels.add(act)
+                
+                # Sort labels: Entangles first, then Swaps
+                sorted_labels = sorted(list(unique_labels), key=lambda x: (x[0], int(x[2:-1])))
+                
+                # 2. Create Color Map
+                # distinct colors from tab20
+                colors = plt.cm.tab20(np.linspace(0, 1, len(sorted_labels)))
+                color_map = {label: colors[i] for i, label in enumerate(sorted_labels)}
+                color_map["Done"] = (0, 0, 0, 1) # Black for termination
+                
+                # 3. Build Grid
+                # Find max steps for width
+                max_len = max(len(seq) for seq in action_history.values())
+                grid = np.zeros((len(strategies), max_len, 4)) # RGBA grid
+                grid.fill(1.0) # White background
+                
+                for i, strat in enumerate(strategies):
+                    seq = action_history[strat]
+                    for j, action in enumerate(seq):
+                        if action in color_map:
+                            grid[i, j] = color_map[action]
+
+                # 4. Plot
+                fig, ax = plt.subplots(figsize=(12, len(strategies) * 0.8))
+                ax.imshow(grid, aspect='auto')
+                
+                # Formatting
+                ax.set_yticks(np.arange(len(strategies)))
+                ax.set_yticklabels(strategies)
+                ax.set_xlabel("Time Step")
+                ax.set_title(f"Policy Action Timeline (N:{n_nodes}, Pe:{p_e}, Ps:{p_s}, T:{tau}, c:{cutoff})")
+                ax.grid(False) # Turn off grid lines inside the plot
+                
+                # Custom Legend
+                patches = [mpatches.Patch(color=color_map[l], label=l) for l in sorted_labels]
+                patches.append(mpatches.Patch(color='black', label='Terminated'))
+                
+                # Place legend outside
+                box = ax.get_position()
+                ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+                ax.legend(handles=patches, loc='center left', bbox_to_anchor=(1, 0.5), title="Actions")
+                plt.savefig(f'assets/validation_results/policy_comparison.png') if savefig else None
+                plt.show()
+
             # -----------------------------
 
             log(f"\n--- Validation (N:{n_nodes}, Pe:{p_e}, Ps:{p_s}, tau:{tau}, cutoff:{cutoff}) ---")
             log(f"--- Max_steps: {max_steps}, n_episodes:{n_episodes} ---")
-            log(f"- Model: {dict_dir.split("models/",1)[1]}")
-            # 1. Collect Data
+            if dict_dir:
+                 log(f"- Model: {dict_dir.split('models/',1)[-1]}") # fixed split safety
+            
             results = {
                 'Agent': {'steps': [], 'fidelities': []},
                 'FN_Swap': {'steps': [], 'fidelities': []},
@@ -281,11 +368,14 @@ class QRNAgent:
                 'Doubling': {'steps': [], 'fidelities': []},
                 'Random': {'steps': [], 'fidelities': []},
             }
+            
+            # Dictionary to store the FIRST episode action sequence for each strategy
+            action_timeline = {k: [] for k in results.keys()}
+
             # --- Load model ---
             if dict_dir == None:
                 raise RuntimeWarning(
-                    ' No trained dic_dir. Pass a dictionary as kwarg `validate(trained_dict= ...)`' \
-                    'Trained dicts can be found at ./assets/trained_models')
+                    ' No trained dic_dir. Pass a dictionary as kwarg `validate(trained_dict= ...)`')
             
             trained_dict = torch.load(dict_dir)
             self.policy_net.load_state_dict(trained_dict)
@@ -294,17 +384,26 @@ class QRNAgent:
             temp_epsilon = self.epsilon
             self.epsilon = 0.0 # Force greedy
             
-            for _ in range(n_episodes):
+            for i in range(n_episodes):
                 env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
                 steps = 0
                 done = False
+                
                 while not done and steps < max_steps:
                     state = env.tensorState()
                     action_idx = self.select_action(state, n_nodes, training=False)
+                    
+                    # RECORD ACTION (Only for first episode)
+                    if plot_actions and i == 0:
+                        label = parse_action_label(action_idx, is_agent=True)
+                        action_timeline['Agent'].append(label)
+
                     _, done, info = self.step_environment(env, action_idx)
                     
                     if done:
                         results['Agent']['fidelities'].append(info['fidelity'])
+                        if plot_actions and i == 0:
+                            action_timeline['Agent'].append("Done")
                     
                     steps += 1
                 results['Agent']['steps'].append(steps if done else max_steps)
@@ -323,7 +422,7 @@ class QRNAgent:
             pbar = tqdm(heuristics_map.items())
             for name, method_name in pbar:
                 pbar.set_description(f"Agent VS {name}")
-                for _ in range(n_episodes):
+                for i in range(n_episodes):
                     env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
                     heuristic = Strategies(env) 
                     steps = 0
@@ -341,6 +440,12 @@ class QRNAgent:
                         else:
                             action_str = heuristic.stochastic_action()
                         
+                        # RECORD ACTION (Only for first episode)
+                        if plot_actions and i == 0:
+                            if action_str:
+                                label = parse_action_label(action_str, is_agent=False)
+                                action_timeline[name].append(label)
+
                         try:
                             if action_str:
                                 # HACK: execute heuristic string on local env
@@ -351,12 +456,17 @@ class QRNAgent:
 
                             if is_success:
                                 done = True
-                                results[name]['fidelities'].append(current_fid)    
+                                results[name]['fidelities'].append(current_fid)
+                                if plot_actions and i == 0:
+                                    action_timeline[name].append("Done")
                         except:
                             pass
                         steps += 1
                     results[name]['steps'].append(steps if done else max_steps)
 
+            # Generate Plot if requested
+            if plot_actions:
+                plot_action_timeline(action_timeline)
 
             # Calculate Baseline (Agent) Averages first
             agent_steps_avg = np.mean(results['Agent']['steps'])
@@ -382,18 +492,14 @@ class QRNAgent:
                     avg_fid, std_fid = 0.0, 0.0
                 
                 # --- RATIO CALCULATION ---
-                # Step Ratio: (Current / Agent) * 100
-                # < 100% means faster than agent, > 100% means slower
                 step_ratio = (avg_steps / agent_steps_avg) * 100 if agent_steps_avg > 0 else 0.0
                 
-                # Fidelity Ratio: (Current / Agent) * 100
-                # > 100% means higher fidelity than agent
                 if agent_fid_avg > 1e-9:
                     fid_ratio = (avg_fid / agent_fid_avg) * 100
                 elif avg_fid > 1e-9: 
-                    fid_ratio = float('inf') # Improvement over 0
+                    fid_ratio = float('inf') 
                 else:
-                    fid_ratio = 100.0 # Both are 0
+                    fid_ratio = 100.0 
                 
                 pm = u"\u00B1"
                 log(f"{strategy:<12} | {avg_steps:<9.2f} ({pm}{std_steps:<6.2f}) | {avg_fid:<8.4f} ({pm}{std_fid:.4f}) | {f'{step_ratio:.0f}%':<4} | {f'{fid_ratio:.0f}%':<5}")
