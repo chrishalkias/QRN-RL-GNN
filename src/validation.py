@@ -6,19 +6,18 @@ if __name__ == '__main__':
 
 
     agent_val = QRNAgent()
-    # dict_dir = "./assets/trained_models/d(9-2)l4u6e1000m100p85a85tNcN.pth"       # high P no cutoff model
-     # dict_dir = "./assets/trained_models/d(11-2)l4u6e1000m200p35a95t100c40.pth   # mid P cutoff model not well trained
-    dict_dir = "./assets/trained_models/d(10-2)l4u6e5000m200p.5a95t100c50.pth"     # low p cutoff model no edge features
-
+    # dict_dir = "./assets/trained_models/d(9-2)l4u6e1000m100p85a85tNcN/d(9-2)l4u6e1000m100p85a85tNcN.pth"       # high P no cutoff model
+    dict_dir = 'assets/trained_models/Rd(12-2)l4u4e2450m80p50a99t50c15/Rd(12-2)l4u4e2450m80p50a99t50c15.pth'
     agent_val.validate(dict_dir=dict_dir,
-                       n_episodes=1, 
-                       max_steps=500, 
-                       n_nodes=6,
+                       n_episodes=300, 
+                       max_steps=100, 
+                       n_nodes=5,
                        p_e=0.1, 
                        p_s=0.9,
-                       tau = 100,
-                       cutoff=50, 
+                       tau = 50,
+                       cutoff=20, 
                        logging=False,
+                       plot_actions = False,
                        savefig=False)
     
     # early termination seems to

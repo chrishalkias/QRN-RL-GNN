@@ -1,11 +1,20 @@
 import torch
 import numpy as np
+import os
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from sklearn.decomposition import PCA
 from base.model import GNN
 from base.repeaters import RepeaterNetwork
+
+os.environ["PATH"] += os.pathsep + '/Library/TeX/texbin'
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif",
+    "font.serif": ["Computer Modern Roman"],
+})
 
 def visualize_gnn_mechanisms(model_path, 
                              n_nodes=4, 
@@ -78,9 +87,10 @@ def visualize_gnn_mechanisms(model_path,
                      yticklabels=np.round(fidelities, 1), cmap="RdYlGn", center=0)
     
     ax.invert_yaxis() # Ensure 0 is at bottom
-    plt.title(f"Decision Phase Diagram (Node {target_node})\nDoes the agent want to Swap?", fontsize=14)
-    plt.xlabel(f"Fidelity of Right Link ({target_node}-{target_node+1})", fontsize=12)
-    plt.ylabel(f"Fidelity of Left Link ({target_node-1}-{target_node})", fontsize=12)
+    expr = r'$Q_{swap}-Q_{entangle}$'
+    plt.title(f"Decision Phase Diagram ({expr}) \nDoes the agent want to Swap?", fontsize=18)
+    plt.xlabel(r"Fidelity of Right Link ($F_2$)", fontsize=16)
+    plt.ylabel(f"Fidelity of Left Link ($F_1$)", fontsize=16)
 
     # --- ADDED: Theoretical Boundary Line (F1 * F2 = e^-0.5) ---
     threshold_val = np.exp(-cutoff_tau_ratio)
@@ -100,7 +110,7 @@ def visualize_gnn_mechanisms(model_path,
     
     # 5. Plot the line
     # We restrict ylim to keep the plot neat (ignoring the asymptote)
-    plt.plot(x_indices, y_indices, color='cyan', linestyle='--', linewidth=2.5, label=r'$F_1 \cdot F_2 = e^{-t_{cutoff}/\tau}$')
+    plt.plot(x_indices, y_indices, color='cyan', linestyle='--', linewidth=4, label=r'$F_1 \cdot F_2 = e^{-t_{c}/\tau}$')
     plt.legend(loc='upper right', frameon=True, facecolor='black', labelcolor='white')
     plt.ylim(0, resolution - 1)
     
@@ -108,7 +118,7 @@ def visualize_gnn_mechanisms(model_path,
     # We need to map grid indices to plot coordinates
     cnt = plt.contour(np.arange(0.5, resolution), np.arange(0.5, resolution), 
                       sensitivity_grid, levels=[0], colors='black', linewidths=2, linestyles='--')
-    plt.clabel(cnt, inline=True, fontsize=10, fmt='Decision Boundary')
+    plt.clabel(cnt, inline=True, fontsize=11, fmt='Decision Boundary')
     
     plt.tight_layout()
     plt.savefig(save_dir +"phase_diagram.png") if savefig else None
@@ -190,9 +200,9 @@ def visualize_gnn_mechanisms(model_path,
         sns.scatterplot(data=df_pca, x='PC1', y='PC2', hue='Decision', 
                         style='Decision', palette={'Swap': 'green', 'Entangle': 'red'}, s=60, alpha=0.7)
         
-        plt.title(f"GNN Internal Representation (PCA)\nInternal Nodes (1 to {n_nodes-2})", fontsize=14)
-        plt.xlabel("Principal Component 1")
-        plt.ylabel("Principal Component 2")
+        plt.title(f"GNN Internal Representation (PCA)\nInternal Nodes (1 to {n_nodes-2})", fontsize=18)
+        plt.xlabel("Principal Component 1", fontsize=16)
+        plt.ylabel("Principal Component 2", fontsize=16)
         plt.legend(title="Preferred Action")
         plt.grid(True, linestyle='--', alpha=0.3)
         
@@ -205,8 +215,9 @@ def visualize_gnn_mechanisms(model_path,
 
 if __name__ == "__main__":
     # Example Usage
-    visualize_gnn_mechanisms("./assets/trained_models/d(11-2)l4u4e4000m80p.5a99t50c15/d(11-2)l4u4e4000m80p.5a99t50c15.pth", 
-                             n_nodes=8, 
-                             cutoff_tau_ratio=0.5,
+    path = 'assets/trained_models/Rd(12-2)l4u4e2450m80p50a99t50c15/Rd(12-2)l4u4e2450m80p50a99t50c15.pth'
+    visualize_gnn_mechanisms(model_path=path, 
+                             n_nodes=5, 
+                             cutoff_tau_ratio=0.3,
                              pca_samples = 1000, 
                              savefig=True)

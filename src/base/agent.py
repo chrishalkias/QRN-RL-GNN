@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from datetime import datetime
 import os
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib.patches as mpatches
+import re
 
 # Import provided modules
 from base.repeaters import RepeaterNetwork
@@ -18,21 +22,18 @@ from base.strategies import Strategies
 class QRNAgent:
     def __init__(self, 
                  lr=1e-3, 
-                 gamma=0.99, 
-                 epsilon_start=1.0, 
-                 epsilon_end=0.05, 
-                 epsilon_decay=0.995,
+                 gamma=0.99,
                  buffer_size=10000,
+                 epsilon=1.0,
                  batch_size=64,
                  target_update_freq=100):
         
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         # Hyperparameters
+        self.lr=lr
+        self.epsilon = epsilon
         self.gamma = gamma
-        self.epsilon = epsilon_start
-        self.epsilon_min = epsilon_end
-        self.epsilon_decay = epsilon_decay
         self.batch_size = batch_size
         self.target_update_freq = target_update_freq
         self.learn_step_counter = 0
@@ -182,12 +183,13 @@ class QRNAgent:
               savemodel=False, 
               plot=False, 
               savefig=False, 
-              jitter = 100,
+              jitter=100,
               n_range=[4,6],
+              fine_tune=False,
               p_e=1.0, 
               p_s=1.0,
               tau=1000,
-              cutoff=None):
+              cutoff=1000):
         
 
         print(f"Starting training: {episodes} episodes (truncate={max_steps}) | N={n_range[0]}-{n_range[-1]} | P_ent={p_e} | P_swap={p_s} | T={tau} | c={cutoff}")
@@ -198,6 +200,25 @@ class QRNAgent:
         scores = []
         pbar = tqdm(range(episodes))
         n_nodes = random.choice(n_range)
+        eps_init = 1.0
+        eps_fin = 0.05
+
+        if fine_tune:
+            eps_init=0.2
+            eps_fin=0.01
+            self.lr = 0.0002
+            print("Fine tuning start. Warming up buffer...")
+            env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+            state = env.tensorState()
+            for _ in range(self.batch_size * 5):
+                action = self.select_action(state, env.n, training=True)
+                r, done, _ = self.step_environment(env, action)
+                next_state = env.tensorState()
+                self.memory.add(state, action, r, next_state, None)
+                state = next_state
+                if done: 
+                    env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+                    state = env.tensorState()
         
         for e in pbar:
             env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
@@ -232,8 +253,8 @@ class QRNAgent:
                 
                 if done:
                     break
-            
-            self.epsilon = max(0.05, 1 - (e / episodes) * (1-0.05)) # decay from e=1 to e=0.05
+            decay = (eps_init-eps_fin) if not fine_tune else 2*(eps_init-eps_fin) #decay twice as fast for FT
+            self.epsilon = max(eps_fin, eps_init - (e / episodes) * decay)
             scores.append(score)
             pbar.set_description(f"Ep {e+1} | Score: {score:.1f} | Eps: {self.epsilon:.2f}")
 
@@ -244,12 +265,12 @@ class QRNAgent:
 
         if plot:
             plt.plot(scores,ls='-', label='Average batch-reward')
-            plt.title(f'Training metrics over {episodes} episodes')
+            plt.title(f'{"Training" if not fine_tune else "Fine-tuning"} metrics over {episodes} episodes')
             plt.xlabel('Episode')
             plt.ylabel(f'Reward for $n, p_E, p_S, T, c$= {n_range[0]}-{n_range[-1]}, {p_e}, {p_s}, {tau}, {cutoff}')
             plt.legend()
             os.makedirs(f'assets/trained_models/{model_name}/', exist_ok=True)
-            plt.savefig(f'assets/trained_models/{model_name}/{model_name}.png') if savefig else None
+            plt.savefig(f'assets/trained_models/{model_name}/train.png') if savefig else None
             plt.show()
 
     def validate(self, 
@@ -265,10 +286,6 @@ class QRNAgent:
                     plot_actions=True,
                     savefig=True):
             
-            import matplotlib.pyplot as plt
-            import matplotlib.colors as mcolors
-            import matplotlib.patches as mpatches
-            import re
 
             def log(msg):
                 """Used to print on STDOUT and log to file"""
@@ -301,10 +318,11 @@ class QRNAgent:
                     return "None"
 
             # --- Helper: Plotting Function ---
+            # --- Helper: Plotting Function (MODIFIED) ---
             def plot_action_timeline(action_history):
                 strategies = list(action_history.keys())
                 
-                # 1. Collect all unique labels to assign colors
+                # 1. Collect all unique labels
                 unique_labels = set()
                 for seq in action_history.values():
                     for act in seq:
@@ -314,13 +332,11 @@ class QRNAgent:
                 sorted_labels = sorted(list(unique_labels), key=lambda x: (x[0], int(x[2:-1])))
                 
                 # 2. Create Color Map
-                # distinct colors from tab20
                 colors = plt.cm.tab20(np.linspace(0, 1, len(sorted_labels)))
                 color_map = {label: colors[i] for i, label in enumerate(sorted_labels)}
                 color_map["Done"] = (0, 0, 0, 1) # Black for termination
                 
-                # 3. Build Grid
-                # Find max steps for width
+                # 3. Build Grid for Colors
                 max_len = max(len(seq) for seq in action_history.values())
                 grid = np.zeros((len(strategies), max_len, 4)) # RGBA grid
                 grid.fill(1.0) # White background
@@ -333,39 +349,72 @@ class QRNAgent:
 
                 # 4. Plot
                 fig, ax = plt.subplots(figsize=(12, len(strategies) * 0.8))
-                ax.imshow(grid, aspect='auto')
                 
+                # A) Plot the colors
+                ax.imshow(grid, aspect='auto', interpolation='nearest')
+                
+                # B) Overlay Hatching for 'Swap' (S) operations
+                # We iterate through the grid and place a hatched rectangle over Swaps
+                for i, strat in enumerate(strategies):
+                    seq = action_history[strat]
+                    for j, action in enumerate(seq):
+                        if action.startswith("S"): # Identify Swaps
+                            # Create a rectangle centered at (j, i)
+                            # xy is bottom-left corner, so (j-0.5, i-0.5)
+                            rect = mpatches.Rectangle(
+                                (j - 0.5, i - 0.5), 1, 1, 
+                                fill=False,         # Transparent background
+                                hatch='///',         # Grid pattern
+                                edgecolor='black',  # Hatch color
+                                linewidth=0,        # No border around the cell
+                                alpha=0.5           # Make the hatch subtle
+                            )
+                            ax.add_patch(rect)
+
                 # Formatting
                 ax.set_yticks(np.arange(len(strategies)))
                 ax.set_yticklabels(strategies)
                 ax.set_xlabel("Time Step")
                 ax.set_title(f"Policy Action Timeline (N:{n_nodes}, Pe:{p_e}, Ps:{p_s}, T:{tau}, c:{cutoff})")
-                ax.grid(False) # Turn off grid lines inside the plot
+                ax.grid(False) 
                 
-                # Custom Legend
-                patches = [mpatches.Patch(color=color_map[l], label=l) for l in sorted_labels]
+                # 5. Custom Legend
+                patches = []
+                for l in sorted_labels:
+                    # Check if action is a Swap to apply hatching
+                    is_swap = l.startswith("S")
+                    
+                    patches.append(mpatches.Patch(
+                        facecolor=color_map[l], 
+                        label=l,
+                        # Apply grid pattern '++' only for Swaps
+                        hatch='///' if is_swap else None,
+                        # Hatch color is controlled by edgecolor (must be distinct from facecolor)
+                        edgecolor='black' if is_swap else None 
+                    ))
+                
                 patches.append(mpatches.Patch(color='black', label='Terminated'))
                 
                 # Place legend outside
                 box = ax.get_position()
                 ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
                 ax.legend(handles=patches, loc='center left', bbox_to_anchor=(1, 0.5), title="Actions")
+                
                 plt.savefig(f'assets/validation_results/policy_comparison.png') if savefig else None
                 plt.show()
 
             # -----------------------------
 
             log(f"\n--- Validation (N:{n_nodes}, Pe:{p_e}, Ps:{p_s}, tau:{tau}, cutoff:{cutoff}) ---")
-            log(f"--- Max_steps: {max_steps}, n_episodes:{n_episodes} ---")
-            if dict_dir:
-                 log(f"- Model: {dict_dir.split('models/',1)[-1]}") # fixed split safety
+            log(f"--- Max_steps: {max_steps}, n_episodes:{n_episodes}, Model: {dict_dir.split('/')[-1][:-4]} ---")
             
             results = {
                 'Agent': {'steps': [], 'fidelities': []},
+                'Frontier': {'steps': [], 'fidelities': []},
                 'FN_Swap': {'steps': [], 'fidelities': []},
                 'SN_Swap': {'steps': [], 'fidelities': []},
                 'SwapASAP': {'steps': [], 'fidelities': []},
-                'Doubling': {'steps': [], 'fidelities': []},
+                # 'Doubling': {'steps': [], 'fidelities': []},
                 'Random': {'steps': [], 'fidelities': []},
             }
             
@@ -381,7 +430,6 @@ class QRNAgent:
             self.policy_net.load_state_dict(trained_dict)
 
             # --- Test Agent ---
-            temp_epsilon = self.epsilon
             self.epsilon = 0.0 # Force greedy
             
             for i in range(n_episodes):
@@ -408,14 +456,13 @@ class QRNAgent:
                     steps += 1
                 results['Agent']['steps'].append(steps if done else max_steps)
                 
-            self.epsilon = temp_epsilon
-
             # --- Test Heuristics ---
             heuristics_map = {
+                'Frontier': 'Frontier',
                 'FN_Swap': 'FN_swap',
                 'SN_Swap': 'SN_swap',
                 'SwapASAP': 'swap_asap', 
-                'Doubling': 'doubling',
+                # 'Doubling': 'doubling',
                 'Random': 'stochastic_action',
             }
                  
@@ -429,7 +476,9 @@ class QRNAgent:
                     done = False
                     
                     while not done and steps < max_steps:
-                        if method_name == 'swap_asap':
+                        if method_name == 'Frontier':
+                            action_str = heuristic.create_and_propagate()
+                        elif method_name == 'swap_asap':
                             action_str = heuristic.swap_asap()
                         elif method_name == 'FN_swap':
                             action_str = heuristic.FN_swap()

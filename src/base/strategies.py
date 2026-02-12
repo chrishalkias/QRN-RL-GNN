@@ -1,128 +1,125 @@
 import random
 
+import numpy as np
+
 class Strategies():
     def __init__(self, network):
-        """
-        This class provides a bundle of the used heuristics.
-        All of the strategies have the following Markovian I/O:
-
-            state -> [strategy] -> action
-
-            2 * node -> entangle right at node
-
-            2*node + 1 -> swap at node
-
-        Methods:
-            stochastic_action()
-            swap_asap()
-            SN_swap()
-            FN_swap()
-            doubling()
-        """
-
         self.network = network
 
     def stochastic_action(self) -> list:
-        """
-        Perform a random action at each node
-        """
-        entangles = [f'self.entangle({node, node+1})' for node in range(self.network.n-1)]
-        swaps = [f'self.swapAT({node})' for node in range(1, self.network.n-1)] # dont swap ad end nodes
+        """Perform a random action at each node"""
+        # Fixed formatting: (({node}, {node+1})) ensures a tuple is passed
+        entangles = [f'self.entangle(({node}, {node+1}))' for node in range(self.network.n-1)]
+        swaps = [f'self.swapAT({node})' for node in range(1, self.network.n-1)] 
         action = random.choice(entangles + swaps)
         return action
 
-
     def swap_asap(self):
-        """
-        Runs the random the swap-asap algorithm to determine the next action
-        based on the giv.
-        """
         swaps = []
+        priority_entangles = []
         entangles = []
 
+        state_x = self.network.tensorState().x
+
         for node in range(self.network.n):
-            leftlink = self.network.tensorState().x[node][0]
-            rightlink = self.network.tensorState().x[node][1]
+            leftlink = state_x[node][0] > 0
+            rightlink = state_x[node][1] > 0
+
 
             if leftlink and rightlink:
                 swaps.append(f'self.swapAT({node})')
-            else:
-                if not leftlink and node!=0:
-                    entangles.append(f'self.entangle({node-1, node})')
-                if not rightlink and node!=self.network.n-1:
-                    entangles.append(f'self.entangle({node, node+1})')
+
+
+            elif bool(leftlink) ^ bool(rightlink):
+                if leftlink and node != self.network.n - 1:
+                    priority_entangles.append(f'self.entangle(({node}, {node+1}))')
+                elif rightlink and node != 0:
+                    priority_entangles.append(f'self.entangle(({node-1}, {node}))')
+
+
+            elif not leftlink and not rightlink:
+                if node != 0:
+                    entangles.append(f'self.entangle(({node-1}, {node}))')
+                if node != self.network.n - 1:
+                    entangles.append(f'self.entangle(({node}, {node+1}))')
+
         if swaps:
-            action = random.choice(swaps)
+            return random.choice(swaps)
+        elif priority_entangles:
+            return random.choice(priority_entangles)
         elif entangles:
-            action = random.choice(entangles)
-        return action
-    
+            return random.choice(entangles)
+        return RuntimeError('No actions')
 
     def FN_swap(self):
-        """
-        Farthest Neighbor Swap:
-        Prioritizes swaps that create the longest active link (max distance |left - right|).
-        """
+        """Farthest Neighbor Swap"""
         swaps = []
+        priority_entangles = []
         entangles = []
         
+        state_x = self.network.tensorState().x
 
         for node in range(self.network.n):
-            leftlink = self.network.tensorState().x[node][0]
-            rightlink = self.network.tensorState().x[node][1]
+            leftlink = state_x[node][0] > 0
+            rightlink = state_x[node][1] > 0
 
             if leftlink and rightlink:
+                # We know a swap is possible, but we search neighbors to calculate DISTANCE
                 n_left = None
                 n_right = None
-                
-                # Search for left link (i < node)
+
+                # Search Left
                 for i in range(node):
                     if self.network.getLink((i, node), 1) > 0:
                         n_left = i
                         break
                 
-                # Search for right link (j > node)
-                for j in range(node + 1, self.network.n):
+                # Search Right (Backwards to find Farthest)
+                for j in range(self.network.n - 1, node, -1):
                     if self.network.getLink((node, j), 1) > 0:
                         n_right = j
                         break
                 
                 if n_left is not None and n_right is not None:
                     dist = abs(n_right - n_left)
-                    action = f'self.swapAT({node})'
-                    swaps.append((dist, action))
+                    swaps.append((dist, f'self.swapAT({node})'))
 
-            else:
-                if not leftlink and node != 0:
-                    entangles.append(f'self.entangle({node-1, node})')
-                if not rightlink and node != self.network.n - 1:
-                    entangles.append(f'self.entangle({node, node+1})')
-
+            elif bool(leftlink) ^ bool(rightlink):
+                if leftlink and node != self.network.n - 1:
+                    priority_entangles.append(f'self.entangle(({node}, {node+1}))')
+                elif rightlink and node != 0:
+                    priority_entangles.append(f'self.entangle(({node-1}, {node}))')
+            
+            elif not leftlink and not rightlink:
+                if node != 0:
+                    entangles.append(f'self.entangle(({node-1}, {node}))')
+                if node != self.network.n - 1:
+                    entangles.append(f'self.entangle(({node}, {node+1}))')
 
         if swaps:
             swaps.sort(key=lambda x: x[0], reverse=True)
-            return swaps[0][1] # Return the action string
-        
+            return swaps[0][1]
+        elif priority_entangles:
+            return random.choice(priority_entangles)
         elif entangles:
             return random.choice(entangles)
-        
-        return None
-
+        else:
+            return RuntimeError('No actions')
 
     def SN_swap(self):
-        """
-        Strongest Neighbor Swap:
-        Prioritizes swaps that result in the highest fidelity link.
-        It scans ALL connections to finding the strongest candidates on both sides.
-        """
+        """Strongest Neighbor Swap"""
         swaps = []
+        priority_entangles = []
         entangles = []
 
+        state_x = self.network.tensorState().x
+
         for node in range(self.network.n):
-            leftlink = self.network.tensorState().x[node][0]
-            rightlink = self.network.tensorState().x[node][1]
+            leftlink = state_x[node][0] > 0
+            rightlink = state_x[node][1] > 0
 
             if leftlink and rightlink:
+                # We know swap is possible, search neighbors to calculate FIDELITY
                 max_fid_left = 0.0
                 max_fid_right = 0.0
 
@@ -137,73 +134,108 @@ class Strategies():
                         max_fid_right = f
                 
                 if max_fid_left > 0 and max_fid_right > 0:
-                    # Calculate expected fidelity: 0.5 * (F_left + F_right)
                     predicted_fidelity = 0.5 * (max_fid_left + max_fid_right)
-                    action = f'self.swapAT({node})'
-                    swaps.append((predicted_fidelity, action))
+                    swaps.append((predicted_fidelity, f'self.swapAT({node})'))
 
-            else:
-                if not leftlink and node != 0:
-                    entangles.append(f'self.entangle({node-1, node})')
-                if not rightlink and node != self.network.n - 1:
-                    entangles.append(f'self.entangle({node, node+1})')
+            elif bool(leftlink) ^ bool(rightlink):
+                if leftlink and node != self.network.n - 1:
+                    priority_entangles.append(f'self.entangle(({node}, {node+1}))')
+                elif rightlink and node != 0:
+                    priority_entangles.append(f'self.entangle(({node-1}, {node}))')
+            
+            elif not leftlink and not rightlink:
+                if node != 0:
+                    entangles.append(f'self.entangle(({node-1}, {node}))')
+                if node != self.network.n - 1:
+                    entangles.append(f'self.entangle(({node}, {node+1}))')
 
         if swaps:
-            # Sort by fidelity descending (greedy for fidelity)
             swaps.sort(key=lambda x: x[0], reverse=True)
             return swaps[0][1]
-        
+        elif priority_entangles:
+            return random.choice(priority_entangles)
         elif entangles:
             return random.choice(entangles)
-            
         return None
 
-
     def doubling_swap(self):
+        swaps = []
+        priority_entangles = []
+        entangles = []
+        
+        state_x = self.network.tensorState().x
+
+        for node in range(self.network.n):
+            leftlink = (state_x[node][0] > 0).item()
+            rightlink = (state_x[node][1] > 0).item()
+
+            if leftlink and rightlink:
+                len_left = 0
+                len_right = 0
+
+                for i in range(node - 1, -1, -1):
+                    if self.network.getLink((i, node), 1) > 0:
+                        len_left = node - i
+                        break 
+
+                for j in range(node + 1, self.network.n):
+                    if self.network.getLink((node, j), 1) > 0:
+                        len_right = j - node
+                        break 
+
+                if len_left > 0 and len_right > 0 and len_left == len_right:
+                    swaps.append(f'self.swapAT({node})')
+
+            elif leftlink ^ rightlink:
+                if leftlink and node != self.network.n - 1:
+                    priority_entangles.append(f'self.entangle(({node}, {node+1}))')
+                elif rightlink and node != 0:
+                    priority_entangles.append(f'self.entangle(({node-1}, {node}))')
+
+            elif (not leftlink) and not rightlink:
+                if node != 0:
+                    entangles.append(f'self.entangle(({node-1}, {node}))')
+                if node != self.network.n - 1:
+                    entangles.append(f'self.entangle(({node}, {node+1}))')
+
+        if swaps:
+            return random.choice(swaps)
+        elif priority_entangles:
+            return random.choice(priority_entangles)
+        elif entangles:
+            return random.choice(entangles)
+        else:
+            raise RuntimeError('No available actions. SOmething broke')
+        
+    def create_and_propagate(self, cutoff: bool = False):
             """
-            Doubling Strategy:
-            Only performs a swap at a node if the link to the left and the link to the right
-            are of the exact same length.
+            Simple linear propagation strategy.
+            1. Identifies the farthest node currently connected to node 0 (the frontier).
+            2. Tries to entangle the next segment (frontier -> frontier+1).
+            3. If that segment exists, it swaps at the frontier to extend the link.
             """
-            swaps = []
-            entangles = []
-
-            for node in range(self.network.n):
-                left_connected = self.network.tensorState().x[node][0] > 0
-                right_connected = self.network.tensorState().x[node][1] > 0
-
-                if left_connected and right_connected:
-                    len_left = 0
-                    len_right = 0
-
-                    # iterate backwards from node-1 to 0
-                    for i in range(node - 1, -1, -1):
-                        if self.network.getLink((i, node), 1) > 0:
-                            len_left = node - i
-                            break 
-
-                    # iterate forwards
-                    for j in range(node + 1, self.network.n):
-                        if self.network.getLink((node, j), 1) > 0:
-                            len_right = j - node
-                            break 
-
-                    #The Doubling Condition
-                    if len_left > 0 and len_right > 0 and len_left == len_right:
-                        swaps.append(f'self.swapAT({node})')
-
-                else:
-                    if not left_connected and node != 0:
-                        entangles.append(f'self.entangle({node-1, node})')
-                    if not right_connected and node != self.network.n - 1:
-                        entangles.append(f'self.entangle({node, node+1})')
-
-
-            if swaps:
-                return random.choice(swaps)
-            elif entangles:
-                return random.choice(entangles)
             
-            return
+            # 1. Find the current frontier (farthest node connected to 0)
+            frontier = 0
+            # Check backwards from N-1 down to 1
+            for k in range(self.network.n - 1, 0, -1):
+                if self.network.getLink((0, k), 1) > 0:
+                    frontier = k
+                    break
+            if frontier == self.network.n-1:
+                return
+            # The next node we need to connect to
+            target = frontier + 1
 
-  
+            # 2. Check if the next small link segment exists
+            # e.g., if we have (0,2), we check if (2,3) exists
+            segment_exists = self.network.getLink((frontier, target), 1) > 0
+
+            if not segment_exists:
+                # Case A: The next segment is missing -> Create it
+                return f'self.entangle(({frontier}, {target}))'
+            else:
+                # Case B: The next segment exists.
+                # Since 'frontier' is connected to 0, and 'target' is connected to 'frontier',
+                # we swap at 'frontier' to join them into (0, target).
+                return f'self.swapAT({frontier})'
