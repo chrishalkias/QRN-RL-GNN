@@ -9,8 +9,8 @@ from tqdm import tqdm
 from datetime import datetime
 import os
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
+from torch_geometric.data import Data
 import re
 import time
 import wandb
@@ -43,8 +43,8 @@ class QRNAgent:
 
         # Models
         # GNN is graph-size invariant
-        self.policy_net = GNN(node_dim=2, output_dim=2).to(self.device)
-        self.target_net = GNN(node_dim=2, output_dim=2).to(self.device)
+        self.policy_net = GNN(node_dim=3, output_dim=2).to(self.device)
+        self.target_net = GNN(node_dim=3, output_dim=2).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
@@ -64,7 +64,7 @@ class QRNAgent:
 
             # Reshape node features: works for single state (1, N, 2) or batched states (B, N, 2)
             num_graphs = state.x.shape[0] // n_nodes
-            x_reshaped = state.x.view(num_graphs, n_nodes, 2)
+            x_reshaped = state.x.view(num_graphs, n_nodes, 3) #3=num node features
             
             mask = torch.zeros((num_graphs, n_nodes, 2), dtype=torch.bool, device=self.device)
             
@@ -143,6 +143,23 @@ class QRNAgent:
         
         return step_cost, False, info
 
+    def _fast_batch(self, data_list, n_nodes):
+            """Bypasses PyG batching overhead for uniform graph sizes."""
+            # Concat node and edge features directly
+            x = torch.cat([d.x for d in data_list], dim=0).to(self.device)
+            edge_attr = torch.cat([d.edge_attr for d in data_list], dim=0).to(self.device)
+            
+            # Offset edge indices using the known, constant node count
+            edge_indices = []
+            offset = 0
+            for d in data_list:
+                edge_indices.append(d.edge_index + offset)
+                offset += n_nodes
+                
+            edge_index = torch.cat(edge_indices, dim=1).to(self.device)
+            
+            return Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+
 
     def train_step(self, n_nodes_current_batch):
         if self.memory.size() < self.batch_size:
@@ -153,8 +170,10 @@ class QRNAgent:
         state_batch_list = [x['s'] for x in batch]
         next_state_batch_list = [x['s_'] for x in batch]
         
-        state_batch = Batch.from_data_list(state_batch_list).to(self.device)
-        next_state_batch = Batch.from_data_list(next_state_batch_list).to(self.device)
+        state_batch = self._fast_batch(state_batch_list, n_nodes_current_batch)
+        next_state_batch = self._fast_batch(next_state_batch_list, n_nodes_current_batch)
+
+
         
         action_batch = torch.tensor([x['a'] for x in batch], device=self.device)
         reward_batch = torch.tensor([x['r'] for x in batch], device=self.device).float()

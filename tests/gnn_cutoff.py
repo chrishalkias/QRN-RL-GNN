@@ -17,6 +17,7 @@ plt.rcParams.update({
 
 def plot_gnn_cutoff(model_path, 
                              n_nodes=4, 
+                             node_dim=2, #2 for old models
                              cutoff_tau_ratio = 1,
                              savefig = True):
     """
@@ -31,7 +32,7 @@ def plot_gnn_cutoff(model_path,
     save_dir =  model_path.rsplit('/', 1)[0] + '/'
     
     # Load Model
-    model = GNN(node_dim=2, output_dim=2).to(device)
+    model = GNN(node_dim=node_dim, output_dim=2).to(device)
     if isinstance(model_path, str):
         weights = torch.load(model_path, map_location=device)
     else:
@@ -62,8 +63,8 @@ def plot_gnn_cutoff(model_path,
             env = RepeaterNetwork(n=n_nodes)
             
             # Manually set the specific link qualities we want to test
-            env.setLink((0, 1), f_left, linkType=1)
-            env.setLink((1, env.n -1), f_right, linkType=1)
+            env.setLink((1, 4), f_left, linkType=1)
+            env.setLink((4, env.n -1), f_right, linkType=1)
             
             # Get state and infer
             data = env.tensorState().to(device)
@@ -179,8 +180,9 @@ def plot_gnn_cutoff(model_path,
 
 if __name__ == "__main__":
     # Example Usage
-    path = 'assets/trained_models/d(14-2)l4u6e7000m60p70a98t150c30/d(14-2)l4u6e7000m60p70a98t150c30.pth'
+    path = 'assets/trained_models/d(14-2)l4u6e4100m60p50a98t150c50/d(14-2)l4u6e4100m60p50a98t150c50.pth'
     plot_gnn_cutoff(model_path=path, 
                              n_nodes=5, 
+                             node_dim=3,
                              cutoff_tau_ratio=0.53,
                              savefig=True)

@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch_geometric.data import Data
+import scipy.stats as stats
 
 class RepeaterNetwork():
     def __init__(self,
@@ -8,13 +9,15 @@ class RepeaterNetwork():
                  cutoff = None,
                  tau: int = 1_000,
                  p_entangle: float = 1.0,
-                 p_swap: float = 1.0
+                 p_swap: float = 1.0,
+                 homogenous: bool = True,
                 ) -> None:
         """
         Fast Quantum network simulator
         [TODO] write a docstring (again)
         """
         # --- Initialize class attributes
+        self.homo = homogenous
         self.n = n
         self.tau, self.cutoff = tau, cutoff
         self.p_entangle, self.p_swap = p_entangle, p_swap
@@ -22,6 +25,30 @@ class RepeaterNetwork():
         # --- Tensor Representation 
         # Replaces the old self.matrix dictionary. Stores entanglements for all node pairs.
         self.fidelities = torch.zeros((self.n, self.n), dtype=torch.float)
+
+
+    def _param_ditribution(self):
+        """For when we switch to inhomogenous"""
+        mu_e, sigma_e = 0.2, 0.1
+        pe_rand = stats.truncnorm(
+            (0.005 - mu_e) / sigma_e, (0.5 - mu_e) / sigma_e, loc=mu_e, scale=sigma_e)
+
+        mu_s, sigma_s = 0.9, 0.01
+        ps_rand = stats.truncnorm(
+            (0.001 - mu_s) / sigma_s, (1 - mu_s) / sigma_s, loc=mu_s, scale=sigma_s)
+        
+        mu_tau, sigma_tau = 0.9, 0.01
+        tau_rand = stats.truncnorm(
+            (0.001 - mu_tau) / sigma_tau, (1 - mu_tau) / sigma_tau, loc=mu_tau, scale=sigma_tau)
+        
+        pe_dist = pe_rand.rvs(self.n)
+        ps_dist = pe_rand.rvs(self.n)
+        tau_dist = pe_rand.rvs(self.n)
+
+        return (pe_dist, ps_dist, tau_dist)
+        
+
+
 
     def checkEdgeLink(self, edge: tuple, linkType: int = 0):
         """Check whether in grid and correct linkType (for getLink and setLink)"""
@@ -156,10 +183,16 @@ class RepeaterNetwork():
         # edge_attr = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
 
         # --- nodes
-        node_attr = torch.zeros((self.n, 2), dtype=torch.float)
+
+        node_attr = torch.zeros((self.n, 3), dtype=torch.float)
         has_link = self.fidelities > 0
         node_attr[:, 1] = has_link.triu(1).any(dim=1).float() # Checks for Right connections
         node_attr[:, 0] = has_link.triu(1).any(dim=0).float() # Checks for Left connections
+
+        # Vectorized calculation for distance to closest endpoint
+        node_indices = torch.arange(self.n)
+        distances = torch.minimum(node_indices, self.n - 1 - node_indices).float()
+        node_attr[:, 2] = distances
 
         return Data(x=node_attr, edge_index=edge_index, edge_attr=edge_attr)
 

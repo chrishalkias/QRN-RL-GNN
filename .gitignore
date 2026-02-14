@@ -1,6 +1,5 @@
 src/*.py[cod]
 __pycache__/
-src/.venv
 .DS_Store
 .vscode/
 .temp/
@@ -9,7 +8,8 @@ test_nb.ipynb
 .venv/
 .env
 .todo.txt
-.wandb/
+wandb/
+
 # (Nice template collection here https://github.com/github/gitignore/tree/main)
 
 
