@@ -9,6 +9,7 @@ test_nb.ipynb
 .venv/
 .env
 .todo.txt
+src/wandb/*
 
 # (Nice template collection here https://github.com/github/gitignore/tree/main)
 

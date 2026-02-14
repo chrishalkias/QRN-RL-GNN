@@ -7,21 +7,24 @@ numpy.set_printoptions(legacy='1.25')
 if __name__ == '__main__':
 
 	agent = QRNAgent(buffer_size=10_000)
-	dict_dir = 'assets/trained_models/Rd(12-2)l4u4e2450m80p50a99t50c15/Rd(12-2)l4u4e2450m80p50a99t50c15.pth'
-	trained_dict = torch.load(dict_dir)
-	agent.policy_net.load_state_dict(trained_dict)
-	agent.target_net.load_state_dict(trained_dict)
 
-	agent.train(episodes=1500, 
-			 	max_steps=80, 
+	# # # Uncomment for fine-tuning
+	# dict_dir = 'assets/trained_models/d(13-2)l4u4e25000m30p70a99t15c8/d(13-2)l4u4e25000m30p70a99t15c8.pth'
+	# trained_dict = torch.load(dict_dir)
+	# agent.policy_net.load_state_dict(trained_dict)
+	# agent.target_net.load_state_dict(trained_dict)
+
+	agent.train(episodes=7_000, 
+			 	max_steps=60, 
 			 	savemodel=True,
 			 	plot=True, 
 			 	savefig=True,
-			 	jitter=None,
-				fine_tune=True, 
-			 	n_range=[4, 4], 
-			 	p_e=0.50, 
-			 	p_s=0.99,
-			 	tau=50,
-			 	cutoff=15)
+			 	jitter=200,
+				fine_tune=False, 
+			 	n_range=[4, 6], 
+			 	p_e=0.70, 
+			 	p_s=0.98,
+			 	tau=150,
+			 	cutoff=30, 
+				use_wandb=True)
 	

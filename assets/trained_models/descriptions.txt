@@ -1,14 +1,21 @@
 This is a short list of the trained models alongside some descriptions:
 
 
- nr |            Model Name             |  n  |  Pe  |  Ps  |  tau  | cutoff |  steps  | edges | FT |   Notes
+ nr |            Model Name             |  n  |  Pe  |  Ps  |  tau  | cutoff |  steps   | edg | FT | wandb |   Notes
 ==========================================================================================================================
- 01 | d(9-2)l4u6e1000m100p85a85tNcN     | 4-6 | 0.85 | 0.85 | 1000  |  None  | 100.000 |       |    | Patient 0. Learns Frontier method. Most apparent training curves, can generalize well to small P's and larger networks
- 02 | d(10-2)l4u6e5000m200p50a95t100c50 | 4-6 | 0.05 | 0.95 |  100  |   50   | 500.000 |       |    | Trained with tiny Pe, seems to solve n=4 but struggle with n=6
- 03 | d(11-2)l4u6e1000m200p35a95t100c40 | 4-6 | 0.35 | 0.95 |  100  |   40   | 200.000 |  Yes  |    | Low cutoff with edge features, seems to solve n=4 but struggle with n=6. Promising decision boundary
- 04 | d(11-2)l4u6e3000m150p45a95t100c50 | 4-6 | 0.45 | 0.95 |  100  |   50   | 450.000 |  Yes  |    | Pushing to learning cutoffs, bad decision boundary
- 05 | d(11-2)l4u5e2000m200p50a99t50c20  | 4-5 | 0.50 | 0.99 |   50  |   20   | 400.000 |  Yes  |    | Seems to learn the decision boundary better
- 06 | d(11-2)l4u6e1000m300p80a95t100c80 | 4-6 | 0.80 | 0.95 |  100  |   80   | 300.000 |  Yes  |    | Train plot good but validation kinda bad
- 07 | d(11-2)l4u4e4000m80p50a99t50c15   |  4  | 0.50 | 0.99 |   50  |   15   | 450.000 |  Yes  |    | Very interesting decision boundary! Rich PCA reflecting the low cutoff
- 08 | Rd(12-2)l4u4e4000m80p50a99t50c15  |  4  | 0.50 | 0.99 |   50  |   15   | 996.000 |  Yes  | Ye | Fine-tuned model, DB approaches ground truth
+ 01 | d(9-2)l4u6e1000m100p85a85tNcN     | 4-6 | 0.85 | 0.85 | 1000  |  None  | <100.000 |  0  |     |       | Patient 0. Learns Frontier method. Most apparent training curves, can generalize well to small P's and larger networks
+ 02 | d(10-2)l4u6e5000m200p50a95t100c50 | 4-6 | 0.05 | 0.95 |  100  |   50   | <500.000 |  0  |     |       | Trained with tiny Pe, seems to solve n=4 but struggle with n=6
+ 03 | d(11-2)l4u6e1000m200p35a95t100c40 | 4-6 | 0.35 | 0.95 |  100  |   40   | <200.000 |  1  |     |       | Low cutoff with edge features, seems to solve n=4 but struggle with n=6. Promising decision boundary
+ 04 | d(11-2)l4u6e3000m150p45a95t100c50 | 4-6 | 0.45 | 0.95 |  100  |   50   | <450.000 |  1  |     |       | Pushing to learning cutoffs, bad decision boundary
+ 05 | d(11-2)l4u5e2000m200p50a99t50c20  | 4-5 | 0.50 | 0.99 |   50  |   20   | <400.000 |  1  |     |       | Seems to learn the decision boundary better
+ 06 | d(11-2)l4u6e1000m300p80a95t100c80 | 4-6 | 0.80 | 0.95 |  100  |   80   | <300.000 |  1  |     |       | Train plot good but validation kinda bad
+ 07 | d(11-2)l4u4e4000m80p50a99t50c15   |  4  | 0.50 | 0.99 |   50  |   15   | <450.000 |  1  |     |       | Very interesting decision boundary! Rich PCA reflecting the low cutoff
+ 08 | Rd(12-2)l4u4e4000m80p50a99t50c15  |  4  | 0.50 | 0.99 |   50  |   15   | <996.000 |  1  | Yes |       | Fine-tuned model, DB approaches ground truth
+ 09 | d(13-2)l4u4e10000m30p70a99t15c8   |  4  | 0.70 | 0.99 |   15  |    8   |  156.436 |  2  |  No |  Yes  |
+ 10 | d(13-2)l4u4e25000m30p70a99t15c8   |  4  | 0.70 | 0.99 |   15  |    8   |  366.785 |  2  |  No |  Yes  | Better decision boundary
+
+
+
+
+
 

@@ -1,0 +1,12 @@
+{"time":"2026-02-13T14:26:44.434751+01:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-02-13T14:26:44.70296+01:00","level":"INFO","msg":"stream: created new stream","id":"lufr08mb"}
+{"time":"2026-02-13T14:26:44.703283+01:00","level":"INFO","msg":"handler: started","stream_id":"lufr08mb"}
+{"time":"2026-02-13T14:26:44.703589+01:00","level":"INFO","msg":"stream: started","id":"lufr08mb"}
+{"time":"2026-02-13T14:26:44.703847+01:00","level":"INFO","msg":"sender: started","stream_id":"lufr08mb"}
+{"time":"2026-02-13T14:26:44.703859+01:00","level":"INFO","msg":"writer: started","stream_id":"lufr08mb"}
+{"time":"2026-02-13T14:45:15.217371+01:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-13T14:45:15.75942+01:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-02-13T14:45:15.771444+01:00","level":"INFO","msg":"stream: closing","id":"lufr08mb"}
+{"time":"2026-02-13T14:45:15.771862+01:00","level":"INFO","msg":"handler: closed","stream_id":"lufr08mb"}
+{"time":"2026-02-13T14:45:15.77201+01:00","level":"INFO","msg":"sender: closed","stream_id":"lufr08mb"}
+{"time":"2026-02-13T14:45:15.772041+01:00","level":"INFO","msg":"stream: closed","id":"lufr08mb"}

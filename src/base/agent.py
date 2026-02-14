@@ -12,8 +12,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import re
+import time
+import wandb
+import math
 
-# Import provided modules
+# Import locals
 from base.repeaters import RepeaterNetwork
 from base.buffer import Buffer
 from base.model import GNN
@@ -26,7 +29,7 @@ class QRNAgent:
                  buffer_size=10000,
                  epsilon=1.0,
                  batch_size=64,
-                 target_update_freq=100):
+                 target_update_freq=1000):
         
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
@@ -51,52 +54,60 @@ class QRNAgent:
         # Buffer
         self.memory = Buffer(max_size=buffer_size)
 
-    def get_valid_actions_mask(self, n_nodes):
-        """Creates a boolean mask for the flattened action space of size 2 * n_nodes.
-        """
-        mask = torch.zeros(n_nodes * 2, dtype=torch.bool)
-        
-        for i in range(n_nodes):
-            # 1. Check Entangle (i, i+1) -> Valid for 0 to n-2
-            if i < n_nodes - 1:
-                mask[2*i] = True
+    def get_valid_actions_mask(self, n_nodes, state=None):
+            """Creates a boolean mask for valid actions. Handles single states and batches."""
+            if state is None:
+                mask = torch.zeros(n_nodes * 2, dtype=torch.bool, device=self.device)
+                mask[0:2*(n_nodes-1):2] = True # Entangle
+                mask[3:2*(n_nodes-1):2] = True # Swap
+                return mask
+
+            # Reshape node features: works for single state (1, N, 2) or batched states (B, N, 2)
+            num_graphs = state.x.shape[0] // n_nodes
+            x_reshaped = state.x.view(num_graphs, n_nodes, 2)
             
-            # 2. Check Swap at i -> Valid for 1 to n-2 (not endpoints)
-            if 0 < i < n_nodes - 1:
-                mask[2*i + 1] = True
-                
-        return mask.to(self.device)
+            mask = torch.zeros((num_graphs, n_nodes, 2), dtype=torch.bool, device=self.device)
+            
+            # 1. Entangle valid for nodes 0 to N-2
+            mask[:, :n_nodes-1, 0] = True
+            
+            # 2. Swap valid for nodes 1 to N-2 ONLY IF they have left AND right connections
+            has_left = x_reshaped[:, :, 0] > 0
+            has_right = x_reshaped[:, :, 1] > 0
+            mask[:, 1:n_nodes-1, 1] = has_left[:, 1:n_nodes-1] & has_right[:, 1:n_nodes-1]
+            
+            # Return 1D mask for select_action, 2D mask for train_step
+            if num_graphs == 1:
+                return mask.view(n_nodes * 2) 
+            return mask.view(num_graphs, n_nodes * 2)
 
     def select_action(self, state, n_nodes, training=True):
-        """Selects an action using Epsilon-Greedy strategy with dynamic masking.
-        """
-        mask = self.get_valid_actions_mask(n_nodes)
-        
-        if training and random.random() < self.epsilon:
-            # Random valid action
-            valid_indices = torch.nonzero(mask).squeeze()
-            if valid_indices.numel() == 0:
-                return 0 
+            # Pass the single state. Returns a 1D [2*n_nodes] mask
+            mask = self.get_valid_actions_mask(n_nodes, state)
             
-            if valid_indices.ndim == 0:
-                 return valid_indices.item()
-            return valid_indices[torch.randint(0, len(valid_indices), (1,))].item()
-        else:
             self.policy_net.eval()
             with torch.no_grad():
                 state = state.to(self.device)
-                q_values = self.policy_net(state) # Shape [N, 2]
+                q_values = self.policy_net(state)
+                q_flat = q_values.view(-1).clone() 
                 
-                # Flatten to [N*2]
-                q_flat = q_values.view(-1)
-                
-                # Apply mask (set invalid actions to negative infinity)
+                # Apply 1D mask
                 q_flat[~mask] = -float('inf')
-                
-                action_idx = q_flat.argmax().item()
+                max_q = q_flat.max().item()
             self.policy_net.train()
 
-        return action_idx
+            if training and random.random() < self.epsilon:
+                valid_indices = torch.nonzero(mask).squeeze()
+                if valid_indices.numel() == 0:
+                    action_idx = 0 
+                elif valid_indices.ndim == 0:
+                    action_idx = valid_indices.item()
+                else:
+                    action_idx = valid_indices[torch.randint(0, len(valid_indices), (1,))].item()
+            else:
+                action_idx = q_flat.argmax().item()
+
+            return action_idx
 
     def decode_action(self, action_idx):
         """Decodes flattened action index back to (node, operation)"""
@@ -127,6 +138,7 @@ class QRNAgent:
 
         if is_success:
             info['fidelity'] = current_fidelity
+            scaled_reward = success_reward * current_fidelity
             return success_reward, True, info
         
         return step_cost, False, info
@@ -161,8 +173,11 @@ class QRNAgent:
             next_q_values = self.target_net(next_state_batch).view(-1)
             next_q_reshaped = next_q_values.view(self.batch_size, -1)
             
-            mask = self.get_valid_actions_mask(n_nodes_current_batch)
-            next_q_reshaped[:, ~mask] = -float('inf')
+            # Pass next_state_batch. Returns a [batch_size, 2*n_nodes] mask
+            mask = self.get_valid_actions_mask(n_nodes_current_batch, next_state_batch)
+            
+            # Apply 2D mask directly (do not use [:, ~mask])
+            next_q_reshaped[~mask] = -float('inf')
             
             max_next_q = next_q_reshaped.max(dim=1)[0]
             target_q = reward_batch + (self.gamma * max_next_q)
@@ -189,30 +204,48 @@ class QRNAgent:
               p_e=1.0, 
               p_s=1.0,
               tau=1000,
-              cutoff=1000):
+              cutoff=1000,
+              use_wandb=True,
+              wandb_project = "QRN-RL"):
         
 
-        print(f"Starting training: {episodes} episodes (truncate={max_steps}) | N={n_range[0]}-{n_range[-1]} | P_ent={p_e} | P_swap={p_s} | T={tau} | c={cutoff}")
+        if use_wandb:
+            wandb.init(
+                project=wandb_project,
+                config={
+                    "lr": self.lr,
+                    "gamma": self.gamma,
+                    "batch_size": self.batch_size,
+                    "episodes": episodes,
+                    "n_nodes_range": n_range,
+                    "p_entangle": p_e,
+                    "p_swap": p_s,
+                    "tau": tau,
+                    "cutoff": cutoff,
+                    "fine_tune": fine_tune})
+            
+            wandb.watch(self.policy_net, log="all", log_freq=1000)
         
-        # Clear buffer to prevent batch shape mismatch
+        
+        model_name = f"d({datetime.now().day}-{datetime.now().month})l{n_range[0]}u{n_range[-1]}e{episodes}m{max_steps}p{f'{p_e:.2f}'[-2:]}a{f'{p_s:.2f}'[-2:]}t{tau}c{cutoff}"
+        model_path = f'assets/trained_models/{model_name}/'
+
+
         self.memory.clear() 
         
         scores = []
         pbar = tqdm(range(episodes))
         n_nodes = random.choice(n_range)
-        eps_init = 1.0
-        eps_fin = 0.05
+        eps_init = 1.0 if not fine_tune else 0.2
+        eps_fin = 0.05 if not fine_tune else 0.01
 
-        if fine_tune:
-            eps_init=0.2
-            eps_fin=0.01
-            self.lr = 0.0002
-            print("Fine tuning start. Warming up buffer...")
+        if fine_tune: #load buffer for fine tuning
+            self.optimizer = optim.Adam(self.policy_net.parameters(), lr=5e-5, eps=1e-4)
             env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
             state = env.tensorState()
             for _ in range(self.batch_size * 5):
                 action = self.select_action(state, env.n, training=True)
-                r, done, _ = self.step_environment(env, action)
+                r, done, info = self.step_environment(env, action)
                 next_state = env.tensorState()
                 self.memory.add(state, action, r, next_state, None)
                 state = next_state
@@ -220,58 +253,98 @@ class QRNAgent:
                     env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
                     state = env.tensorState()
         
-        for e in pbar:
-            env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
-            state = env.tensorState()
-            score = 0
-
-            if jitter and not e%jitter:
-                new_n = np.random.choice(n_range)
-                if new_n != n_nodes: #clear the buffer to avoid shape mismatch
-                    self.memory.clear()
-                new_env = RepeaterNetwork(n=new_n, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
-                env=new_env
-                n_nodes = new_n
+        total_steps = 0
+        try:
+            for e in pbar:
+                start_time = time.time()
+                env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
                 state = env.tensorState()
+                score = 0
+                steps, success, swaps, entangles, q_value_list = 0, 0, 0,0, []
 
-            for _ in range(max_steps):
-                action_idx = self.select_action(state, n_nodes, training=True)
-                
-                reward, done, _ = self.step_environment(env, action_idx)
-                next_state = env.tensorState()
-                
-                self.memory.add(state=state, 
-                                action=action_idx, 
-                                reward=reward, 
-                                next_state=next_state,
-                                next_mask=None)
-                
-                state = next_state
-                score += reward
-                
-                self.train_step(n_nodes_current_batch=n_nodes)
-                
-                if done:
-                    break
-            decay = (eps_init-eps_fin) if not fine_tune else 2*(eps_init-eps_fin) #decay twice as fast for FT
-            self.epsilon = max(eps_fin, eps_init - (e / episodes) * decay)
-            scores.append(score)
-            pbar.set_description(f"Ep {e+1} | Score: {score:.1f} | Eps: {self.epsilon:.2f}")
+                if jitter and not e%jitter:
+                    new_n = np.random.choice(n_range)
+                    if new_n != n_nodes: #clear the buffer to avoid shape mismatch
+                        self.memory.clear()
+                    new_env = RepeaterNetwork(n=new_n, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+                    env=new_env
+                    n_nodes = new_n
+                    state = env.tensorState()
 
-        model_name = f"d({datetime.now().day}-{datetime.now().month})l{n_range[0]}u{n_range[-1]}e{episodes}m{max_steps}p{f'{p_e:.2f}'[-2:]}a{f'{p_s:.2f}'[-2:]}t{tau}c{cutoff}"
+                for _ in range(max_steps):
+                    action_idx = self.select_action(state, n_nodes, training=True)
+                    if action_idx % 2 == 0:
+                        entangles += 1
+                    else:
+                        swaps +=1
+                    
+                    reward, done, info = self.step_environment(env, action_idx)
+                    next_state = env.tensorState()
+                    
+                    self.memory.add(state=state, 
+                                    action=action_idx, 
+                                    reward=reward, 
+                                    next_state=next_state,
+                                    next_mask=None)
+                    
+                    state = next_state
+                    score += reward
+                    steps += 1
+                    
+                    self.train_step(n_nodes_current_batch=n_nodes)
+                    
+                    if done:
+                        if info.get('fidelity', 0) > 0:
+                            success = steps
+                        break
+
+                total_steps += steps
+                if not fine_tune:
+                    self.epsilon = eps_fin + 0.5 * (eps_init - eps_fin) * (1 + math.cos(math.pi * e / episodes))
+                elif fine_tune:
+                    self.epsilon = 0.2 * np.exp(-10 * e / episodes)
+                scores.append(score)
+                pbar.set_description(f"Ep {e+1} | Score: {score:.1f} | Eps: {self.epsilon:.2f}")
+
+                episode_time = time.time() - start_time
+                steps_per_sec = steps / episode_time if episode_time > 0 else 0
+                action_total = swaps + entangles
+                swap_ratio = swaps / action_total if action_total > 0 else 0
+
+                if use_wandb:
+                    wandb.log({
+                        "Performance/Reward": score,
+                        "Performance/Success_Rate": success, # W&B can smooth this for you
+                        "Performance/Terminal_Fidelity": info.get('fidelity', 0),
+                        "Performance/Episode_Length": steps,
+                        "Policy/Swap_Ratio": swap_ratio,
+                        "System/total_steps": total_steps,
+                        "System/Steps_per_Second": steps_per_sec,
+                        "System/Epsilon": self.epsilon})       
+                
+        except KeyboardInterrupt:
+            print("\n\nTraining Interrupted by User (Ctrl+C)!")
+            print("Attempting to save current model state...")
+
+       
         if savemodel:
-            os.makedirs(f'assets/trained_models/{model_name}/', exist_ok=True)
-            torch.save(self.policy_net.state_dict(), f'assets/trained_models/{model_name}/{model_name}.pth')
+            os.makedirs(model_path, exist_ok=True)
+            torch.save(self.policy_net.state_dict(), f'{model_path}/{model_name}.pth')
 
         if plot:
             plt.plot(scores,ls='-', label='Average batch-reward')
             plt.title(f'{"Training" if not fine_tune else "Fine-tuning"} metrics over {episodes} episodes')
             plt.xlabel('Episode')
-            plt.ylabel(f'Reward for $n, p_E, p_S, T, c$= {n_range[0]}-{n_range[-1]}, {p_e}, {p_s}, {tau}, {cutoff}')
+            n_label = f'{n_range[0]}-{n_range[-1]}' if jitter else n_range[0]
+            label = f'Reward for {r'$n, p_E, p_S, T, c$'}= {n_label}, {p_e}, {p_s}, {tau}, {cutoff}'
+            plt.ylabel(label)
             plt.legend()
             os.makedirs(f'assets/trained_models/{model_name}/', exist_ok=True)
             plt.savefig(f'assets/trained_models/{model_name}/train.png') if savefig else None
             plt.show()
+
+        if use_wandb:
+            wandb.finish()
 
     def validate(self, 
                     dict_dir=None,

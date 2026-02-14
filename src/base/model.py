@@ -21,7 +21,7 @@ class GNN(nn.Module):
                  output_dim=2):
         super().__init__()
         self.encoder = nn.Sequential(
-           GATv2Conv(node_dim, embedding_dim, heads=num_heads, edge_dim=1),
+           GATv2Conv(node_dim, embedding_dim, heads=num_heads, edge_dim=2),
           #  GATConv(embedding_dim*num_heads, embedding_dim, heads=num_heads, edge_dim=1),
         )
         self.decoder = nn.Sequential(
