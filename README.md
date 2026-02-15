@@ -21,44 +21,34 @@ This is the repository for studying entanglement distribution in quantum **repea
 
 ## About the project
 
-<div style="border:2px solid blue; padding:10px">
-The goal of this project is to examine how Reinforcement Learning agents can learn efficient policies for enanglement distribution in 1D repeater chains. The aim is that given a set of physical parameters $C_n$ an agent can establish a policy $\pi_n$ through the mapping:
+
+The goal of this project is to examine how Reinforcement Learning (RL) agents can learn efficient policies for enanglement distribution in 1D repeater chains. The aim is that given a set of physical parameters $C_n$ an agent can establish a policy $\pi_n$ through the mapping:
 
 $$ 
-\pi(C_n; NN) = \pi
+\pi(C_N; \text{NN}) = \pi
 $$
 
-where, $C_N = (n, p_e, p_s, \tau)$ and $NN$ encodes the neural network parameters. Afterwards, this policy is evaluated on a different set of physical parameters $C_{n'}$ and one can find an agent that can learn optimal policies that can *transfer to systems of different sizes*.
-</div>
+
+$C_N = (N, p_e, p_s, \tau)$ and $NN$ encodes the neural network parameters.  Afterwards, this policy is evaluated on a different set of physical parameters $C_{n'}$. We use Graph Neural networks (GNN) with the hope that the learned policies are size independent i.e for $N\neq M$
+
+$$
+\pi(C_N; G\text{NN}) = \pi(C_M; G\text{NN})
+$$
 
 ### Training
+During training the agent is tested using a Deep Q-Learning scheme. Training is done on some $n$, or a range of $n$ via the `jitter=True` argument.
 
-The RL loop equipped with a GNN as the environmental model is able to find strategies in order to achieve end-to-end entanglement in quantum networks of fixed size. It achieves high cummulative reward with relativelly few training steps:
-
-![Alt text](./assets/display/train_disp.png)
-
-This behaviour is pretty robust to the random initialization of the networks weights, indicative of a good quality of the learning algorithm `AgentGNN().train()` in the [agent](./src/agent.py) file:
-
-![Alt text](./assets/display/train_stats_disp.png)
-
-The MDP includes a base reward that biases towards a high rate of end-to-end (e-e) entanglement:
-
-$$
-r_\text{base} = \begin{cases}
-             -0.1  & \text{if not } \text{e-e} \\
-             1  & \text{if } \text{e-e}
-       \end{cases}
-$$
 
 ### Validation
 
-The validation performance of the network indicates that it can easily outperform the [swap-asap](https://quantum-journal.org/papers/q-2025-05-15-1744/) strategy (swap-asap is the optimal strategy in the limit of deterministic swapping).
+The agent is tested agains known strategies, including:
 
-![Alt text](./assets/display/test_stats_disp.png)
+- Farthest Neighbour SwapASAP
+- Strongest Neighbour SwapASAP
+- Random SwapASAP
+- Stochastic actions
 
-As previous research has suggested, the learning agent performs best (compared to the swap-asap strategy) in the $C_n$ regime where $p_e \ll 1$ and $p_s \ll 1$. This is verified here by the means of a relative performance heatmap:
 
-![Alt text](./assets/display/heatmap_disp.png)
 
 > [!NOTE]
 >Additionally, there is a simple tabular puzzle game that translates the system into a more interpretable version that can also be played by humans [Qonnect](https://github.com/chrishalkias/qonnect)!
@@ -73,51 +63,96 @@ The project consists of three main components, seperated in three distinct objec
 - [The Reinforcement Learning agent](#deep-q-learning-agent)
 - [The neural network model]()
 
-![high-level-schematic](/assets/display/project.svg)
-
-
-The repository's main files are located into the `src` folder. The `assets` folder consists of all of the programs output including plots and model files. The full code structure can be found below:
-
-```tree
-.
-
-├── assets
-│   ├── display
-│   │   └── ... [README plots]
-│   └── ... [generated plots]
-├── src
-│   ├── agent.py
-│   ├── main.py
-│   ├── model.py
-│   ├── notebook.ipynb
-│   ├── repeaters.py
-│   ├── test.py
-│   └── stats.py
-├── .gitignore
-├── LICENSE
-├── README.md
-└── requirements.txt
-```
-
 ### Quantum repeater network
 
-The `src/repeaters.py` module contains the base class for the underlying quantum simulator. This is a computational abstraction of the physical many-body system that is simulated.
+The `src/base/repeaters.py` module contains the base class for the underlying quantum simulator. This is a computational abstraction of the physical many-body system that is simulated. A simple intialization and opearation of the system is as follows:
+
+```python
+from base.repeaters import RepeaterNetwork
+net = RepeaterNetwork(n=3) # <-- Defaults to perfect operations
+net.entangle(edge=(0,1)) # <-- Entangles repeater (node) 1 with repeater 2
+net.entangle(edge=(1,2))
+net.swapAT(node=1) # <-- Since the (0,1) and (1,2) connections exist this results in (0,1) connection
+net.checkEndtoEnd()
+```
+
+The state of the system is stored in a tensorised way using a `pytorch_geometric.Data` object. Each state has the following attributes:
+
+```python
+state = RepeaterNetwork().tensorState()
+nodes = state.x #<-- node features (one hot connections)
+edges = state.edge_attr # <-- edge features (entanglement fidelities)
+adj = state.edge_index # <-- The adjecency matrix
+```
+The module is called, and acted upon by the Agent class.
 
 ### Deep Q-Learning Agent
 
-The `src/agent.py` module acts as the agent that performs actions on the environment (the `RepeaterNetwork` class). Here, the training and validation of the agent are treated as methods of the `AgentGNN` class.
+The `src/agent.py` module acts as the agent that performs actions on the environment (the `RepeaterNetwork` class). Here, the training and validation of the agent are treated as methods of the `AgentGNN` class. The training loop amounts to calling the associated method:
+
+```python
+from base.agent import QRNAgent
+agent = QRNAgent()
+agent.train(episodes=1000, max_steps=50)
+```
+This trains on a defaul variables. A sample dict can be passed with the desired kwargs
+
+```python
+train_args = {
+	'episodes': 10_000,
+	'max_steps': 50,
+	'savemodel': True,
+	'plot': True,
+	'jitter': 500,
+	'fine_tune': False,
+	'n_range': [4,6],
+	'p_e': 0.85,
+	'p_s': 0.95,
+	'tau': 50,
+	'cutoff': 40,
+	'use_wandb': True, 
+	}
+
+  agent.train(**train_args)
+```
+
+
+The agent uses
+
+The same logic follow for the validation of the model but now an additional `dict_dir` is required to load the trained dictionary.
+
+```python
+agent.validate(dict_dir='<the trained dict>', **val_args)
+```
+
+By default, the trained dictionary is saved under `./assets/trained_models/model_name/model_name.pth`. All subsequent plots (training, validation, testing) that concern this model are also saved under tha same directory.
+
+The agent, utilizes a GNN model for the target and policy networks. This is what offers its generalization capacities. 
 
 ### Graph attention network
 
-The graph attention network is a small class with a simple GNN architecture to be used to store the environment model of the RL agent.
+The graph attention network is a small class with a simple GNN architecture to be used to store the environment model of the RL agent. By default the model is comprised of one `GATv2Conv` layer and two fully connected layers
+
+```python
+GATv2Conv(node_dim=2, 
+          embedding_dim=16, 
+          heads=2, 
+          edge_dim=2)
+```
+
 
 
 ## Installation
   You can install the code by cloning the repository:
+
+```bash
+git clone https://github.com/chrishalkias/QRN-RL-GNN
 ```
 
-git clone https://github.com/chrishalkias/QRN-RL-GNN
+and installing the required packages
 
+```bash
+pip install -r requirements.txt
 ```
 
 ## Additional Information
