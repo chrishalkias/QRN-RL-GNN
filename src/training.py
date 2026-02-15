@@ -3,6 +3,20 @@ import numpy
 import torch
 numpy.set_printoptions(legacy='1.25')
 
+args = {
+	'episodes': 1_000,
+	'max_steps': 50,
+	'savemodel': True,
+	'plot': True,
+	'jitter': 0,
+	'fine_tune': False,
+	'n_range': [4,6],
+	'p_e': 0.85,
+	'p_s': 0.95,
+	'tau': 200,
+	'cutoff': 100,
+	'use_wandb': False, 
+	}
 
 if __name__ == '__main__':
 
@@ -14,17 +28,5 @@ if __name__ == '__main__':
 	# agent.policy_net.load_state_dict(trained_dict)
 	# agent.target_net.load_state_dict(trained_dict)
 
-	agent.train(episodes=4_100, 
-			 	max_steps=60, 
-			 	savemodel=True,
-			 	plot=True, 
-			 	savefig=True,
-			 	jitter=None,
-				fine_tune=False, 
-			 	n_range=[4, 6], 
-			 	p_e=0.50, 
-			 	p_s=0.98,
-			 	tau=150,
-			 	cutoff=50, 
-				use_wandb=False)
+	agent.train(**args)
 	

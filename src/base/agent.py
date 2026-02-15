@@ -1,22 +1,19 @@
-import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import random
-from torch_geometric.data import Batch
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-from datetime import datetime
-import os
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from torch_geometric.data import Data
 import re
 import time
 import wandb
 import math
-
-# Import locals
+import random
+import os
+import numpy as np
+import torch.nn as nn
+from tqdm import tqdm
+import torch.optim as optim
+from datetime import datetime
+import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from torch_geometric.data import Data
 from base.repeaters import RepeaterNetwork
 from base.buffer import Buffer
 from base.model import GNN
@@ -43,8 +40,8 @@ class QRNAgent:
 
         # Models
         # GNN is graph-size invariant
-        self.policy_net = GNN(node_dim=3, output_dim=2).to(self.device)
-        self.target_net = GNN(node_dim=3, output_dim=2).to(self.device)
+        self.policy_net = GNN(node_dim=2, output_dim=2).to(self.device)
+        self.target_net = GNN(node_dim=2, output_dim=2).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
@@ -54,17 +51,34 @@ class QRNAgent:
         # Buffer
         self.memory = Buffer(max_size=buffer_size)
 
-    def get_valid_actions_mask(self, n_nodes, state=None):
-            """Creates a boolean mask for valid actions. Handles single states and batches."""
+    def get_valid_actions_mask(self, 
+                               n_nodes:int, 
+                               state:Data = None
+                               ) -> torch.tensor:
+            
+            """
+            ## State -> mask
+            ### Description:
+                Creates a boolean mask for valid actions. Handles single states and batches.
+                Masks based on the following criterion:
+                ```
+                state.x.view(num_graphs, n_nodes, 3)[:, :, 0] > 0
+                &&
+                state.x.view(num_graphs, n_nodes, 3)[:, :, 0] > 0
+            ```
+
+            Returns:
+                mask (tensor) filled with bool
+            """
             if state is None:
                 mask = torch.zeros(n_nodes * 2, dtype=torch.bool, device=self.device)
                 mask[0:2*(n_nodes-1):2] = True # Entangle
                 mask[3:2*(n_nodes-1):2] = True # Swap
                 return mask
-
+            
             # Reshape node features: works for single state (1, N, 2) or batched states (B, N, 2)
             num_graphs = state.x.shape[0] // n_nodes
-            x_reshaped = state.x.view(num_graphs, n_nodes, 3) #3=num node features
+            x_reshaped = state.x.view(num_graphs, n_nodes, 2) #3=num node features
             
             mask = torch.zeros((num_graphs, n_nodes, 2), dtype=torch.bool, device=self.device)
             
@@ -81,7 +95,20 @@ class QRNAgent:
                 return mask.view(n_nodes * 2) 
             return mask.view(num_graphs, n_nodes * 2)
 
-    def select_action(self, state, n_nodes, training=True):
+    def select_action(self, 
+                      state:Data, 
+                      n_nodes:int, 
+                      training:bool = True
+                      ) -> int:
+            """
+            ## Q-value -> Action_idx
+            ### Description:
+                Selects an action based on the q-values from `self.policy_net()`.
+                Applies a mask to illegal actions via `self.get_valid_actions_mask()`
+
+            ### Returns:
+                The integer-encoded action via the `tensor.argmax()` function
+            """
             # Pass the single state. Returns a 1D [2*n_nodes] mask
             mask = self.get_valid_actions_mask(n_nodes, state)
             
@@ -109,21 +136,44 @@ class QRNAgent:
 
             return action_idx
 
-    def decode_action(self, action_idx):
-        """Decodes flattened action index back to (node, operation)"""
+    def _decode_action(self, 
+                      action_idx: int
+                      )-> tuple:
+        """
+        ## Action_idx -> (node, bool)
+
+        ###Decription:
+            Decodes flattened action index back to (node, operation)
+        """
         node = action_idx // 2
         op_type = action_idx % 2 # 0 = Entangle, 1 = Swap
         return node, op_type
 
-    def step_environment(self, env, action_idx):
-        """Executes the action on the environment.
-        Returns: reward, done, info
-        """
-        node, op_type = self.decode_action(action_idx)
-        
+
+    def reward(self):
+        """Defines the succsess reward and time penalty"""
         step_cost = -1
         success_reward = 100
         info = {'fidelity': 0.0}
+        return step_cost, success_reward, info
+
+    def step_environment(self, 
+                         env:RepeaterNetwork, 
+                         action_idx:int
+                         ) -> tuple: 
+        """
+        ## Action -> Reward
+        ### Description
+            Executes the (integer) action on the environment.
+
+            either `env.entangle(edge=(node, node+1))`
+            or `env.swapAT(node)`.
+
+        ### Returns: 
+            reward (int), done (bool), info (dict)
+        """
+        node, op_type = self._decode_action(action_idx)
+        step_cost, success_reward, info = self.reward()
         
 
         # Execute Action
@@ -137,14 +187,24 @@ class QRNAgent:
         is_success = env.endToEndCheck(timeToWait=0)
 
         if is_success:
-            info['fidelity'] = current_fidelity
-            scaled_reward = success_reward * current_fidelity
             return success_reward, True, info
         
         return step_cost, False, info
 
-    def _fast_batch(self, data_list, n_nodes):
-            """Bypasses PyG batching overhead for uniform graph sizes."""
+    def _fast_batch(self, 
+                    data_list:list, 
+                    n_nodes:int
+                    ) -> Data:
+            """
+            ## State list -> Data batch
+
+            ### Description:
+                Batches Data states acquired from the `Buffer()`
+                Bypasses PyG batching overhead for uniform graph sizes.
+                
+            ### Returns:
+                The batched states (PyG.Data)
+            """
             # Concat node and edge features directly
             x = torch.cat([d.x for d in data_list], dim=0).to(self.device)
             edge_attr = torch.cat([d.edge_attr for d in data_list], dim=0).to(self.device)
@@ -157,14 +217,30 @@ class QRNAgent:
                 offset += n_nodes
                 
             edge_index = torch.cat(edge_indices, dim=1).to(self.device)
-            
-            return Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+            batch = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
 
+            return batch
 
-    def train_step(self, n_nodes_current_batch):
+    def train_step(self, 
+                   n_nodes_current_batch:int
+                   )-> None:
+        """
+
+        ### Description:
+        Perform a single training step. Recipe:
+
+            1. Sample from the Buffer and create batches
+            2. Get the model's Q-values
+            3. Offset batch to match Q-values
+            4. Compute next Q-values, mask them and compute target Q
+            5. Perform a backwards pass and step the optimizer
+            6. Copy the params to target net (if step condition matches)
+
+        """
         if self.memory.size() < self.batch_size:
             return
 
+        # --- Batch creation ---
         batch = self.memory.sample(self.batch_size)
         
         state_batch_list = [x['s'] for x in batch]
@@ -173,8 +249,6 @@ class QRNAgent:
         state_batch = self._fast_batch(state_batch_list, n_nodes_current_batch)
         next_state_batch = self._fast_batch(next_state_batch_list, n_nodes_current_batch)
 
-
-        
         action_batch = torch.tensor([x['a'] for x in batch], device=self.device)
         reward_batch = torch.tensor([x['r'] for x in batch], device=self.device).float()
         
@@ -195,14 +269,13 @@ class QRNAgent:
             # Pass next_state_batch. Returns a [batch_size, 2*n_nodes] mask
             mask = self.get_valid_actions_mask(n_nodes_current_batch, next_state_batch)
             
-            # Apply 2D mask directly (do not use [:, ~mask])
+            # Apply 2D mask
             next_q_reshaped[~mask] = -float('inf')
             
             max_next_q = next_q_reshaped.max(dim=1)[0]
             target_q = reward_batch + (self.gamma * max_next_q)
 
         loss = self.loss_fn(current_q, target_q)
-
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -211,22 +284,71 @@ class QRNAgent:
         if self.learn_step_counter % self.target_update_freq == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
+
+
     def train(self, 
-              episodes=500, 
-              max_steps=50, 
-              savemodel=False, 
-              plot=False, 
-              savefig=False, 
-              jitter=100,
-              n_range=[4,6],
-              fine_tune=False,
-              p_e=1.0, 
-              p_s=1.0,
-              tau=1000,
-              cutoff=1000,
-              use_wandb=True,
-              wandb_project = "QRN-RL"):
+              episodes:int=500, 
+              max_steps:int=50, 
+              savemodel:bool=False, 
+              plot:bool=False, 
+              savefig:bool=False, 
+              jitter:int=100,
+              n_range:list=[4,6],
+              fine_tune:bool=False,
+              p_e:float=1.0, 
+              p_s:float=1.0,
+              tau:int=1000,
+              cutoff:int=1000,
+              use_wandb:bool=True,
+              wandb_project:str = "QRN-RL"
+              ) -> None:
         
+        """
+        ## The main trainning loop
+
+        Trains the agent. Performs the following algorithm
+
+        ### Parameters
+        
+        #### episodes
+            The maximum number of episodes to train for
+            generally somewhere in the range of 1000-50.000.
+        #### max_steps 
+            The maximum number of steps until episode termination.
+            The agent is givem this amount of possible operations 
+            until the episode terminates and the systems restarts.
+        #### savemodel 
+            Save the model .pth file to be used for validation and diagnostics
+        #### plot
+            Plot the reward curves for training (redundand if using wandb)
+        #### savefig
+            Save the figure produced by plot
+        #### jitter
+            If non-zero, specifies the number of episodes for which the system
+            is reinitialized to a new value of n (chosen at random from n_rang).
+            If the new_n is different from the old, the Buffer is reinitialized.
+        #### n_range
+            The range for which to choose n's from. If `jitter=0` then the first
+            element of the list is always passed as the n to be trained on.
+        #### fine_tune
+            If true, the parameters of the agent are changed so that the training run
+            counts as fine tuning. `self.lr` is lower, `self.epsilon` starts from a
+            smaller value and the agent expects a trained dict to be uploaded into *both*
+            the `self.policy_net` and `self.value_net`.
+        #### p_e 
+            The entanglement probability to be trained on (avg if `homogenous=False`). 
+        #### p_s
+            The entanglement probability to be trained on (avg if `homogenous=False`).
+        #### tau
+            The tau parameter to be trained on (avg if `homogenous=False`)
+        #### cutoff 
+            The cutoff to be trained on (avg if `homogenous=False`)
+        #### use_wandb
+            If true, pushes the run to wandb to monitor the training performance, model
+            weights and compare with other training runs.
+        #### wandb_project
+            The name of the wandb project
+        """
 
         if use_wandb:
             wandb.init(
@@ -258,9 +380,18 @@ class QRNAgent:
         eps_init = 1.0 if not fine_tune else 0.2
         eps_fin = 0.05 if not fine_tune else 0.01
 
+        # -- Helper: Initialize the RepeaterNetwork
+        def _init_env(n_nodes:int) -> RepeaterNetwork:
+            """(re-)initializes the RepeaterNetwork environment with a different n"""
+            return RepeaterNetwork(n=n_nodes, 
+                                  p_entangle=p_e, 
+                                  p_swap=p_s, 
+                                  tau=tau, 
+                                  cutoff=cutoff)
+
         if fine_tune: #load buffer for fine tuning
             self.optimizer = optim.Adam(self.policy_net.parameters(), lr=5e-5, eps=1e-4)
-            env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+            env = _init_env(n_nodes=n_nodes)
             state = env.tensorState()
             for _ in range(self.batch_size * 5):
                 action = self.select_action(state, env.n, training=True)
@@ -269,14 +400,14 @@ class QRNAgent:
                 self.memory.add(state, action, r, next_state, None)
                 state = next_state
                 if done: 
-                    env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+                    env = _init_env(n_nodes=n_nodes)
                     state = env.tensorState()
         
         total_steps = 0
         try:
             for e in pbar:
                 start_time = time.time()
-                env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+                env = _init_env(n_nodes=n_nodes)
                 state = env.tensorState()
                 score = 0
                 steps, success, swaps, entangles, q_value_list = 0, 0, 0,0, []
@@ -285,7 +416,7 @@ class QRNAgent:
                     new_n = np.random.choice(n_range)
                     if new_n != n_nodes: #clear the buffer to avoid shape mismatch
                         self.memory.clear()
-                    new_env = RepeaterNetwork(n=new_n, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+                    new_env = _init_env(n=new_n)
                     env=new_env
                     n_nodes = new_n
                     state = env.tensorState()
@@ -377,6 +508,37 @@ class QRNAgent:
                     logging=True,
                     plot_actions=True,
                     savefig=True):
+            """
+        ## The main testing loop
+            The agent is tested for its performance (avg steps) and (avg fidelity) on a 
+            quantum repeater network from the `RepeaterNetwork` class
+
+        ### Args:
+        #### dict_fir
+            The directory of the trained model dict to be used for validation.
+        #### n_episodes 
+            The number of testing episodes. It terminates if either the end-to-end
+            state is reached or if `max_steps` is reached.
+        #### n_nodes
+            The number of testing nodes. This can be different than the number of 
+            nodes used in the training loop.
+        #### p_e 
+            The entanglement probability to be tested on (avg if `homogenous=False`). 
+        #### p_s
+            The entanglement probability to be tested on (avg if `homogenous=False`).
+        #### tau
+            The tau parameter to be trained on (avg if `homogenous=False`).
+        #### cutoff 
+            The cutoff to be trained on (avg if `homogenous=False`).
+        #### loging
+            If true, logs the results of the validation (avg/std steps, avg/std fidelity).
+        #### plot_actions
+            If true plots the actions of the **first episode** of the validation run. This
+            is used to interpret the agents actions. Colored blocks are utilized to differentiate
+            the actions of the agent (and the strategies) used.
+        #### savefig
+            Only used in conjunction with `plot_actions=True`. Saves the resulting plot
+        """
             
 
             def log(msg):
@@ -385,6 +547,15 @@ class QRNAgent:
                 if logging:
                     with open("./assets/validation_results/validation_results.txt", "a") as f:
                         f.write(msg + "\n")
+
+            # --- Helper: Initialize RepeaterNetwork
+
+            def _init_env(n) -> RepeaterNetwork:
+                return RepeaterNetwork(n=n_nodes, 
+                                       p_entangle=p_e, 
+                                       p_swap=p_s, 
+                                       tau=tau, 
+                                       cutoff=cutoff)
             
             # --- Helper: Action Parser for Plotting ---
             def parse_action_label(action_raw, is_agent=False):
@@ -410,7 +581,6 @@ class QRNAgent:
                     return "None"
 
             # --- Helper: Plotting Function ---
-            # --- Helper: Plotting Function (MODIFIED) ---
             def plot_action_timeline(action_history):
                 strategies = list(action_history.keys())
                 
@@ -525,7 +695,7 @@ class QRNAgent:
             self.epsilon = 0.0 # Force greedy
             
             for i in range(n_episodes):
-                env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+                env = _init_env(n=n_nodes)
                 steps = 0
                 done = False
                 
@@ -562,14 +732,14 @@ class QRNAgent:
             for name, method_name in pbar:
                 pbar.set_description(f"Agent VS {name}")
                 for i in range(n_episodes):
-                    env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+                    env = _init_env(n=n_nodes)
                     heuristic = Strategies(env) 
                     steps = 0
                     done = False
                     
                     while not done and steps < max_steps:
                         if method_name == 'Frontier':
-                            action_str = heuristic.create_and_propagate()
+                            action_str = heuristic.frontier()
                         elif method_name == 'swap_asap':
                             action_str = heuristic.swap_asap()
                         elif method_name == 'FN_swap':

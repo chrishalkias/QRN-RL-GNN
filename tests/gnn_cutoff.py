@@ -63,8 +63,8 @@ def plot_gnn_cutoff(model_path,
             env = RepeaterNetwork(n=n_nodes)
             
             # Manually set the specific link qualities we want to test
-            env.setLink((1, 4), f_left, linkType=1)
-            env.setLink((4, env.n -1), f_right, linkType=1)
+            env.setLink((0, 1), f_left, linkType=1)
+            env.setLink((1, env.n -1), f_right, linkType=1)
             
             # Get state and infer
             data = env.tensorState().to(device)
