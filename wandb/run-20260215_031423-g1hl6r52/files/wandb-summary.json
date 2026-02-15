@@ -1,0 +1,1 @@
+{"_step":6873,"Performance/Reward":-50,"_runtime":1040,"Performance/Success_Rate":0,"_timestamp":1.771122698368494e+09,"Performance/Terminal_Fidelity":0,"System/Epsilon":0.5871972011993981,"System/total_steps":205750,"Performance/Episode_Length":50,"System/Steps_per_Second":226.494354791677,"_wandb":{"runtime":1040},"Policy/Swap_Ratio":0.12}

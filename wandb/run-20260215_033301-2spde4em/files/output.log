@@ -1,0 +1,7 @@
+  0%|                                                                                                                                                    | 0/15000 [00:00<?, ?it/s]/Users/chrischalkias/GitHub/QRN-RL-GNN/src/base/repeaters.py:207: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/torch/csrc/utils/tensor_new.cpp:256.)
+  node_attr[:, 3], node_attr[:, 4] = torch.tensor([self.pe_list, self.ps_list]).float()
+Ep 313 | Score: 86.2 | Eps: 1.00:   2%|██▏                                                                                                     | 313/15000 [00:21<16:28, 14.86it/s]
+
+
+Training Interrupted by User (Ctrl+C)!
+Attempting to save current model state...

@@ -1,0 +1,75 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            agapnjjn1n90rbegaggilzxy9i90gk6s:
+                apple:
+                    ecpuCores: 4
+                    gpuCores: 8
+                    memoryGb: 8
+                    name: Apple M3
+                    pcpuCores: 4
+                    ramTotalBytes: "8589934592"
+                    swapTotalBytes: "5368709120"
+                codePath: src/training.py
+                codePathLocal: src/training.py
+                cpu_count: 8
+                cpu_count_logical: 8
+                disk:
+                    /:
+                        total: "245107195904"
+                        used: "145959849984"
+                email: chrishalkiaskali@gmail.com
+                executable: /Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/bin/python
+                git:
+                    commit: c5e341e3fa0ae7fbdddf32d736ed8a9e4d819eb4
+                    remote: https://github.com/chrishalkias/QRN-RL-GNN
+                host: Chriss-MacBook-Air.local
+                memory:
+                    total: "8589934592"
+                os: macOS-15.7.3-arm64-arm-64bit-Mach-O
+                program: /Users/chrischalkias/GitHub/QRN-RL-GNN/src/training.py
+                python: CPython 3.13.2
+                root: /Users/chrischalkias/GitHub/QRN-RL-GNN
+                startedAt: "2026-02-15T02:01:45.065666Z"
+                writerId: agapnjjn1n90rbegaggilzxy9i90gk6s
+        m: []
+        python_version: 3.13.2
+        t:
+            "1":
+                - 1
+                - 77
+            "2":
+                - 1
+                - 77
+            "3":
+                - 1
+                - 16
+            "4": 3.13.2
+            "5": 0.25.0
+            "12": 0.25.0
+            "13": darwin-arm64
+batch_size:
+    value: 64
+cutoff:
+    value: 10
+episodes:
+    value: 15000
+fine_tune:
+    value: false
+gamma:
+    value: 0.99
+homogenous:
+    value: false
+lr:
+    value: 0.001
+n_nodes_range:
+    value:
+        - 4
+        - 6
+p_entangle:
+    value: 0.85
+p_swap:
+    value: 0.95
+tau:
+    value: 20

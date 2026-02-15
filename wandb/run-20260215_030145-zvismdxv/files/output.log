@@ -1,0 +1,38 @@
+  0%|                                                                                                                     | 0/15000 [00:00<?, ?it/s]/Users/chrischalkias/GitHub/QRN-RL-GNN/src/base/repeaters.py:206: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/torch/csrc/utils/tensor_new.cpp:256.)
+  node_attr[:, 3], node_attr[:, 4] = torch.tensor([self.pe_list, self.ps_list]).float()
+  0%|                                                                                                                     | 0/15000 [00:00<?, ?it/s]
+Backend macosx is interactive backend. Turning interactive mode on.
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/runpy.py", line 198, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+                     "__main__", mod_spec)
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/runpy.py", line 88, in _run_code
+    exec(code, run_globals)
+    ~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/adapter/../../debugpy/launcher/../../debugpy/__main__.py", line 71, in <module>
+    cli.main()
+    ~~~~~~~~^^
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/adapter/../../debugpy/launcher/../../debugpy/../debugpy/server/cli.py", line 508, in main
+    run()
+    ~~~^^
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/adapter/../../debugpy/launcher/../../debugpy/../debugpy/server/cli.py", line 358, in run_file
+    runpy.run_path(target, run_name="__main__")
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 310, in run_path
+    return _run_module_code(code, init_globals, run_name, pkg_name=pkg_name, script_name=fname)
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 127, in _run_module_code
+    _run_code(code, mod_globals, init_globals, mod_name, mod_spec, pkg_name, script_name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 118, in _run_code
+    exec(code, run_globals)
+    ~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/src/training.py", line 32, in <module>
+    agent.train(**args)
+    ~~~~~~~~~~~^^^^^^^^
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/src/base/agent.py", line 427, in train
+    action_idx = self.select_action(state, n_nodes, training=True)
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/src/base/agent.py", line 113, in select_action
+    mask = self.get_valid_actions_mask(n_nodes, state)
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/src/base/agent.py", line 81, in get_valid_actions_mask
+    x_reshaped = state.x.view(num_graphs, n_nodes, 3) #3=num node features
+RuntimeError: shape '[1, 6, 3]' is invalid for input of size 30

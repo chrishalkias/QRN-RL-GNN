@@ -1,0 +1,1 @@
+{"_timestamp":1.7711215377631261e+09,"Performance/Terminal_Fidelity":0,"Policy/Swap_Ratio":0.14,"_step":0,"System/total_steps":50,"System/Steps_per_Second":640.2207792604261,"Performance/Episode_Length":50,"_runtime":108,"Performance/Success_Rate":0,"_wandb":{"runtime":108},"System/Epsilon":1,"Performance/Reward":-50}

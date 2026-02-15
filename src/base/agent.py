@@ -3,7 +3,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
-from torch_geometric.data import Batch
+from torch_geometric.data import Batch, Data
+from torch_geometric.nn import global_max_pool
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from datetime import datetime
@@ -54,36 +55,59 @@ class QRNAgent:
         # Buffer
         self.memory = Buffer(max_size=buffer_size)
 
-    def get_valid_actions_mask(self, n_nodes, state=None):
-            """Creates a boolean mask for valid actions. Handles single states and batches."""
-            if state is None:
-                mask = torch.zeros(n_nodes * 2, dtype=torch.bool, device=self.device)
-                mask[0:2*(n_nodes-1):2] = True # Entangle
-                mask[3:2*(n_nodes-1):2] = True # Swap
-                return mask
+    def get_valid_actions_mask(self, 
+                               state: Data
+                               ) -> torch.Tensor:
+        
+        """
+        Returns the action mask for each state
+        """
+        if not hasattr(state, 'ptr'):
+            # Handle single unbatched state
+            ptr = torch.tensor([0, state.x.shape[0]], device=self.device)
+        else:
+            ptr = state.ptr
 
-            # Reshape node features: works for single state (1, N, 2) or batched states (B, N, 2)
-            num_graphs = state.x.shape[0] // n_nodes
-            x_reshaped = state.x.view(num_graphs, n_nodes, 2)
-            
-            mask = torch.zeros((num_graphs, n_nodes, 2), dtype=torch.bool, device=self.device)
-            
-            # 1. Entangle valid for nodes 0 to N-2
-            mask[:, :n_nodes-1, 0] = True
-            
-            # 2. Swap valid for nodes 1 to N-2 ONLY IF they have left AND right connections
-            has_left = x_reshaped[:, :, 0] > 0
-            has_right = x_reshaped[:, :, 1] > 0
-            mask[:, 1:n_nodes-1, 1] = has_left[:, 1:n_nodes-1] & has_right[:, 1:n_nodes-1]
-            
-            # Return 1D mask for select_action, 2D mask for train_step
-            if num_graphs == 1:
-                return mask.view(n_nodes * 2) 
-            return mask.view(num_graphs, n_nodes * 2)
+        num_nodes_total = state.x.shape[0]
+        mask = torch.zeros((num_nodes_total, 2), dtype=torch.bool, device=self.device)
 
-    def select_action(self, state, n_nodes, training=True):
-            # Pass the single state. Returns a 1D [2*n_nodes] mask
-            mask = self.get_valid_actions_mask(n_nodes, state)
+        first_nodes = ptr[:-1]
+        last_nodes = ptr[1:] - 1
+
+        # 1. Entangle valid for all EXCEPT the last node of each graph
+        valid_entangle = torch.ones(num_nodes_total, dtype=torch.bool, device=self.device)
+        valid_entangle[last_nodes] = False
+        mask[:, 0] = valid_entangle
+
+        # 2. Swap valid EXCEPT first/last nodes, requiring left & right connections
+        has_left = state.x[:, 0] > 0
+
+        # 1. Entangle valid for all EXCEPT the last node AND nodes with existing right links
+        has_right = state.x[:, 1] > 0
+        valid_entangle = ~has_right
+        valid_entangle[last_nodes] = False
+        mask[:, 0] = valid_entangle
+
+        valid_swap = has_left & has_right
+        valid_swap[first_nodes] = False
+        valid_swap[last_nodes] = False
+        mask[:, 1] = valid_swap
+
+        return mask.view(-1) # 1D mask aligning with flattened Q-values
+
+    def select_action(self, state:Data,
+                      training:bool=True
+                      ) -> int:
+            """
+            ## Q-value -> Action_idx
+            ### Description:
+                Selects an action based on the q-values from `self.policy_net()`.
+                Applies a mask to illegal actions via `self.get_valid_actions_mask()`
+
+            ### Returns:
+                The integer-encoded action via the `tensor.argmax()` function
+            """
+            mask = self.get_valid_actions_mask(state)
             
             self.policy_net.eval()
             with torch.no_grad():
@@ -109,22 +133,43 @@ class QRNAgent:
 
             return action_idx
 
-    def decode_action(self, action_idx):
-        """Decodes flattened action index back to (node, operation)"""
+    def _decode_action(self, 
+                      action_idx: int
+                      )-> tuple:
+        """
+        ## Action_idx -> (node, bool)
+
+        ###Decription:
+            Decodes flattened action index back to (node, operation)
+        """
         node = action_idx // 2
         op_type = action_idx % 2 # 0 = Entangle, 1 = Swap
         return node, op_type
-
-    def step_environment(self, env, action_idx):
-        """Executes the action on the environment.
-        Returns: reward, done, info
-        """
-        node, op_type = self.decode_action(action_idx)
-        
+    
+    def reward(self):
+        """Defines the succsess reward and time penalty"""
         step_cost = -1
         success_reward = 100
         info = {'fidelity': 0.0}
-        
+        return step_cost, success_reward, info
+
+    def step_environment(self, 
+                         env:RepeaterNetwork, 
+                         action_idx:int
+                         ) -> tuple: 
+        """
+        ## Action -> Reward
+        ### Description
+            Executes the (integer) action on the environment.
+
+            either `env.entangle(edge=(node, node+1))`
+            or `env.swapAT(node)`.
+
+        ### Returns: 
+            reward (int), done (bool), info (dict)
+        """
+        node, op_type = self._decode_action(action_idx)
+        step_cost, success_reward, info = self.reward()
 
         # Execute Action
         if op_type == 0: 
@@ -138,49 +183,65 @@ class QRNAgent:
 
         if is_success:
             info['fidelity'] = current_fidelity
-            scaled_reward = success_reward * current_fidelity
             return success_reward, True, info
         
         return step_cost, False, info
+    
 
 
-    def train_step(self, n_nodes_current_batch):
+    def train_step(self):
+        """            
+            1. Sample from the Buffer and create batches
+            2. Get the model's Q-values
+            3. Offset batch to match Q-values
+            4. Compute next Q-values, mask them and compute target Q
+            5. Perform a backwards pass and step the optimizer
+            6. Copy the params to target net (if step condition matches)
+            """
         if self.memory.size() < self.batch_size:
             return
 
         batch = self.memory.sample(self.batch_size)
-        
+
         state_batch_list = [x['s'] for x in batch]
         next_state_batch_list = [x['s_'] for x in batch]
-        
+
         state_batch = Batch.from_data_list(state_batch_list).to(self.device)
         next_state_batch = Batch.from_data_list(next_state_batch_list).to(self.device)
+
         
         action_batch = torch.tensor([x['a'] for x in batch], device=self.device)
         reward_batch = torch.tensor([x['r'] for x in batch], device=self.device).float()
-        
+        done_batch = torch.tensor([x['d'] for x in batch], device=self.device).float()
+
         # --- Current Q Values ---
         q_values_flat = self.policy_net(state_batch).view(-1)
-        
-        # Batch offset calculation
-        batch_offset = torch.arange(self.batch_size, device=self.device) * (n_nodes_current_batch * 2)
+
+        # Dynamic batch offset using graph boundaries (ptr)
+        batch_offset = state_batch.ptr[:-1] * 2
         global_action_indices = action_batch + batch_offset
-        
+
         current_q = q_values_flat[global_action_indices]
 
         # --- Target Q Values ---
         with torch.no_grad():
-            next_q_values = self.target_net(next_state_batch).view(-1)
-            next_q_reshaped = next_q_values.view(self.batch_size, -1)
+            next_q_values_flat = self.target_net(next_state_batch).view(-1)
+
+            # Returns a 1D mask of size [Total_Nodes * 2]
+            mask = self.get_valid_actions_mask(next_state_batch)
+
+            # Apply 1D mask
+            next_q_values_flat[~mask] = -float('inf')
+
+            # Extract the max action value per node. Shape: [Total_Nodes]
+            next_q_nodes = next_q_values_flat.view(-1, 2)
+            max_q_per_node = next_q_nodes.max(dim=1)[0] 
+
+            # Pool the maximum node value per graph to align with the batch. Shape: [batch_size]
+            max_next_q = global_max_pool(max_q_per_node, next_state_batch.batch)
             
-            # Pass next_state_batch. Returns a [batch_size, 2*n_nodes] mask
-            mask = self.get_valid_actions_mask(n_nodes_current_batch, next_state_batch)
-            
-            # Apply 2D mask directly (do not use [:, ~mask])
-            next_q_reshaped[~mask] = -float('inf')
-            
-            max_next_q = next_q_reshaped.max(dim=1)[0]
-            target_q = reward_batch + (self.gamma * max_next_q)
+            # Mask the target Q value if the state is terminal
+            target_q = reward_batch + (self.gamma * max_next_q * (1 - done_batch))
 
         loss = self.loss_fn(current_q, target_q)
 
@@ -191,6 +252,7 @@ class QRNAgent:
         self.learn_step_counter += 1
         if self.learn_step_counter % self.target_update_freq == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
+
 
     def train(self, 
               episodes=500, 
@@ -207,6 +269,53 @@ class QRNAgent:
               cutoff=1000,
               use_wandb=True,
               wandb_project = "QRN-RL"):
+        
+        """
+        ## The main trainning loop
+
+        Trains the agent. Performs the following algorithm
+
+        ### Parameters
+        
+        #### episodes
+            The maximum number of episodes to train for
+            generally somewhere in the range of 1000-50.000.
+        #### max_steps 
+            The maximum number of steps until episode termination.
+            The agent is givem this amount of possible operations 
+            until the episode terminates and the systems restarts.
+        #### savemodel 
+            Save the model .pth file to be used for validation and diagnostics
+        #### plot
+            Plot the reward curves for training (redundand if using wandb)
+        #### savefig
+            Save the figure produced by plot
+        #### jitter
+            If non-zero, specifies the number of episodes for which the system
+            is reinitialized to a new value of n (chosen at random from n_rang).
+            If the new_n is different from the old, the Buffer is reinitialized.
+        #### n_range
+            The range for which to choose n's from. If `jitter=0` then the first
+            element of the list is always passed as the n to be trained on.
+        #### fine_tune
+            If true, the parameters of the agent are changed so that the training run
+            counts as fine tuning. `self.lr` is lower, `self.epsilon` starts from a
+            smaller value and the agent expects a trained dict to be uploaded into *both*
+            the `self.policy_net` and `self.value_net`.
+        #### p_e 
+            The entanglement probability to be trained on (avg if `homogenous=False`). 
+        #### p_s
+            The entanglement probability to be trained on (avg if `homogenous=False`).
+        #### tau
+            The tau parameter to be trained on (avg if `homogenous=False`)
+        #### cutoff 
+            The cutoff to be trained on (avg if `homogenous=False`)
+        #### use_wandb
+            If true, pushes the run to wandb to monitor the training performance, model
+            weights and compare with other training runs.
+        #### wandb_project
+            The name of the wandb project
+        """
         
 
         if use_wandb:
@@ -244,10 +353,10 @@ class QRNAgent:
             env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
             state = env.tensorState()
             for _ in range(self.batch_size * 5):
-                action = self.select_action(state, env.n, training=True)
+                action = self.select_action(state, training=True)
                 r, done, info = self.step_environment(env, action)
                 next_state = env.tensorState()
-                self.memory.add(state, action, r, next_state, None)
+                self.memory.add(state, action, r, next_state, None, done)
                 state = next_state
                 if done: 
                     env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
@@ -264,15 +373,13 @@ class QRNAgent:
 
                 if jitter and not e%jitter:
                     new_n = np.random.choice(n_range)
-                    if new_n != n_nodes: #clear the buffer to avoid shape mismatch
-                        self.memory.clear()
                     new_env = RepeaterNetwork(n=new_n, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
                     env=new_env
                     n_nodes = new_n
                     state = env.tensorState()
 
                 for _ in range(max_steps):
-                    action_idx = self.select_action(state, n_nodes, training=True)
+                    action_idx = self.select_action(state, training=True)
                     if action_idx % 2 == 0:
                         entangles += 1
                     else:
@@ -285,13 +392,14 @@ class QRNAgent:
                                     action=action_idx, 
                                     reward=reward, 
                                     next_state=next_state,
-                                    next_mask=None)
+                                    next_mask=None,
+                                    done=done)
                     
                     state = next_state
                     score += reward
                     steps += 1
                     
-                    self.train_step(n_nodes_current_batch=n_nodes)
+                    self.train_step()
                     
                     if done:
                         if info.get('fidelity', 0) > 0:
@@ -340,7 +448,7 @@ class QRNAgent:
             plt.ylabel(label)
             plt.legend()
             os.makedirs(f'assets/trained_models/{model_name}/', exist_ok=True)
-            plt.savefig(f'assets/trained_models/{model_name}/train.png') if savefig else None
+            plt.savefig(f'assets/trained_models/{model_name}/train.png')
             plt.show()
 
         if use_wandb:
@@ -358,6 +466,38 @@ class QRNAgent:
                     logging=True,
                     plot_actions=True,
                     savefig=True):
+            
+            """
+        ## The main testing loop
+            The agent is tested for its performance (avg steps) and (avg fidelity) on a 
+            quantum repeater network from the `RepeaterNetwork` class
+
+        ### Args:
+        #### dict_fir
+            The directory of the trained model dict to be used for validation.
+        #### n_episodes 
+            The number of testing episodes. It terminates if either the end-to-end
+            state is reached or if `max_steps` is reached.
+        #### n_nodes
+            The number of testing nodes. This can be different than the number of 
+            nodes used in the training loop.
+        #### p_e 
+            The entanglement probability to be tested on (avg if `homogenous=False`). 
+        #### p_s
+            The entanglement probability to be tested on (avg if `homogenous=False`).
+        #### tau
+            The tau parameter to be trained on (avg if `homogenous=False`).
+        #### cutoff 
+            The cutoff to be trained on (avg if `homogenous=False`).
+        #### loging
+            If true, logs the results of the validation (avg/std steps, avg/std fidelity).
+        #### plot_actions
+            If true plots the actions of the **first episode** of the validation run. This
+            is used to interpret the agents actions. Colored blocks are utilized to differentiate
+            the actions of the agent (and the strategies) used.
+        #### savefig
+            Only used in conjunction with `plot_actions=True`. Saves the resulting plot
+        """
             
 
             def log(msg):
@@ -472,8 +612,8 @@ class QRNAgent:
                 box = ax.get_position()
                 ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
                 ax.legend(handles=patches, loc='center left', bbox_to_anchor=(1, 0.5), title="Actions")
-                
-                plt.savefig(f'assets/validation_results/policy_comparison.png') if savefig else None
+                save_dir =  dict_dir.rsplit('/', 1)[0] + '/'
+                plt.savefig(save_dir + 'validation.png') if savefig else None
                 plt.show()
 
             # -----------------------------
@@ -512,7 +652,7 @@ class QRNAgent:
                 
                 while not done and steps < max_steps:
                     state = env.tensorState()
-                    action_idx = self.select_action(state, n_nodes, training=False)
+                    action_idx = self.select_action(state, training=False)
                     
                     # RECORD ACTION (Only for first episode)
                     if plot_actions and i == 0:

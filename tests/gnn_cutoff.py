@@ -15,6 +15,45 @@ plt.rcParams.update({
     "figure.autolayout" : True,
 })
 
+import torch
+from torch_geometric.data import Data
+
+def generate_synthetic_state(n_nodes: int, target_node: int, f_left: float, f_right: float) -> Data:
+    """
+    Generates a synthetic Data object mirroring RepeaterNetwork.tensorState()
+    for evaluating swap preferences at a specific target_node.
+    """
+    # 1. Initialize empty fidelity matrix matching repeaters.py
+    fidelities = torch.zeros((n_nodes, n_nodes), dtype=torch.float)
+    
+    # 2. Inject specific fidelities for the target swap
+    fidelities[target_node - 1, target_node] = f_left
+    fidelities[target_node, target_node - 1] = f_left
+    
+    fidelities[target_node, target_node + 1] = f_right
+    fidelities[target_node + 1, target_node] = f_right
+    
+    # 3. Replicate tensorState() edge and node attribute logic exactly
+    row, col = torch.meshgrid(torch.arange(n_nodes), torch.arange(n_nodes), indexing='ij')
+    
+    has_entanglement = fidelities > 0
+    is_neighbor = torch.abs(row - col) == 1
+    
+    valid_mask = is_neighbor | has_entanglement
+    edge_index = torch.nonzero(valid_mask).T 
+    
+    fids = fidelities[edge_index[0], edge_index[1]].view(-1, 1)
+    direction = (edge_index[1] - edge_index[0]).float().view(-1, 1)
+    direction = torch.sign(direction) 
+    
+    edge_attr = torch.cat([fids, direction], dim=-1) # Shape: [E, 2]
+    
+    node_attr = torch.zeros((n_nodes, 2), dtype=torch.float)
+    node_attr[:, 1] = has_entanglement.triu(1).any(dim=1).float() 
+    node_attr[:, 0] = has_entanglement.triu(1).any(dim=0).float() 
+
+    return Data(x=node_attr, edge_index=edge_index, edge_attr=edge_attr)
+
 def plot_gnn_cutoff(model_path, 
                              n_nodes=4, 
                              cutoff_tau_ratio = 1,
@@ -42,7 +81,7 @@ def plot_gnn_cutoff(model_path,
     print(f"--- Analyzing GNN Mechanisms (N={n_nodes}) ---")
 
     # =========================================================================
-    #  ======= PLOT 1: Decision Phase Diagram (Sensitivity Analysis) ==========
+    # ======== PLOT 1: Decision Phase Diagram (Sensitivity Analysis) ==========
     # =========================================================================
     # Hypothesis: The agent should only SWAP if both Left and Right fidelities 
     # are above a certain threshold. We will map this threshold.
@@ -55,29 +94,19 @@ def plot_gnn_cutoff(model_path,
     target_node = 1 
     sensitivity_grid = np.zeros((resolution, resolution))
     
-    # Grid Search over Left (0-1) and Right (1-2) Link Fidelities
-    for i, f_left in enumerate(fidelities):
-        for j, f_right in enumerate(fidelities):
-            # Create a clean environment
-            env = RepeaterNetwork(n=n_nodes)
-            
-            # Manually set the specific link qualities we want to test
-            env.setLink((0, 1), f_left, linkType=1)
-            env.setLink((1, env.n -1), f_right, linkType=1)
-            
-            # Get state and infer
-            data = env.tensorState().to(device)
-            if data.edge_attr is not None and data.edge_attr.dim() == 1:
-                data.edge_attr = data.edge_attr.view(-1, 1)
+    for i, f_l in enumerate(fidelities):
+            for j, f_r in enumerate(fidelities):
+                # Target node 1: Link L is (0,1), Link R is (1,2)
+                state = generate_synthetic_state(n_nodes=5, target_node=1, f_left=f_l, f_right=f_r)
                 
-            with torch.no_grad():
-                q_values = model(data).cpu().numpy()
-            
-            # Calculate Preference: Q(Swap) - Q(Entangle)
-            # > 0 means Swap, < 0 means Entangle
-            pref = q_values[target_node, 1] - q_values[target_node, 0]
-            sensitivity_grid[i, j] = pref
-
+                with torch.no_grad():
+                    q_values = model(state).view(-1)
+                    
+                # Node 1 actions: Entangle is index 2, Swap is index 3
+                q_entangle = q_values[2].item()
+                q_swap = q_values[3].item()
+                
+                sensitivity_grid[i, j] = q_swap - q_entangle
     # Plotting Phase Diagram
     plt.figure(figsize=(10, 8))
     # Origin='lower' puts (0,0) at bottom-left
@@ -129,7 +158,7 @@ def plot_gnn_cutoff(model_path,
     plt.close()
 
     # =========================================================================
-    #  ======= PLOT 2: Preference vs Individual Link Fidelities ===============
+    # ========= PLOT 2: Preference vs Individual Link Fidelities ==============
     # =========================================================================
     print("Generating Preference vs Individual Fidelities Plot...")
     
@@ -137,19 +166,19 @@ def plot_gnn_cutoff(model_path,
     # sensitivity_grid[i, j] corresponds to f_left (i) and f_right (j)
     
     # Choose fixed values for the complementary link
-    # E.g., fix right link at a high fidelity (0.9) to see left link's impact
+    # E.g., fix right link at a high fidelity (1) to see left link's impact
     fixed_fid = 1
-    fixed_high_idx = int(fixed_fid * (resolution - 1))
+    fixed_right_idx = int(fixed_fid * (resolution - 1))
     
-    # E.g., fix left link at a low fidelity (0.3) to see right link's impact
-    fixed_low_idx = int(fixed_fid * (resolution - 1))
+    # E.g., fix left link at a high fidelity (1) to see right link's impact
+    fixed_left_idx = int(fixed_fid * (resolution - 1))
     
     # Extract 1D slices from the grid
     # Solid line: Vary Left (F1), Fix Right (F2) at 0.9
-    vary_left_pref = sensitivity_grid[:, fixed_high_idx]
+    vary_left_pref = sensitivity_grid[:, fixed_right_idx]
     
     # Dashed line: Vary Right (F2), Fix Left (F1) at 0.3
-    vary_right_pref = sensitivity_grid[fixed_low_idx, :]
+    vary_right_pref = sensitivity_grid[fixed_left_idx, :]
     
     plt.figure(figsize=(8, 6))
     
@@ -179,7 +208,7 @@ def plot_gnn_cutoff(model_path,
 
 if __name__ == "__main__":
     # Example Usage
-    path = 'assets/trained_models/d(14-2)l4u6e7000m60p70a98t150c30/d(14-2)l4u6e7000m60p70a98t150c30.pth'
+    path = 'assets/trained_models/d(15-2)l4u6e10000m50p85a95t20c20/d(15-2)l4u6e10000m50p85a95t20c20.pth'
     plot_gnn_cutoff(model_path=path, 
                              n_nodes=5, 
                              cutoff_tau_ratio=0.53,
