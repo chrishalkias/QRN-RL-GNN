@@ -1,50 +1,20 @@
 import random
-from base.repeaters import RepeaterNetwork
+
 import numpy as np
 
 class Strategies():
-    def __init__(self, network: RepeaterNetwork):
-        """
-        ## Strategies for entanglement distribution in quantum repeater chains.
-        Different strategies are utilized, all with the following prioritization rule:
-
-        For each repeater on the network: 
-            if it has 2 active connections  -> append it to a `swaps` list
-            elif it has 1 active connection -> append it to a `priority`
-            else if it has 0 connection     -> append it to a `entanglement` list
-
-        Then an action is chosen -based on another criterion- from the lists based on the prioritization
-        rule swaps > priority > entanglement
-
-        ### Usage:
-            ```
-            environment = RepeaterNetwork()
-            strategy = Strategies()
-            action_str = strategy.FN_swap()
-            exec(action_str.replace("self.", "environment."))
-            ```
-        """
-
+    def __init__(self, network):
         self.network = network
 
-    def stochastic_action(self) -> str:
-        """
-        Description:
-            Creates list of all the possible actions that can be applied to the network
-            and chooses one at random.
-
-        Returns:
-            action (str) - A random action
-        """
+    def stochastic_action(self) -> list:
+        """Perform a random action at each node"""
+        # Fixed formatting: (({node}, {node+1})) ensures a tuple is passed
         entangles = [f'self.entangle(({node}, {node+1}))' for node in range(self.network.n-1)]
         swaps = [f'self.swapAT({node})' for node in range(1, self.network.n-1)] 
         action = random.choice(entangles + swaps)
         return action
 
-    def swap_asap(self) -> str:
-        """
-        Performs the random swap asap strategy with a random criteron for swaps.
-        """
+    def swap_asap(self):
         swaps = []
         priority_entangles = []
         entangles = []
@@ -81,17 +51,8 @@ class Strategies():
             return random.choice(entangles)
         return RuntimeError('No actions')
 
-    def FN_swap(self) -> str:
-        """
-        ## Farthest Neighbor Swap 
-        
-        Performs the FN Swap Asap based on the distance creiterion, i.e:
-
-        if two swaps are available -> choose the one that would result in the farthest link
-
-        ### Returns:
-            action (str) -> The strategies next action
-        """
+    def FN_swap(self):
+        """Farthest Neighbor Swap"""
         swaps = []
         priority_entangles = []
         entangles = []
@@ -145,18 +106,8 @@ class Strategies():
         else:
             return RuntimeError('No actions')
 
-    def SN_swap(self) -> list:
-        """
-        ## Strongest Neighbor Swap 
-        
-        Performs the SN Swap Asap based on the fidelity creiterion, i.e:
-
-        if two swaps are available -> choose the one that would result in the strongest link
-        The resulting link strength upon swapping F1 and F2 is defined as F_res = F1 * F2
-
-        ### Returns:
-            action (str) -> The next action
-        """
+    def SN_swap(self):
+        """Strongest Neighbor Swap"""
         swaps = []
         priority_entangles = []
         entangles = []
@@ -183,7 +134,7 @@ class Strategies():
                         max_fid_right = f
                 
                 if max_fid_left > 0 and max_fid_right > 0:
-                    predicted_fidelity = (max_fid_left * max_fid_right)
+                    predicted_fidelity = 0.5 * (max_fid_left + max_fid_right)
                     swaps.append((predicted_fidelity, f'self.swapAT({node})'))
 
             elif bool(leftlink) ^ bool(rightlink):
@@ -207,17 +158,7 @@ class Strategies():
             return random.choice(entangles)
         return None
 
-    def doubling_swap(self) -> list:
-        """
-        ## Doubling Swap 
-        
-        Performs the SN Swap Asap based on the doubling creiterion, i.e:
-
-        Only swap two links if they are of equal length
-
-        ### Returns:
-            action (str) -> The strategies next action
-        """
+    def doubling_swap(self):
         swaps = []
         priority_entangles = []
         entangles = []
@@ -266,19 +207,12 @@ class Strategies():
         else:
             raise RuntimeError('No available actions. SOmething broke')
         
-    def frontier(self, cutoff: bool = False) -> str:
+    def create_and_propagate(self, cutoff: bool = False):
             """
-            ## Frontier method
-
-            One of the learned strategies of early agents following the recipe:
-                1. Identifies the farthest node currently connected to node 0 (the frontier).
-                2. Tries to entangle the next segment (frontier -> frontier+1).
-                3. If that segment exists, it swaps at the frontier to extend the link.
-
-            ### Returns:
-                action (str) -> The next action
-
-            TODO: Implement a cutoff so that if the resulting link would expire, start anew
+            Simple linear propagation strategy.
+            1. Identifies the farthest node currently connected to node 0 (the frontier).
+            2. Tries to entangle the next segment (frontier -> frontier+1).
+            3. If that segment exists, it swaps at the frontier to extend the link.
             """
             
             # 1. Find the current frontier (farthest node connected to 0)

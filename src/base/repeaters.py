@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from torch_geometric.data import Data
-import scipy.stats as stats
 
 class RepeaterNetwork():
     def __init__(self,
@@ -9,17 +8,13 @@ class RepeaterNetwork():
                  cutoff = None,
                  tau: int = 1_000,
                  p_entangle: float = 1.0,
-                 p_swap: float = 1.0,
-                 homogenous: bool = True,
-                 distance_encoding: bool = False
+                 p_swap: float = 1.0
                 ) -> None:
         """
         Fast Quantum network simulator
         [TODO] write a docstring (again)
         """
         # --- Initialize class attributes
-        self.homo = homogenous
-        self.distance_encoding = distance_encoding
         self.n = n
         self.tau, self.cutoff = tau, cutoff
         self.p_entangle, self.p_swap = p_entangle, p_swap
@@ -27,200 +22,146 @@ class RepeaterNetwork():
         # --- Tensor Representation 
         # Replaces the old self.matrix dictionary. Stores entanglements for all node pairs.
         self.fidelities = torch.zeros((self.n, self.n), dtype=torch.float)
-        if not homogenous:
-            self.param_dist = self._param_distribution()
-            self.pe_list, self.ps_list = self.param_dist
-
-
-    def _param_distribution(self):
-        """For when we switch to inhomogenous"""
-        mu_e, sigma_e = self.p_entangle, 0.1
-        min_e, max_e = 0.005, 1.0
-        pe_rand = stats.truncnorm(
-            (min_e - mu_e) / sigma_e, (max_e - mu_e) / sigma_e, loc=mu_e, scale=sigma_e)
-
-        mu_s, sigma_s = self.p_swap, 0.05
-        min_s, max_s = 0.85, 1.0
-        ps_rand = stats.truncnorm(
-            (min_s - mu_s) / sigma_s, (max_s - mu_s) / sigma_s, loc=mu_s, scale=sigma_s)
-
-        pe_dist = pe_rand.rvs(self.n)
-        ps_dist = ps_rand.rvs(self.n)
-
-        return np.vstack([pe_dist, ps_dist])
-        
-
-
 
     def checkEdgeLink(self, edge: tuple, linkType: int = 0):
-            """Check whether in grid and correct linkType (for getLink and setLink)"""
-            leftBoundary = edge[0] >= 0 and edge[1] >= 0
-            rightBoundary = edge[0] <= self.n - 1 and edge[1] <= self.n - 1
+        """Check whether in grid and correct linkType (for getLink and setLink)"""
+        leftBoundary = edge[0] >= 0 and edge[1] >= 0
+        rightBoundary = edge[0] <= self.n - 1 and edge[1] <= self.n - 1
 
-            if not (leftBoundary and rightBoundary):
-                raise IndexError(f'Edge {edge} out of bounds for chain of size {self.n}')
-            if linkType not in (0, 1):
-                raise ValueError(f'Invalid link type (expected 0 or 1 got {linkType})')
+        if not (leftBoundary and rightBoundary):
+            raise IndexError(f'Edge {edge} out of bounds for chain of size {self.n}')
+        if linkType not in (0, 1):
+            raise ValueError(f'Invalid link type (expected 0 or 1 got {linkType})')
 
     def getLink(self, edge: tuple, linkType: int = 1) -> float:
-            """Get the link (locality/entanglement) from the tensor"""
-            self.checkEdgeLink(edge=edge, linkType=linkType)
-            # Locality (linkType=0) is statically 1 for adjacent physical nodes 
-            if linkType == 0:
-                return 1.0 if abs(edge[0] - edge[1]) == 1 else 0.0
+        """Get the link (locality/entanglement) from the tensor"""
+        self.checkEdgeLink(edge=edge, linkType=linkType)
+        # Locality (linkType=0) is statically 1 for adjacent physical nodes 
+        if linkType == 0:
+            return 1.0 if abs(edge[0] - edge[1]) == 1 else 0.0
         
-            return self.fidelities[edge[0], edge[1]].item()
+        return self.fidelities[edge[0], edge[1]].item()
 
     def setLink(self, edge: tuple, newValue: float, linkType: int = 1) -> None:
-            """Set the link value (only this and tick() allowed to change matrix)"""
-            self.checkEdgeLink(edge=edge, linkType=linkType)
-            if linkType == 1:
-                self.fidelities[edge[0], edge[1]] = newValue
-                self.fidelities[edge[1], edge[0]] = newValue # Ensure undirected symmetry
+        """Set the link value (only this and tick() allowed to change matrix)"""
+        self.checkEdgeLink(edge=edge, linkType=linkType)
+        if linkType == 1:
+            self.fidelities[edge[0], edge[1]] = newValue
+            self.fidelities[edge[1], edge[0]] = newValue # Ensure undirected symmetry
 
     def reset(self) -> None:
-            """resets all entanglements to 0"""
-            self.fidelities.zero_()
+        """resets all entanglements to 0"""
+        self.fidelities.zero_()
 
     def saturated(self, node: int): #chain only
-            """
-            Enforces 2 qubits per repeater.
-            Checks if node is already doubly entangled and therefore cannot be
-            entangled with any more repeaters (used in self.entangle()).
-            """
-            return 42 # Placeholder logic carried over from the original script
+        """
+        Enforces 2 qubits per repeater.
+        Checks if node is already doubly entangled and therefore cannot be
+        entangled with any more repeaters (used in self.entangle()).
+        """
+        return 42 # Placeholder logic carried over from the original script
 
     def tick(self, T: int) -> None:
-            """Implements the time evolution of the system using vectorized math"""
-    
-            self.fidelities *= np.exp(-T / self.tau)
+        """Implements the time evolution of the system using vectorized math"""
+  
+        self.fidelities *= np.exp(-T / self.tau)
 
-            if self.cutoff is not None:
-                self.fidelities[self.fidelities < np.exp(-self.cutoff / self.tau)] = 0.0
+        if self.cutoff is not None:
+            self.fidelities[self.fidelities < np.exp(-self.cutoff / self.tau)] = 0.0
 
     def entangle(self, edge: tuple) -> None:
-            """
-            Check if two nodes are adjacent and not saturated and
-            entangle them with success probability p_entangle.
-            """
-            self.checkEdgeLink(edge=edge)
-            (left_node, right_node) = edge
+        """
+        Check if two nodes are adjacent and not saturated and
+        entangle them with success probability p_entangle.
+        """
+        self.checkEdgeLink(edge=edge)
+        getsEntangled = self.p_entangle > np.random.rand()
+        (left_node, right_node) = edge
 
-            if self.homo:
-                getsEntangled = self.p_entangle > np.random.rand()
-
-            else:
-                 getsEntangled = np.average([self.pe_list[left_node] + self.pe_list[right_node]]) > np.random.rand()
-
-            if not getsEntangled:
-                return
-            
-            # both repeaters are saturated
-            if self.saturated(left_node) == 0 or self.saturated(right_node) == 0:
-                return
-            # qubits looking each other are occupied -> (x x---x x)
-            if self.saturated(left_node) == +1 or self.saturated(left_node) == -1:
-                return
-            
-            self.tick(1)
-            areAdjacent = self.getLink(edge=edge, linkType=0)
-            if areAdjacent:
-                self.setLink(linkType=1, edge=edge, newValue=1.0)
+        if not getsEntangled:
+            return
+        
+        # both repeaters are saturated
+        if self.saturated(left_node) == 0 or self.saturated(right_node) == 0:
+            return
+        # qubits looking each other are occupied -> (x x---x x)
+        if self.saturated(left_node) == +1 or self.saturated(left_node) == -1:
+            return
+        
+        self.tick(1)
+        areAdjacent = self.getLink(edge=edge, linkType=0)
+        if areAdjacent:
+            self.setLink(linkType=1, edge=edge, newValue=1.0)
 
     def swapAT(self, node: int) -> None:
-            """Perform the swap operation on a node"""
+        """Perform the swap operation on a node"""
+        getsSwapped = self.p_swap > np.random.rand()
 
-            if self.homo:
-                getsSwapped = self.p_swap > np.random.rand()
-            else:
-                 getsSwapped = self.ps_list[node] > np.random.rand()
+        if not getsSwapped:
+            return 
 
-            if not getsSwapped:
-                return 
+        if node not in range(1, self.n - 1):
+            raise ValueError(f'Node {node} not in system with n={self.n}')
 
-            if node not in range(1, self.n - 1):
-                raise ValueError(f'Node {node} not in system with n={self.n}')
-
-            # Pytorch vectorized search for active links crossing the current node 
-            # (This avoids the N^2 dictionary looping)
-            left_links = torch.where(self.fidelities[:node, node] > 0)[0]
-            right_links = torch.where(self.fidelities[node, node+1:] > 0)[0] + node + 1
-            self.tick(1)
-            for i in left_links.tolist():
-                for j in right_links.tolist():
-                    Eij = self.fidelities[i, node].item()
-                    Ejk = self.fidelities[node, j].item()
-                    effectiveValue = (Eij * Ejk)
-                    
-                    self.setLink(linkType=1, edge=(i, node), newValue=0.0)
-                    self.setLink(linkType=1, edge=(node, j), newValue=0.0)
-                    self.setLink(linkType=1, edge=(i, j), newValue=effectiveValue)
+        # Pytorch vectorized search for active links crossing the current node 
+        # (This avoids the N^2 dictionary looping)
+        left_links = torch.where(self.fidelities[:node, node] > 0)[0]
+        right_links = torch.where(self.fidelities[node, node+1:] > 0)[0] + node + 1
+        self.tick(1)
+        for i in left_links.tolist():
+            for j in right_links.tolist():
+                Eij = self.fidelities[i, node].item()
+                Ejk = self.fidelities[node, j].item()
+                effectiveValue = (Eij * Ejk)
+                
+                self.setLink(linkType=1, edge=(i, node), newValue=0.0)
+                self.setLink(linkType=1, edge=(node, j), newValue=0.0)
+                self.setLink(linkType=1, edge=(i, j), newValue=effectiveValue)
 
     def endToEndCheck(self, timeToWait=0):
-            """Check whether the graph is in an end-to-end entangled state"""
-            self.tick(timeToWait)
-            endToEnd = (self.fidelities[0, self.n-1].item() > np.random.rand()) #TODO: change this for the werner state
-            self.global_state = endToEnd
+        """Check whether the graph is in an end-to-end entangled state"""
+        self.tick(timeToWait)
+        endToEnd = (self.fidelities[0, self.n-1].item() > np.random.rand())
+        self.global_state = endToEnd
+        
+        if endToEnd:
+            self.setLink(edge=(0, self.n-1), linkType=1, newValue=0.0)
             
-            if endToEnd:
-                self.setLink(edge=(0, self.n-1), linkType=1, newValue=0.0)
-                
-            return endToEnd
+        return endToEnd
 
     def tensorState(self) -> Data:
-            """Returns the tensor graph state (to be used for GNN)"""
-            row, col = torch.meshgrid(torch.arange(self.n), torch.arange(self.n), indexing='ij')
-            #--- edges
-            has_entanglement = self.fidelities > 0
-            is_neighbor = torch.abs(row - col) == 1
-            
-            valid_mask = is_neighbor | has_entanglement
-            edge_index = torch.nonzero(valid_mask).T 
-            
-            # New Edge Attributes: [Fidelity, Direction]
-            # Direction: -1 for "neighbor is to my left", +1 for "neighbor is to my right"
-            fids = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
-            direction = (edge_index[1] - edge_index[0]).float().view(-1, 1)
-            direction = torch.sign(direction) 
-            
-            edge_attr = torch.cat([fids, direction], dim=-1) # Shape: [E, 2]
-            # OR
-            # row, col = torch.meshgrid(torch.arange(self.n), torch.arange(self.n), indexing='ij')
-            # is_neighbor = torch.abs(row - col) == 1 # 2. Mask 1: Physical neighbors (always exist in topology)
-            # has_entanglement = self.fidelities > 0 # 3. Mask 2: Active entanglement links (including long-range)
-            
-            # valid_edges = is_neighbor | has_entanglement # 4. Combine masks to define all valid edges in the current state
-            # edge_index = torch.nonzero(valid_edges).T # 5. Extract indices of valid edges (symmetric so automatically [2,E]).
-            # edge_attr = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
+        """Returns the tensor graph state (to be used for GNN)"""
+        row, col = torch.meshgrid(torch.arange(self.n), torch.arange(self.n), indexing='ij')
+        #--- edges
+        has_entanglement = self.fidelities > 0
+        is_neighbor = torch.abs(row - col) == 1
+        
+        valid_mask = is_neighbor | has_entanglement
+        edge_index = torch.nonzero(valid_mask).T 
+        
+        # New Edge Attributes: [Fidelity, Direction]
+        # Direction: -1 for "neighbor is to my left", +1 for "neighbor is to my right"
+        fids = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
+        direction = (edge_index[1] - edge_index[0]).float().view(-1, 1)
+        direction = torch.sign(direction) 
+        
+        edge_attr = torch.cat([fids, direction], dim=-1) # Shape: [E, 2]
+        # OR
+        # row, col = torch.meshgrid(torch.arange(self.n), torch.arange(self.n), indexing='ij')
+        # is_neighbor = torch.abs(row - col) == 1 # 2. Mask 1: Physical neighbors (always exist in topology)
+        # has_entanglement = self.fidelities > 0 # 3. Mask 2: Active entanglement links (including long-range)
+        
+        # valid_edges = is_neighbor | has_entanglement # 4. Combine masks to define all valid edges in the current state
+        # edge_index = torch.nonzero(valid_edges).T # 5. Extract indices of valid edges (symmetric so automatically [2,E]).
+        # edge_attr = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
 
-            # --- nodes ----- (experimental features in here)
-            
-            if not self.homo and not self.distance_encoding:
-                node_attr = torch.zeros((self.n, 5), dtype=torch.float)
-            elif not self.homo and self.distance_encoding:
-                 node_attr = torch.zeros((self.n, 3), dtype=torch.float)
-            else:
-                 node_attr = torch.zeros((self.n, 2), dtype=torch.float)
-            has_link = self.fidelities > 0
-            node_attr[:, 1] = has_link.triu(1).any(dim=1).float() # Checks for Right connections
-            node_attr[:, 0] = has_link.triu(1).any(dim=0).float() # Checks for Left connections
+        # --- nodes
+        node_attr = torch.zeros((self.n, 2), dtype=torch.float)
+        has_link = self.fidelities > 0
+        node_attr[:, 1] = has_link.triu(1).any(dim=1).float() # Checks for Right connections
+        node_attr[:, 0] = has_link.triu(1).any(dim=0).float() # Checks for Left connections
 
-            # Vectorized calculation for distance to closest endpoint
-            #--------Doesnt work for some reason
-            # node_indices = torch.arange(self.n)
-            # distances = torch.minimum(node_indices, self.n - 1 - node_indices).float()
-            # node_attr[:, 2] = distances
-
-            if not self.homo:
-                 node_attr[:, 3], node_attr[:, 4] = torch.tensor(self.param_dist).float()
-
-            return Data(x=node_attr, edge_index=edge_index, edge_attr=edge_attr)
-
-
-if __name__ == '__main__':
-    net = RepeaterNetwork(n=10, homogenous=False)
-    state = net.tensorState().x
-    print(state)
+        return Data(x=node_attr, edge_index=edge_index, edge_attr=edge_attr)
 
 
 # #OLD CLASS
