@@ -1,4 +1,4 @@
-# Learning scalable entanglement distribution (QRN-RL-GNN)
+# Learning scalable entanglement distribution
 
 
 
