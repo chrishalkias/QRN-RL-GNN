@@ -148,11 +148,7 @@ class RepeaterNetwork():
         
         Node features (6 total):
         - [0] has_left: binary indicator of left connections
-        - [1] has_right: binary indicator of right connections  
-        - [2] normalized_position: where am I in [0, 1]?
-        - [3] distance_to_endpoints: how far from nearest end?
-        - [4] degree: how many connections do I have?
-        - [5] max_fidelity: quality of my best connection
+        - [1] has_right: binary indicator of right connections 
         
         Edge features (1 total):
         - [0] fidelity: link quality (no direction!)
@@ -170,36 +166,12 @@ class RepeaterNetwork():
         edge_attr = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
         
         # --- Enhanced Node Features ---
-        node_attr = torch.zeros((self.n, 6), dtype=torch.float)
+        node_attr = torch.zeros((self.n, 2), dtype=torch.float)
         has_link = self.fidelities > 0
         
         # Features 0-1: Connection indicators (original)
         node_attr[:, 0] = has_link.triu(1).any(dim=0).float()  # has_left
         node_attr[:, 1] = has_link.triu(1).any(dim=1).float()  # has_right
-        
-        # Feature 2: Normalized position [0, 1]
-        # Tells the agent "where am I in this chain?"
-        if self.n > 1:
-            node_attr[:, 2] = torch.arange(self.n, dtype=torch.float) / (self.n - 1)
-        
-        # Feature 3: Distance to nearest endpoint [0, 1]  
-        # Tells the agent "how close am I to the goal?"
-        if self.n > 1:
-            distances = torch.minimum(
-                torch.arange(self.n, dtype=torch.float),
-                torch.arange(self.n - 1, -1, -1, dtype=torch.float)
-            )
-            node_attr[:, 3] = distances / (self.n - 1)
-        
-        # Feature 4: Normalized degree (number of connections)
-        # Tells the agent "how connected am I?"
-        num_connections = has_link.sum(dim=1).float()
-        if self.n > 1:
-            node_attr[:, 4] = num_connections / (self.n - 1)
-        
-        # Feature 5: Maximum fidelity of connected links
-        # Tells the agent "what's my best link quality?"
-        node_attr[:, 5] = self.fidelities.max(dim=1)[0]
         
         return Data(x=node_attr, edge_index=edge_index, edge_attr=edge_attr)
 

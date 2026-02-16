@@ -44,8 +44,8 @@ class QRNAgent:
 
         # Models
         # GNN is graph-size invariant
-        self.policy_net = GNN(node_dim=6, output_dim=2).to(self.device)
-        self.target_net = GNN(node_dim=6, output_dim=2).to(self.device)
+        self.policy_net = GNN(node_dim=2, output_dim=2).to(self.device)
+        self.target_net = GNN(node_dim=2, output_dim=2).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
