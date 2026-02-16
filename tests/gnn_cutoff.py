@@ -3,8 +3,8 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
-from base.model import GNN
-from base.repeaters import RepeaterNetwork
+from base.flexible_model import GNN
+from base.flexible_repeaters import RepeaterNetwork
 from labellines import *
 
 os.environ["PATH"] += os.pathsep + '/Library/TeX/texbin'

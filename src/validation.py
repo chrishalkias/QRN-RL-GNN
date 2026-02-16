@@ -1,5 +1,5 @@
 import torch
-from base.agent import QRNAgent
+from base.flexible_agent import QRNAgent
 
 
 if __name__ == '__main__':
