@@ -1,0 +1,37 @@
+{
+  "os": "macOS-15.7.3-arm64-arm-64bit-Mach-O",
+  "python": "CPython 3.13.2",
+  "startedAt": "2026-02-16T01:41:21.835269Z",
+  "program": "/Users/chrischalkias/GitHub/QRN-RL-GNN/src/training.py",
+  "codePath": "src/training.py",
+  "codePathLocal": "src/training.py",
+  "git": {
+    "remote": "https://github.com/chrishalkias/QRN-RL-GNN",
+    "commit": "1b7910bdf1833eac5d2d95a640103cb08da6c8b7"
+  },
+  "email": "chrishalkiaskali@gmail.com",
+  "root": "/Users/chrischalkias/GitHub/QRN-RL-GNN",
+  "host": "Chriss-MacBook-Air.local",
+  "executable": "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/bin/python",
+  "cpu_count": 8,
+  "cpu_count_logical": 8,
+  "disk": {
+    "/": {
+      "total": "245107195904",
+      "used": "145886871552"
+    }
+  },
+  "memory": {
+    "total": "8589934592"
+  },
+  "apple": {
+    "name": "Apple M3",
+    "ecpuCores": 4,
+    "pcpuCores": 4,
+    "gpuCores": 8,
+    "memoryGb": 8,
+    "swapTotalBytes": "4294967296",
+    "ramTotalBytes": "8589934592"
+  },
+  "writerId": "2ntfuec0e2vjuh66wjulz089lfl99ac8"
+}

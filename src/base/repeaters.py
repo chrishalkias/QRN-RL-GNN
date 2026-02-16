@@ -119,48 +119,88 @@ class RepeaterNetwork():
                 self.setLink(linkType=1, edge=(i, j), newValue=effectiveValue)
 
     def endToEndCheck(self, timeToWait=0):
-        """Check whether the graph is in an end-to-end entangled state"""
+        """
+        Check whether the graph is in an end-to-end entangled state.
+        
+        Returns:
+            tuple: (success: bool, fidelity: float)
+                - success: Whether end-to-end entanglement succeeded
+                - fidelity: The fidelity value at time of check (before zeroing)
+        """
         self.tick(timeToWait)
-        endToEnd = (self.fidelities[0, self.n-1].item() > np.random.rand())
+        
+        # Read fidelity BEFORE probabilistic check and zeroing
+        fidelity = self.fidelities[0, self.n-1].item()
+        
+        # Probabilistic success check
+        endToEnd = (fidelity > np.random.rand())
         self.global_state = endToEnd
         
         if endToEnd:
+            # Zero out the link after recording fidelity
             self.setLink(edge=(0, self.n-1), linkType=1, newValue=0.0)
-            
-        return endToEnd
+    
+        return endToEnd, fidelity
 
     def tensorState(self) -> Data:
-        """Returns the tensor graph state (to be used for GNN)"""
+        """
+        Enhanced tensorState with explicit, scalable position features.
+        
+        Node features (6 total):
+        - [0] has_left: binary indicator of left connections
+        - [1] has_right: binary indicator of right connections  
+        - [2] normalized_position: where am I in [0, 1]?
+        - [3] distance_to_endpoints: how far from nearest end?
+        - [4] degree: how many connections do I have?
+        - [5] max_fidelity: quality of my best connection
+        
+        Edge features (1 total):
+        - [0] fidelity: link quality (no direction!)
+        """
         row, col = torch.meshgrid(torch.arange(self.n), torch.arange(self.n), indexing='ij')
-        #--- edges
+        
+        # --- Edges ---
         has_entanglement = self.fidelities > 0
         is_neighbor = torch.abs(row - col) == 1
         
         valid_mask = is_neighbor | has_entanglement
         edge_index = torch.nonzero(valid_mask).T 
         
-        # New Edge Attributes: [Fidelity, Direction]
-        # Direction: -1 for "neighbor is to my left", +1 for "neighbor is to my right"
-        fids = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
-        direction = (edge_index[1] - edge_index[0]).float().view(-1, 1)
-        direction = torch.sign(direction) 
+        # Edge attributes: Fidelity only (no direction)
+        edge_attr = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
         
-        edge_attr = torch.cat([fids, direction], dim=-1) # Shape: [E, 2]
-        # OR
-        # row, col = torch.meshgrid(torch.arange(self.n), torch.arange(self.n), indexing='ij')
-        # is_neighbor = torch.abs(row - col) == 1 # 2. Mask 1: Physical neighbors (always exist in topology)
-        # has_entanglement = self.fidelities > 0 # 3. Mask 2: Active entanglement links (including long-range)
-        
-        # valid_edges = is_neighbor | has_entanglement # 4. Combine masks to define all valid edges in the current state
-        # edge_index = torch.nonzero(valid_edges).T # 5. Extract indices of valid edges (symmetric so automatically [2,E]).
-        # edge_attr = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
-
-        # --- nodes
-        node_attr = torch.zeros((self.n, 2), dtype=torch.float)
+        # --- Enhanced Node Features ---
+        node_attr = torch.zeros((self.n, 6), dtype=torch.float)
         has_link = self.fidelities > 0
-        node_attr[:, 1] = has_link.triu(1).any(dim=1).float() # Checks for Right connections
-        node_attr[:, 0] = has_link.triu(1).any(dim=0).float() # Checks for Left connections
-
+        
+        # Features 0-1: Connection indicators (original)
+        node_attr[:, 0] = has_link.triu(1).any(dim=0).float()  # has_left
+        node_attr[:, 1] = has_link.triu(1).any(dim=1).float()  # has_right
+        
+        # Feature 2: Normalized position [0, 1]
+        # Tells the agent "where am I in this chain?"
+        if self.n > 1:
+            node_attr[:, 2] = torch.arange(self.n, dtype=torch.float) / (self.n - 1)
+        
+        # Feature 3: Distance to nearest endpoint [0, 1]  
+        # Tells the agent "how close am I to the goal?"
+        if self.n > 1:
+            distances = torch.minimum(
+                torch.arange(self.n, dtype=torch.float),
+                torch.arange(self.n - 1, -1, -1, dtype=torch.float)
+            )
+            node_attr[:, 3] = distances / (self.n - 1)
+        
+        # Feature 4: Normalized degree (number of connections)
+        # Tells the agent "how connected am I?"
+        num_connections = has_link.sum(dim=1).float()
+        if self.n > 1:
+            node_attr[:, 4] = num_connections / (self.n - 1)
+        
+        # Feature 5: Maximum fidelity of connected links
+        # Tells the agent "what's my best link quality?"
+        node_attr[:, 5] = self.fidelities.max(dim=1)[0]
+        
         return Data(x=node_attr, edge_index=edge_index, edge_attr=edge_attr)
 
 

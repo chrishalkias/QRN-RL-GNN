@@ -1,0 +1,67 @@
+  0%|                                                                                                                                   | 0/2000 [00:00<?, ?it/s]
+Backend macosx is interactive backend. Turning interactive mode on.
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/runpy.py", line 198, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+                     "__main__", mod_spec)
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/runpy.py", line 88, in _run_code
+    exec(code, run_globals)
+    ~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/adapter/../../debugpy/launcher/../../debugpy/__main__.py", line 71, in <module>
+    cli.main()
+    ~~~~~~~~^^
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/adapter/../../debugpy/launcher/../../debugpy/../debugpy/server/cli.py", line 508, in main
+    run()
+    ~~~^^
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/adapter/../../debugpy/launcher/../../debugpy/../debugpy/server/cli.py", line 358, in run_file
+    runpy.run_path(target, run_name="__main__")
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 310, in run_path
+    return _run_module_code(code, init_globals, run_name, pkg_name=pkg_name, script_name=fname)
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 127, in _run_module_code
+    _run_code(code, mod_globals, init_globals, mod_name, mod_spec, pkg_name, script_name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/.vscode/extensions/ms-python.debugpy-2025.18.0-darwin-arm64/bundled/libs/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 118, in _run_code
+    exec(code, run_globals)
+    ~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/src/training.py", line 32, in <module>
+    agent.train(**args)
+    ~~~~~~~~~~~^^^^^^^^
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/src/base/agent.py", line 425, in train
+    action_idx = self.select_action(state, training=True)
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/src/base/agent.py", line 113, in select_action
+    q_values = self.policy_net(state)
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1879, in _call_impl
+    return inner()
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1827, in inner
+    result = forward_call(*args, **kwargs)
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/src/base/model.py", line 36, in forward
+    x = layer(x, edge_index, edge_attr=edge_attr)
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/lib/python3.13/site-packages/torch_geometric/nn/conv/gatv2_conv.py", line 325, in forward
+    alpha = self.edge_updater(edge_index, x=(x_l, x_r),
+                              edge_attr=edge_attr)
+  File "/var/folders/2k/ms28w0ds3tz_yj66mjj5lk_h0000gn/T/torch_geometric.nn.conv.gatv2_conv_GATv2Conv_edge_updater_sjceonkh.py", line 176, in edge_updater
+    out = self.edge_update(
+        x_j=kwargs.x_j,
+    ...<4 lines>...
+        dim_size=kwargs.dim_size,
+    )
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/lib/python3.13/site-packages/torch_geometric/nn/conv/gatv2_conv.py", line 364, in edge_update
+    edge_attr = self.lin_edge(edge_attr)
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/Users/chrischalkias/GitHub/QRN-RL-GNN/.venv/lib/python3.13/site-packages/torch_geometric/nn/dense/linear.py", line 147, in forward
+    return F.linear(x, self.weight, self.bias)
+           ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (10x1 and 2x32)

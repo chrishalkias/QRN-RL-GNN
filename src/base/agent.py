@@ -25,12 +25,12 @@ from base.strategies import Strategies
 
 class QRNAgent:
     def __init__(self, 
-                 lr=1e-3, 
-                 gamma=0.99,
-                 buffer_size=10000,
+                 lr=5e-4, 
+                 gamma=0.95,
+                 buffer_size=50_000,
                  epsilon=1.0,
-                 batch_size=64,
-                 target_update_freq=1000):
+                 batch_size=128,
+                 target_update_freq=500):
         
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
@@ -44,8 +44,8 @@ class QRNAgent:
 
         # Models
         # GNN is graph-size invariant
-        self.policy_net = GNN(node_dim=2, output_dim=2).to(self.device)
-        self.target_net = GNN(node_dim=2, output_dim=2).to(self.device)
+        self.policy_net = GNN(node_dim=6, output_dim=2).to(self.device)
+        self.target_net = GNN(node_dim=6, output_dim=2).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
@@ -144,12 +144,52 @@ class QRNAgent:
         op_type = action_idx % 2 # 0 = Entangle, 1 = Swap
         return node, op_type
     
-    def reward(self):
-        """Defines the succsess reward and time penalty"""
+    def reward(self,
+               env: RepeaterNetwork,
+               action_idx:int
+               ) -> float:
+        """
+        Defines the succsess reward and time penalty
+
+        Components:
+            1. Time penalty (biases towards small wait times)
+            2. Success reward (goal achievement)
+            3. Fidelity bonus (encourages high-quality links)
+            4. Link expiry penalty (discourages operating on dying links)
+        """
+
+        #base rewards
         step_cost = -1
         success_reward = 100
         info = {'fidelity': 0.0}
-        return step_cost, success_reward, info
+
+        e2e_fidelity = env.getLink((0, env.n-1), 1)
+        if e2e_fidelity > 0:
+            # Bonus for high fidelity
+            fidelity_bonus = 10 * (e2e_fidelity ** 2)
+            step_cost += fidelity_bonus
+        
+        # Penalize operating on low-fidelity links
+        node, op_type = self._decode_action(action_idx)
+        link_quality_penalty = 0
+        
+        if op_type == 1:  # Swap operation
+            # Check fidelity of links involved in swap
+            left_fidelities = env.fidelities[:node, node]
+            right_fidelities = env.fidelities[node, node+1:]
+            
+            if left_fidelities.max() > 0 and right_fidelities.max() > 0:
+                avg_fidelity = (left_fidelities.max() + right_fidelities.max()) / 2
+                
+                # Penalize swapping very low fidelity links
+                expiry_threshold = np.exp(-env.cutoff / env.tau) if env.cutoff else 0.1
+                if avg_fidelity < expiry_threshold * 2:  # Close to expiry
+                    link_quality_penalty = -5
+        
+        info['e2e_fidelity'] = e2e_fidelity
+        info['link_quality_penalty'] = link_quality_penalty
+        
+        return step_cost + link_quality_penalty, success_reward, info
 
     def step_environment(self, 
                      env: RepeaterNetwork, 
@@ -166,7 +206,7 @@ class QRNAgent:
             tuple: (reward, done, info)
         """
         node, op_type = self._decode_action(action_idx)
-        step_cost, success_reward, info = self.reward()
+        step_cost, success_reward, info = self.reward(env=env, action_idx=action_idx)
 
         # Execute Action
         if op_type == 0: 
@@ -250,13 +290,33 @@ class QRNAgent:
         if self.learn_step_counter % self.target_update_freq == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
+    def get_curriculum_n_range(self, episode: int, total_episodes: int) -> list:
+        """
+        Progressive curriculum: start small, gradually increase size range.
+        
+        Phase 1 (0-25%): Train on small networks (n=3,4)
+        Phase 2 (25-50%): Medium networks (n=4,5,6)
+        Phase 3 (50-75%): Larger networks (n=5,6,7,8)
+        Phase 4 (75-100%): Full range (n=4,5,6,7,8,9,10)
+        """
+        progress = episode / total_episodes
+        
+        if progress < 0.25:
+            return [3, 4]
+        elif progress < 0.50:
+            return [4, 5, 6]
+        elif progress < 0.75:
+            return [5, 6, 7, 8]
+        else:
+            return [4, 5, 6, 7, 8, 9, 10]
+
 
     def train(self, 
               episodes=500, 
               max_steps=50, 
               savemodel=False, 
               plot=False, 
-              savefig=False, 
+              curriculum=False, 
               jitter=100,
               n_range=[4,6],
               fine_tune=False,
@@ -353,7 +413,7 @@ class QRNAgent:
                 action = self.select_action(state, training=True)
                 r, done, info = self.step_environment(env, action)
                 next_state = env.tensorState()
-                self.memory.add(state, action, r, next_state, None, done)
+                self.memory.add(state, action, r, next_state, done)
                 state = next_state
                 if done: 
                     env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
@@ -369,13 +429,15 @@ class QRNAgent:
                 steps, success, swaps, entangles, q_value_list = 0, 0, 0,0, []
 
                 if jitter and not e % jitter:
-                    new_n = np.random.choice(n_range)
+                    if curriculum:
+                        new_n = np.random.choice(self.get_curriculum_n_range(episode = e, 
+                                                                             total_episodes=episodes))
+                    else:
+                        new_n = np.random.choice(n_range)
                     if new_n != n_nodes:
-                        # Clear buffer when network size changes to avoid confusion
                         self.memory.clear()
                         if use_wandb:
-                            wandb.log({"System/Network_Size_Changed": 1, 
-                                    "System/New_N": new_n})
+                            wandb.log({"System/New_N": new_n})
                     new_env = RepeaterNetwork(n=new_n, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
                     env = new_env
                     n_nodes = new_n
@@ -395,7 +457,6 @@ class QRNAgent:
                                     action=action_idx, 
                                     reward=reward, 
                                     next_state=next_state,
-                                    next_mask=None,
                                     done=done)
                     
                     state = next_state
@@ -716,8 +777,7 @@ class QRNAgent:
                                 # HACK: execute heuristic string on local env
                                 exec(action_str.replace("self.", "env."))
                             
-                            current_fid = env.getLink((0, env.n-1), 1)
-                            is_success = env.endToEndCheck(timeToWait=0)
+                            is_success, current_fid = env.endToEndCheck(timeToWait=0)
 
                             if is_success:
                                 done = True
@@ -725,7 +785,8 @@ class QRNAgent:
                                 if plot_actions and i == 0:
                                     action_timeline[name].append("Done")
                         except:
-                            pass
+                            raise RuntimeError(f's action execution went wrong')
+                        
                         steps += 1
                     results[name]['steps'].append(steps if done else max_steps)
 

@@ -5,17 +5,18 @@ numpy.set_printoptions(legacy='1.25')
 
 
 args = {
-	'episodes': 10_000,
+	'episodes': 15_000,
 	'max_steps': 50,
 	'savemodel': True,
 	'plot': True,
-	'jitter': 500,
+	'jitter': 250,
+	'curriculum': True,
 	'fine_tune': False,
-	'n_range': [4,6],
+	'n_range': [4],
 	'p_e': 0.85,
 	'p_s': 0.95,
 	'tau': 50,
-	'cutoff': 40,
+	'cutoff': 30,
 	'use_wandb': True, 
 	}
 
