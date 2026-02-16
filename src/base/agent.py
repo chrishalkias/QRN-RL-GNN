@@ -56,11 +56,13 @@ class QRNAgent:
         self.memory = Buffer(max_size=buffer_size)
 
     def get_valid_actions_mask(self, 
-                               state: Data
-                               ) -> torch.Tensor:
-        
+                            state: Data
+                            ) -> torch.Tensor:
         """
-        Returns the action mask for each state
+        Returns the action mask for each state.
+        
+        Entangle: Valid for nodes WITHOUT existing right connections (except last node)
+        Swap: Valid for nodes WITH both left AND right connections (except endpoints)
         """
         if not hasattr(state, 'ptr'):
             # Handle single unbatched state
@@ -74,26 +76,22 @@ class QRNAgent:
         first_nodes = ptr[:-1]
         last_nodes = ptr[1:] - 1
 
-        # 1. Entangle valid for all EXCEPT the last node of each graph
-        valid_entangle = torch.ones(num_nodes_total, dtype=torch.bool, device=self.device)
-        valid_entangle[last_nodes] = False
-        mask[:, 0] = valid_entangle
-
-        # 2. Swap valid EXCEPT first/last nodes, requiring left & right connections
+        # Extract connection indicators
         has_left = state.x[:, 0] > 0
-
-        # 1. Entangle valid for all EXCEPT the last node AND nodes with existing right links
         has_right = state.x[:, 1] > 0
+
+        # Entangle: valid for nodes WITHOUT right connections, except last node
         valid_entangle = ~has_right
         valid_entangle[last_nodes] = False
         mask[:, 0] = valid_entangle
 
+        # Swap: requires BOTH left AND right connections, not at endpoints
         valid_swap = has_left & has_right
         valid_swap[first_nodes] = False
         valid_swap[last_nodes] = False
         mask[:, 1] = valid_swap
 
-        return mask.view(-1) # 1D mask aligning with flattened Q-values
+        return mask.view(-1)  # 1D mask aligning with flattened Q-values
 
     def select_action(self, state:Data,
                       training:bool=True
@@ -154,19 +152,18 @@ class QRNAgent:
         return step_cost, success_reward, info
 
     def step_environment(self, 
-                         env:RepeaterNetwork, 
-                         action_idx:int
-                         ) -> tuple: 
+                     env: RepeaterNetwork, 
+                     action_idx: int
+                     ) -> tuple: 
         """
-        ## Action -> Reward
-        ### Description
-            Executes the (integer) action on the environment.
-
-            either `env.entangle(edge=(node, node+1))`
-            or `env.swapAT(node)`.
-
-        ### Returns: 
-            reward (int), done (bool), info (dict)
+        Executes the (integer) action on the environment.
+        
+        Args:
+            env: RepeaterNetwork instance
+            action_idx: Integer encoded action
+            
+        Returns:
+            tuple: (reward, done, info)
         """
         node, op_type = self._decode_action(action_idx)
         step_cost, success_reward, info = self.reward()
@@ -174,12 +171,12 @@ class QRNAgent:
         # Execute Action
         if op_type == 0: 
             env.entangle(edge=(node, node+1))
-        
         elif op_type == 1: 
             env.swapAT(node)
 
-        current_fidelity = env.getLink((0, env.n-1), 1)
-        is_success = env.endToEndCheck(timeToWait=0)
+        # Check for success FIRST, which returns fidelity before zeroing
+        # (Requires modifying endToEndCheck to return fidelity - see repeaters fix)
+        is_success, current_fidelity = env.endToEndCheck(timeToWait=0)
 
         if is_success:
             info['fidelity'] = current_fidelity
@@ -371,10 +368,16 @@ class QRNAgent:
                 score = 0
                 steps, success, swaps, entangles, q_value_list = 0, 0, 0,0, []
 
-                if jitter and not e%jitter:
+                if jitter and not e % jitter:
                     new_n = np.random.choice(n_range)
+                    if new_n != n_nodes:
+                        # Clear buffer when network size changes to avoid confusion
+                        self.memory.clear()
+                        if use_wandb:
+                            wandb.log({"System/Network_Size_Changed": 1, 
+                                    "System/New_N": new_n})
                     new_env = RepeaterNetwork(n=new_n, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
-                    env=new_env
+                    env = new_env
                     n_nodes = new_n
                     state = env.tensorState()
 
