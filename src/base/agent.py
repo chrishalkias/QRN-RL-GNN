@@ -43,7 +43,6 @@ class QRNAgent:
         self.learn_step_counter = 0
 
         # Models
-        # GNN is graph-size invariant
         self.policy_net = GNN(node_dim=2, output_dim=2).to(self.device)
         self.target_net = GNN(node_dim=2, output_dim=2).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -115,7 +114,7 @@ class QRNAgent:
                 
                 # Apply 1D mask
                 q_flat[~mask] = -float('inf')
-                max_q = q_flat.max().item()
+                # max_q = q_flat.max().item() #In case peeking into the q-val is needed
             self.policy_net.train()
 
             if training and random.random() < self.epsilon:
@@ -144,52 +143,14 @@ class QRNAgent:
         op_type = action_idx % 2 # 0 = Entangle, 1 = Swap
         return node, op_type
     
-    def reward(self,
-               env: RepeaterNetwork,
-               action_idx:int
-               ) -> float:
+    def reward(self) -> float:
         """
         Defines the succsess reward and time penalty
-
-        Components:
-            1. Time penalty (biases towards small wait times)
-            2. Success reward (goal achievement)
-            3. Fidelity bonus (encourages high-quality links)
-            4. Link expiry penalty (discourages operating on dying links)
         """
-
-        #base rewards
         step_cost = -1
         success_reward = 100
         info = {'fidelity': 0.0}
-
-        e2e_fidelity = env.getLink((0, env.n-1), 1)
-        if e2e_fidelity > 0:
-            # Bonus for high fidelity
-            fidelity_bonus = 10 * (e2e_fidelity ** 2)
-            step_cost += fidelity_bonus
-        
-        # Penalize operating on low-fidelity links
-        node, op_type = self._decode_action(action_idx)
-        link_quality_penalty = 0
-        
-        if op_type == 1:  # Swap operation
-            # Check fidelity of links involved in swap
-            left_fidelities = env.fidelities[:node, node]
-            right_fidelities = env.fidelities[node, node+1:]
-            
-            if left_fidelities.max() > 0 and right_fidelities.max() > 0:
-                avg_fidelity = (left_fidelities.max() + right_fidelities.max()) / 2
-                
-                # Penalize swapping very low fidelity links
-                expiry_threshold = np.exp(-env.cutoff / env.tau) if env.cutoff else 0.1
-                if avg_fidelity < expiry_threshold * 2:  # Close to expiry
-                    link_quality_penalty = -5
-        
-        info['e2e_fidelity'] = e2e_fidelity
-        info['link_quality_penalty'] = link_quality_penalty
-        
-        return step_cost + link_quality_penalty, success_reward, info
+        return step_cost, success_reward, info
 
     def step_environment(self, 
                      env: RepeaterNetwork, 
@@ -206,7 +167,7 @@ class QRNAgent:
             tuple: (reward, done, info)
         """
         node, op_type = self._decode_action(action_idx)
-        step_cost, success_reward, info = self.reward(env=env, action_idx=action_idx)
+        step_cost, success_reward, info = self.reward()
 
         # Execute Action
         if op_type == 0: 
@@ -595,7 +556,6 @@ class QRNAgent:
                     return "None"
 
             # --- Helper: Plotting Function ---
-            # --- Helper: Plotting Function (MODIFIED) ---
             def plot_action_timeline(action_history):
                 strategies = list(action_history.keys())
                 

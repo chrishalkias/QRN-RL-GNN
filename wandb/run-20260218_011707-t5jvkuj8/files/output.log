@@ -1,0 +1,10 @@
+Ep 345 | Score: 95.0 | Eps: 1.00:   2%|██▏                                                                                           | 345/15000 [00:37<23:44, 10.29it/s]Exception ignored in: <Finalize object, dead>
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/util.py", line 197, in __call__
+    def __call__(self, wr=None,
+KeyboardInterrupt:
+Ep 387 | Score: 94.0 | Eps: 1.00:   3%|██▍                                                                                           | 387/15000 [00:41<26:23,  9.23it/s]
+
+
+Training Interrupted by User (Ctrl+C)!
+Attempting to save current model state...

@@ -25,12 +25,12 @@ class GNN(nn.Module):
                  output_dim=2):
         super().__init__()
         
-        # Two-layer GAT for better feature extraction
+        # One layer GAT
         self.encoder = nn.Sequential(
             GATv2Conv(node_dim, embedding_dim, heads=num_heads, edge_dim=edge_dim),
         )
         
-        # Deeper decoder with residual-like connection
+        # 2 layer decoder
         self.decoder = nn.Sequential(
             nn.Linear(embedding_dim * num_heads, hidden_dim),
             nn.ReLU(),

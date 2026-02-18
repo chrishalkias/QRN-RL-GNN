@@ -1,0 +1,25 @@
+2026-02-18 01:25:34,770 INFO    MainThread:10607 [wandb_setup.py:_flush():81] Current SDK version is 0.25.0
+2026-02-18 01:25:34,770 INFO    MainThread:10607 [wandb_setup.py:_flush():81] Configure stats pid to 10607
+2026-02-18 01:25:34,770 INFO    MainThread:10607 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-02-18 01:25:34,770 INFO    MainThread:10607 [wandb_init.py:setup_run_log_directory():717] Logging user logs to /Users/chrischalkias/GitHub/QRN-RL-GNN/wandb/run-20260218_012534-zjnldj3l/logs/debug.log
+2026-02-18 01:25:34,770 INFO    MainThread:10607 [wandb_init.py:setup_run_log_directory():718] Logging internal logs to /Users/chrischalkias/GitHub/QRN-RL-GNN/wandb/run-20260218_012534-zjnldj3l/logs/debug-internal.log
+2026-02-18 01:25:34,770 INFO    MainThread:10607 [wandb_init.py:init():844] calling init triggers
+2026-02-18 01:25:34,771 INFO    MainThread:10607 [wandb_init.py:init():849] wandb.init called with sweep_config: {}
+config: {'lr': 0.0005, 'gamma': 0.95, 'batch_size': 128, 'episodes': 1000, 'n_nodes_range': [4], 'p_entangle': 0.85, 'p_swap': 0.95, 'tau': 50, 'cutoff': 30, 'fine_tune': False, '_wandb': {}}
+2026-02-18 01:25:34,771 INFO    MainThread:10607 [wandb_init.py:init():892] starting backend
+2026-02-18 01:25:35,020 INFO    MainThread:10607 [wandb_init.py:init():895] sending inform_init request
+2026-02-18 01:25:35,039 INFO    MainThread:10607 [wandb_init.py:init():903] backend started and connected
+2026-02-18 01:25:35,067 INFO    MainThread:10607 [wandb_init.py:init():973] updated telemetry
+2026-02-18 01:25:35,093 INFO    MainThread:10607 [wandb_init.py:init():997] communicating run to backend with 90.0 second timeout
+2026-02-18 01:25:35,649 INFO    MainThread:10607 [wandb_init.py:init():1042] starting run threads in backend
+2026-02-18 01:25:35,727 INFO    MainThread:10607 [wandb_run.py:_console_start():2524] atexit reg
+2026-02-18 01:25:35,727 INFO    MainThread:10607 [wandb_run.py:_redirect():2373] redirect: wrap_raw
+2026-02-18 01:25:35,727 INFO    MainThread:10607 [wandb_run.py:_redirect():2442] Wrapping output streams.
+2026-02-18 01:25:35,727 INFO    MainThread:10607 [wandb_run.py:_redirect():2465] Redirects installed.
+2026-02-18 01:25:35,731 INFO    MainThread:10607 [wandb_init.py:init():1082] run started, returning control to user process
+2026-02-18 01:25:35,731 INFO    MainThread:10607 [wandb_watch.py:_watch():69] Watching
+2026-02-18 01:29:16,831 INFO    MainThread:10607 [wandb_run.py:_finish():2291] finishing run chrishalkias-leiden-university/QRN-RL/zjnldj3l
+2026-02-18 01:29:16,834 INFO    MainThread:10607 [wandb_run.py:_atexit_cleanup():2490] got exitcode: 0
+2026-02-18 01:29:16,836 INFO    MainThread:10607 [wandb_run.py:_restore():2472] restore
+2026-02-18 01:29:16,836 INFO    MainThread:10607 [wandb_run.py:_restore():2478] restore done
+2026-02-18 01:29:17,788 INFO    MainThread:10607 [wandb_run.py:_footer_sync_info():3868] logging synced files

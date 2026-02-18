@@ -151,7 +151,7 @@ class RepeaterNetwork():
         - [1] has_right: binary indicator of right connections 
         
         Edge features (1 total):
-        - [0] fidelity: link quality (no direction!)
+        - [0] fidelity: link quality (no direction)
         """
         row, col = torch.meshgrid(torch.arange(self.n), torch.arange(self.n), indexing='ij')
         
@@ -165,7 +165,7 @@ class RepeaterNetwork():
         # Edge attributes: Fidelity only (no direction)
         edge_attr = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
         
-        # --- Enhanced Node Features ---
+        # --- Node Features ---
         node_attr = torch.zeros((self.n, 2), dtype=torch.float)
         has_link = self.fidelities > 0
         

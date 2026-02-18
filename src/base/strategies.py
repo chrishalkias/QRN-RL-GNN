@@ -207,7 +207,7 @@ class Strategies():
         else:
             raise RuntimeError('No available actions. SOmething broke')
         
-    def create_and_propagate(self, cutoff: bool = False):
+    def frontier(self, cutoff: bool = False):
             """
             Simple linear propagation strategy.
             1. Identifies the farthest node currently connected to node 0 (the frontier).
@@ -215,7 +215,7 @@ class Strategies():
             3. If that segment exists, it swaps at the frontier to extend the link.
             """
             
-            # 1. Find the current frontier (farthest node connected to 0)
+            # Find the current frontier (farthest node connected to 0)
             frontier = 0
             # Check backwards from N-1 down to 1
             for k in range(self.network.n - 1, 0, -1):
@@ -227,15 +227,15 @@ class Strategies():
             # The next node we need to connect to
             target = frontier + 1
 
-            # 2. Check if the next small link segment exists
-            # e.g., if we have (0,2), we check if (2,3) exists
+            # Check if the next small link segment exists
+            # e.g., if u have (0,2), u check if (2,3) exists
             segment_exists = self.network.getLink((frontier, target), 1) > 0
 
             if not segment_exists:
-                # Case A: The next segment is missing -> Create it
+                # Case i: The next segment is missing -> Create it
                 return f'self.entangle(({frontier}, {target}))'
             else:
-                # Case B: The next segment exists.
-                # Since 'frontier' is connected to 0, and 'target' is connected to 'frontier',
-                # we swap at 'frontier' to join them into (0, target).
+                # Case ii: The next segment exists.
+                # since 'frontier' is connected to 0, and 'target' is connected to 'frontier',
+                # u swap at 'frontier' to join them into (0, target).
                 return f'self.swapAT({frontier})'
