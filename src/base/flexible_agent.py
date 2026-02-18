@@ -22,7 +22,7 @@ import math
 
 # Import from flexible architecture
 from base.flexible_model import FlexibleGNN, ActionSpace, combine_q_values
-from base.flexible_repeaters import FlexibleRepeaterNetwork
+from base.repeaters.network import FlexibleRepeaterNetwork
 from base.buffer import Buffer
 
 

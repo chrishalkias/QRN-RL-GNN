@@ -4,7 +4,7 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 from base.flexible_model import GNN
-from base.flexible_repeaters import RepeaterNetwork
+from base.repeaters.network import RepeaterNetwork
 from labellines import *
 
 os.environ["PATH"] += os.pathsep + '/Library/TeX/texbin'

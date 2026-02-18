@@ -1,7 +1,7 @@
 from torchrl.data import ReplayBuffer
 from torchrl.data import ListStorage
 import numpy as np
-from base.flexible_repeaters import FlexibleRepeaterNetwork
+from base.repeaters.network import FlexibleRepeaterNetwork
 import random
 from tensordict import TensorDict
 import torch

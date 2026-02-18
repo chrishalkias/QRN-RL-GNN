@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import random
-from base.flexible_repeaters import RepeaterNetwork
+from base.repeaters.network import RepeaterNetwork
 import random
 
 def generateRandom_N():

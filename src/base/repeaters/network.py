@@ -7,9 +7,10 @@ Supports: chains, rings, stars, grids, trees, and custom adjacency matrices
 import numpy as np
 import torch
 from torch_geometric.data import Data
+from repeater import Repeater
+from graph_builder import GraphBuilder
 
-
-class FlexibleRepeaterNetwork:
+class RepeaterNetwork:
     """
     Quantum repeater network simulator with support for arbitrary topologies.
     """
@@ -37,100 +38,61 @@ class FlexibleRepeaterNetwork:
         self.tau, self.cutoff = tau, cutoff
         self.p_entangle, self.p_swap = p_entangle, p_swap
         
-        # Build adjacency matrix based on topology
-        self.adjacency = self._build_adjacency(topology, adjacency)
-        
-        # Get physical edges from adjacency
+        # Build adjacency matrix based on topology and get physical edges
+        graph = GraphBuilder()
+        self.adjacency = graph._build_adjacency(n=self.n, topology=topology)
         self.physical_edges = self._get_physical_edges()
         
-        # Fidelity matrix (stores entanglement fidelities)
+        # Init the repeaters and get Fidelity matrix
+        self.repeaters = [Repeater(n_channels=2, cutoff=self.cutoff, distillation=False, pe=1, ps=1) for _ in range(n)]
+        #set repeater tags
+        self._tag_repeaters()
+        
+
         self.fidelities = torch.zeros((self.n, self.n), dtype=torch.float)
     
-    def _build_adjacency(self, topology, custom_adj=None):
-        """Build adjacency matrix based on topology type"""
-        if topology == 'chain':
-            return self._build_chain()
-        elif topology == 'ring':
-            return self._build_ring()
-        elif topology == 'star':
-            return self._build_star()
-        elif topology == 'grid':
-            return self._build_grid()
-        elif topology == 'tree':
-            return self._build_tree()
-        elif topology == 'custom':
-            if custom_adj is None:
-                raise ValueError("Must provide adjacency matrix for custom topology")
-            return custom_adj
+    def _tag_repeaters(self):
+        iter= 0
+        for repeater in self.repeaters:
+            repeater._set_tag(iter)
+            iter+=1
+
+    def distill(self, edge):
+        """Performs the entanglement purification protocol"""
+        f1, f2 = edge
+        p_distill = (8/9) * f1*f2 - (2/9) * (f1+f2) + (5/9)
+        f_distill = (1- (f1+f2) + 10 * f1 * f2)/(5 - 2 * (f1 +f2 + 8 * f1 + f2))
+
+        if p_distill < np.random.rand():
+            return 0
         else:
-            raise ValueError(f"Unknown topology: {topology}")
-    
-    def _build_chain(self):
-        """Linear chain: 0-1-2-...-n"""
-        adj = torch.zeros((self.n, self.n))
-        for i in range(self.n - 1):
-            adj[i, i+1] = 1
-            adj[i+1, i] = 1
-        return adj
-    
-    def _build_ring(self):
-        """Ring: chain with wrap-around connection"""
-        adj = self._build_chain()
-        if self.n > 2:
-            adj[0, self.n-1] = 1
-            adj[self.n-1, 0] = 1
-        return adj
-    
-    def _build_star(self):
-        """Star: node 0 connected to all others"""
-        adj = torch.zeros((self.n, self.n))
-        for i in range(1, self.n):
-            adj[0, i] = 1
-            adj[i, 0] = 1
-        return adj
-    
-    def _build_grid(self):
-        """2D grid (requires perfect square n)"""
-        import math
-        side = int(math.sqrt(self.n))
-        if side * side != self.n:
-            raise ValueError(f"Grid topology requires perfect square n, got {self.n}")
+            return f_distill
         
-        adj = torch.zeros((self.n, self.n))
-        for i in range(self.n):
-            row, col = i // side, i % side
-            
-            # Right neighbor
-            if col < side - 1:
-                j = i + 1
-                adj[i, j] = 1
-                adj[j, i] = 1
-            
-            # Bottom neighbor
-            if row < side - 1:
-                j = i + side
-                adj[i, j] = 1
-                adj[j, i] = 1
+    def attempt_entangle(self, 
+                 repeater1: Repeater,
+                 repeater2: Repeater):
         
-        return adj
-    
-    def _build_tree(self):
-        """Binary tree topology"""
-        adj = torch.zeros((self.n, self.n))
-        for i in range(self.n):
-            # Left child
-            left = 2*i + 1
-            if left < self.n:
-                adj[i, left] = 1
-                adj[left, i] = 1
-            
-            # Right child
-            right = 2*i + 2
-            if right < self.n:
-                adj[i, right] = 1
-                adj[right, i] = 1
+        """
+        Attemps entanglement genration between two repeaters and keeps track of
+        the repeaters involved and the entangled qubits (channels) of each repeater
+        """
         
-        return adj
+        idx1 = repeater1.tag
+        idx2 = repeater2.tag
+
+        if torch.tensor(sorted([idx1, idx2])) not in self._get_physical_edges():
+            return 'no connection'
+        
+        p_effective = 0.5 * (repeater1.pe + repeater2.pe)
+        if p_effective > np.random.rand():
+            channel1 = repeater1.generate_link()
+            channel2 = repeater1.generate_link()
+
+        if channel1 and channel2:
+            return channel1, channel2
+        else:
+            return
+
     
     def _get_physical_edges(self):
         """Extract list of physical edges from adjacency matrix"""
@@ -344,18 +306,10 @@ class FlexibleRepeaterNetwork:
 
 # Example usage:
 if __name__ == "__main__":
-    # Test different topologies
-    topologies = {
-        'chain_4': FlexibleRepeaterNetwork(n=4, topology='chain'),
-        'ring_6': FlexibleRepeaterNetwork(n=6, topology='ring'),
-        'star_5': FlexibleRepeaterNetwork(n=5, topology='star'),
-        'grid_9': FlexibleRepeaterNetwork(n=9, topology='grid'),
-    }
-    
-    for name, env in topologies.items():
-        state = env.tensorState()
-        print(f"\n{name}:")
-        print(f"  Nodes: {state.num_nodes}")
-        print(f"  Physical edges: {len(env.physical_edges)}")
-        print(f"  Node features shape: {state.x.shape}")
-        print(f"  Edge features shape: {state.edge_attr.shape}")
+   network = RepeaterNetwork(n=4, topology='chain')
+   repeaters = network.repeaters
+   for repeater in repeaters:
+       print(repeater.tag)
+   x = network.attempt_entangle(repeaters[0], repeaters[1])
+   print(x)
+   print(network._get_physical_edges())

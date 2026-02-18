@@ -2,3 +2,19 @@ TODO LIST:
 
     - Remove mask, let agent learn to never swap a node without two connections
     - Grid search? [https://discuss.pytorch.org/t/what-is-the-best-way-to-perform-hyper-parameter-search-in-pytorch/19943/3]
+    - New recipe
+        1. Check the number of active links to the right of every node (except for the right-most node). 
+        If there are inactive links, request the corresponding elementary link.
+
+        2. Check the number of active links to the left and right of every node, except for the end nodes. 
+        If more than one link on either side is active, rank them based on the policy, as described in detail
+         in Quasi-local multiplexing policies. Perform the entanglement swapping operations in the ranked order. 
+        Entanglement swapping is attempted only if the sum of the ages of the two links is less than m★.
+
+        3. If entanglement distillation is part of the policy, attempt to distill all links between the same two
+        nodes until either one or no link survives (also see Supplementary Note 2). 
+        If the policy calls for distilling first, then swapping, interchange steps 2 and 3.
+
+        4. Increase the age of all active links by one time unit, accounting for decoherence. 
+        If classical communication (CC) overheads are to be accounted for, then add the CC time 
+        to the age of every active link. Discard any link which has age greater than m★.
