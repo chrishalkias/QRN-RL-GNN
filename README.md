@@ -1,7 +1,8 @@
 # Learning scalable entanglement distribution
 
 
-
+>[!WARNING]
+>Work in progress.
 
 <div align='center'>
 
@@ -131,15 +132,52 @@ The agent, utilizes a GNN model for the target and policy networks. This is what
 
 ### Graph attention network
 
-The graph attention network is a small class with a simple GNN architecture to be used to store the environment model of the RL agent. By default the model is comprised of one `GATv2Conv` layer and two fully connected layers
+The graph attention network is a small class with a simple GNN architecture to be used to store the environment model of the RL agent. By default the model is comprised of one `GATv2Conv` layer and two fully connected layers. The model is intended to be light-weight. For a 4-node network there are ~1k parameters:
 
 ```python
-GATv2Conv(node_dim=2, 
-          embedding_dim=16, 
-          heads=2, 
-          edge_dim=2)
++-----------------------+----------------+----------------+----------+
+| Layer                 | Input Shape    | Output Shape   | Params   |
+|-----------------------+----------------+----------------+----------|
+| GNN                   | [8, 8]         | [8, 2]         | 1346     |
+| ├─(encoder)Sequential | --             | --             | 224      |
+| │    └─(0)GATv2Conv   | [8, 1], [2, 7] | [8, 32]        | 224      |
+| ├─(decoder)Sequential | [8, 32]        | [8, 2]         | 1122     |
+| │    └─(0)Linear      | [8, 32]        | [8, 32]        | 1056     |
+| │    └─(1)ReLU        | [8, 32]        | [8, 32]        | --       |
+| │    └─(2)Linear      | [8, 32]        | [8, 2]         | 66       |
++-----------------------+----------------+----------------+----------+
+Total parameters: 1346
+
 ```
 
+## Performance
+
+The performance of the agent is close to state of the art strategies
+
+```text
+--- Validation (N:8, Pe:0.1, Ps:0.95, tau:50, cutoff:20) ---
+--- Max_steps: 150, n_episodes:1000, Model: d(18-2)l4u6e1000m100p85a95t500c200 --
+======================================================================
+Strategy     | Avg Steps (std)     | Avg Fidelity (std) | S%   | F%   
+----------------------------------------------------------------------
+Agent        | 76.51     (±24.10 ) | 0.6970   (±0.0030) | 100% | 100% 
+Frontier     | 79.16     (±25.82 ) | 0.6977   (±0.0000) | 103% | 100% 
+FN_Swap      | 76.85     (±25.02 ) | 0.6971   (±0.0028) | 100% | 100% 
+SN_Swap      | 77.09     (±24.96 ) | 0.6971   (±0.0027) | 101% | 100% 
+SwapASAP     | 77.52     (±24.76 ) | 0.6972   (±0.0027) | 101% | 100% 
+Random       | 150.00    (±0.00  ) | 0.0000   (±0.0000) | 196% | 0%
+```
+
+<div align="center">
+<img src="./assets/display/policy comparison.png" alt="Image Description" width="600" height="250">
+</div>
+
+
+The relative performance of the agent with the (random) swap-asap policy increases with increasing $p_e$ and decreasing $p_s$
+
+<div align="center">
+<img src="./assets/display/heatmap_disp.png" alt="Image Description" width="400" height="300">
+</div>
 
 
 ## Installation
@@ -155,13 +193,11 @@ and installing the required packages
 pip install -r requirements.txt
 ```
 
+
+
 ## Additional Information
 The physical system used is Quantum repeaters. Big picture and outlook YouTube video from [QuTech](https://www.youtube.com/watch?v=9iCFH9Fk184) and [Qunnect (animation)](https://www.youtube.com/watch?v=3_oqkFO4f-A). The project has a similar scope to [Haldar et al.](https://arxiv.org/abs/2303.00777) but the idea is to use more state of the art architectures for the RL agent (such as graph neural netowkrs) to extend to scale ($n$) invariant models.
 
-This work was done as part of my MSc project for Leiden University under the supervision of [Evert van Nieuwenburg](https://github.com/everthemore).
-
->[!WARNING]
->There is an ongoing process for making a paper out of this so this is technichally a work in progress.
 
 
 
