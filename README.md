@@ -1,10 +1,12 @@
 # Learning scalable entanglement distribution
 
 
+<div align='center'>
+
+
 >[!WARNING]
 >Work in progress.
 
-<div align='center'>
 
 ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
 ![LaTeX](https://img.shields.io/badge/LaTeX-008080?logo=latex&logoColor=white)
