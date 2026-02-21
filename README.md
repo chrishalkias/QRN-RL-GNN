@@ -1,12 +1,11 @@
 # Learning scalable entanglement distribution
 
 
-<div align='center'>
-
-
 >[!WARNING]
 >Work in progress.
 
+
+<div align='center'>
 
 ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
 ![LaTeX](https://img.shields.io/badge/LaTeX-008080?logo=latex&logoColor=white)
@@ -171,7 +170,7 @@ Random       | 150.00    (±0.00  ) | 0.0000   (±0.0000) | 196% | 0%
 ```
 
 <div align="center">
-<img src="./assets/display/policy comparison.png" alt="Image Description" width="600" height="250">
+<img src="./assets/display/policy_comparison.png" alt="Image Description" width="600" height="250">
 </div>
 
 
