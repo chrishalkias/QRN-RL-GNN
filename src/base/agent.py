@@ -23,6 +23,94 @@ from base.buffer import Buffer
 from base.model import GNN
 from base.strategies import Strategies
 
+
+
+class Binder:
+        def __init__(self):
+            """Decouples the physical environment from the agent."""
+            ...
+
+        @staticmethod
+        def get_valid_actions_mask(state: Data, device) -> torch.Tensor:
+            """
+            Returns the action mask for each state.
+            
+            Entangle: Valid for nodes WITHOUT existing right connections (except last node)
+            Swap: Valid for nodes WITH both left AND right connections (except endpoints)
+            """
+            if not hasattr(state, 'ptr'):
+                # Handle single unbatched state
+                ptr = torch.tensor([0, state.x.shape[0]], device=device)
+            else:
+                ptr = state.ptr
+
+            num_nodes_total = state.x.shape[0]
+            mask = torch.zeros((num_nodes_total, 2), dtype=torch.bool, device=device)
+
+            first_nodes = ptr[:-1]
+            last_nodes = ptr[1:] - 1
+
+            # Extract connection indicators
+            has_left = state.x[:, 0] > 0
+            has_right = state.x[:, 1] > 0
+
+            # Entangle: valid for nodes WITHOUT right connections, except last node
+            valid_entangle = ~has_right
+            valid_entangle[last_nodes] = False
+            mask[:, 0] = valid_entangle
+
+            # Swap: requires BOTH left AND right connections, not at endpoints
+            valid_swap = has_left & has_right
+            valid_swap[first_nodes] = False
+            valid_swap[last_nodes] = False
+            mask[:, 1] = valid_swap
+
+            return mask.view(-1)  # 1D mask aligning with flattened Q-values
+        
+        @staticmethod
+        def _decode_action(action_idx: int)-> tuple:
+            """
+            ## Action_idx -> (node, bool)
+
+            ###Decription:
+                Decodes flattened action index back to (node, operation)
+            """
+            node = action_idx // 2
+            op_type = action_idx % 2 # 0 = Entangle, 1 = Swap
+            return node, op_type
+        
+        @classmethod
+        def step_environment(self, env: RepeaterNetwork, action_idx: int) -> tuple: 
+            """
+            Executes the (integer) action on the environment.
+            
+            Args:
+                env: RepeaterNetwork instance
+                action_idx: Integer encoded action
+                
+            Returns:
+                tuple: (reward, done, info)
+            """
+            node, op_type = self._decode_action(action_idx)
+            step_cost, success_reward, info = self.reward()
+
+            # Execute Action
+            if op_type == 0: 
+                env.entangle(edge=(node, node+1))
+            elif op_type == 1: 
+                env.swapAT(node)
+
+            # Check for success FIRST, which returns fidelity before zeroing
+            # (Requires modifying endToEndCheck to return fidelity - see repeaters fix)
+            is_success, current_fidelity = env.endToEndCheck(timeToWait=0)
+
+            if is_success:
+                info['fidelity'] = current_fidelity
+                return success_reward, True, info
+            
+            return step_cost, False, info
+        
+
 class QRNAgent:
     def __init__(self, 
                  lr=5e-4, 
@@ -31,6 +119,8 @@ class QRNAgent:
                  epsilon=1.0,
                  batch_size=128,
                  target_update_freq=500):
+        
+        #TODO decouple the agent from the action selection
         
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
@@ -42,55 +132,19 @@ class QRNAgent:
         self.target_update_freq = target_update_freq
         self.learn_step_counter = 0
 
+
         # Models
         self.policy_net = GNN(node_dim=2, output_dim=2).to(self.device)
         self.target_net = GNN(node_dim=2, output_dim=2).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
+        # Optimizer
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
         self.loss_fn = nn.MSELoss()
         
         # Buffer
         self.memory = Buffer(max_size=buffer_size)
-
-    def get_valid_actions_mask(self, 
-                            state: Data
-                            ) -> torch.Tensor:
-        """
-        Returns the action mask for each state.
-        
-        Entangle: Valid for nodes WITHOUT existing right connections (except last node)
-        Swap: Valid for nodes WITH both left AND right connections (except endpoints)
-        """
-        if not hasattr(state, 'ptr'):
-            # Handle single unbatched state
-            ptr = torch.tensor([0, state.x.shape[0]], device=self.device)
-        else:
-            ptr = state.ptr
-
-        num_nodes_total = state.x.shape[0]
-        mask = torch.zeros((num_nodes_total, 2), dtype=torch.bool, device=self.device)
-
-        first_nodes = ptr[:-1]
-        last_nodes = ptr[1:] - 1
-
-        # Extract connection indicators
-        has_left = state.x[:, 0] > 0
-        has_right = state.x[:, 1] > 0
-
-        # Entangle: valid for nodes WITHOUT right connections, except last node
-        valid_entangle = ~has_right
-        valid_entangle[last_nodes] = False
-        mask[:, 0] = valid_entangle
-
-        # Swap: requires BOTH left AND right connections, not at endpoints
-        valid_swap = has_left & has_right
-        valid_swap[first_nodes] = False
-        valid_swap[last_nodes] = False
-        mask[:, 1] = valid_swap
-
-        return mask.view(-1)  # 1D mask aligning with flattened Q-values
 
     def select_action(self, state:Data,
                       training:bool=True
@@ -104,7 +158,7 @@ class QRNAgent:
             ### Returns:
                 The integer-encoded action via the `tensor.argmax()` function
             """
-            mask = self.get_valid_actions_mask(state)
+            mask = Binder.get_valid_actions_mask(state, self.device)
             
             self.policy_net.eval()
             with torch.no_grad():
@@ -130,18 +184,6 @@ class QRNAgent:
 
             return action_idx
 
-    def _decode_action(self, 
-                      action_idx: int
-                      )-> tuple:
-        """
-        ## Action_idx -> (node, bool)
-
-        ###Decription:
-            Decodes flattened action index back to (node, operation)
-        """
-        node = action_idx // 2
-        op_type = action_idx % 2 # 0 = Entangle, 1 = Swap
-        return node, op_type
     
     def reward(self) -> float:
         """
@@ -151,41 +193,7 @@ class QRNAgent:
         success_reward = 100
         info = {'fidelity': 0.0}
         return step_cost, success_reward, info
-
-    def step_environment(self, 
-                     env: RepeaterNetwork, 
-                     action_idx: int
-                     ) -> tuple: 
-        """
-        Executes the (integer) action on the environment.
-        
-        Args:
-            env: RepeaterNetwork instance
-            action_idx: Integer encoded action
-            
-        Returns:
-            tuple: (reward, done, info)
-        """
-        node, op_type = self._decode_action(action_idx)
-        step_cost, success_reward, info = self.reward()
-
-        # Execute Action
-        if op_type == 0: 
-            env.entangle(edge=(node, node+1))
-        elif op_type == 1: 
-            env.swapAT(node)
-
-        # Check for success FIRST, which returns fidelity before zeroing
-        # (Requires modifying endToEndCheck to return fidelity - see repeaters fix)
-        is_success, current_fidelity = env.endToEndCheck(timeToWait=0)
-
-        if is_success:
-            info['fidelity'] = current_fidelity
-            return success_reward, True, info
-        
-        return step_cost, False, info
     
-
 
     def train_step(self):
         """            
@@ -226,7 +234,7 @@ class QRNAgent:
             next_q_values_flat = self.target_net(next_state_batch).view(-1)
 
             # Returns a 1D mask of size [Total_Nodes * 2]
-            mask = self.get_valid_actions_mask(next_state_batch)
+            mask = Binder.get_valid_actions_mask(next_state_batch, self.device)
 
             # Apply 1D mask
             next_q_values_flat[~mask] = -float('inf')
@@ -293,46 +301,40 @@ class QRNAgent:
 
         Trains the agent. Performs the following algorithm
 
-        ### Parameters
+        Args:
         
-        #### episodes
-            The maximum number of episodes to train for
-            generally somewhere in the range of 1000-50.000.
-        #### max_steps 
-            The maximum number of steps until episode termination.
-            The agent is givem this amount of possible operations 
-            until the episode terminates and the systems restarts.
-        #### savemodel 
-            Save the model .pth file to be used for validation and diagnostics
-        #### plot
-            Plot the reward curves for training (redundand if using wandb)
-        #### savefig
-            Save the figure produced by plot
-        #### jitter
-            If non-zero, specifies the number of episodes for which the system
-            is reinitialized to a new value of n (chosen at random from n_rang).
-            If the new_n is different from the old, the Buffer is reinitialized.
-        #### n_range
-            The range for which to choose n's from. If `jitter=0` then the first
-            element of the list is always passed as the n to be trained on.
-        #### fine_tune
-            If true, the parameters of the agent are changed so that the training run
-            counts as fine tuning. `self.lr` is lower, `self.epsilon` starts from a
-            smaller value and the agent expects a trained dict to be uploaded into *both*
-            the `self.policy_net` and `self.value_net`.
-        #### p_e 
-            The entanglement probability to be trained on (avg if `homogenous=False`). 
-        #### p_s
-            The entanglement probability to be trained on (avg if `homogenous=False`).
-        #### tau
-            The tau parameter to be trained on (avg if `homogenous=False`)
-        #### cutoff 
-            The cutoff to be trained on (avg if `homogenous=False`)
-        #### use_wandb
-            If true, pushes the run to wandb to monitor the training performance, model
-            weights and compare with other training runs.
-        #### wandb_project
-            The name of the wandb project
+            episodes:
+                The maximum number of episodes to train for
+                generally somewhere in the range of 1000-50.000.
+            max_steps:
+                The maximum number of steps until episode termination.
+                The agent is givem this amount of possible operations 
+                until the episode terminates and the systems restarts.
+                savemodel 
+                Save the model .pth file to be used for validation and diagnostics
+            plot:
+                Plot the reward curves for training (redundand if using wandb)
+            savefig:
+                Save the figure produced by plot
+            jitter:
+                If non-zero, specifies the number of episodes for which the system
+                is reinitialized to a new value of n (chosen at random from n_rang).
+                If the new_n is different from the old, the Buffer is reinitialized.
+            n_range:
+                The range for which to choose n's from. If `jitter=0` then the first
+                element of the list is always passed as the n to be trained on.
+            fine_tune:
+                If true, the parameters of the agent are changed so that the training run
+                counts as fine tuning. `self.lr` is lower, `self.epsilon` starts from a
+                smaller value and the agent expects a trained dict to be uploaded into *both*
+                the `self.policy_net` and `self.value_net`.
+            p_e, p_s, tau, cutoff:
+                The training env parameters
+            use_wandb:
+                If true, pushes the run to wandb to monitor the training performance, model
+                weights and compare with other training runs.
+            wandb_project:
+                The name of the wandb project
         """
         
 
@@ -366,13 +368,13 @@ class QRNAgent:
         eps_init = 1.0 if not fine_tune else 0.2
         eps_fin = 0.05 if not fine_tune else 0.01
 
-        if fine_tune: #load buffer for fine tuning
+        if fine_tune: #load buffer for fine tuning # REVIEW to check the logic
             self.optimizer = optim.Adam(self.policy_net.parameters(), lr=5e-5, eps=1e-4)
             env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
             state = env.tensorState()
             for _ in range(self.batch_size * 5):
-                action = self.select_action(state, training=True)
-                r, done, info = self.step_environment(env, action)
+                action = Binder.select_action(state, training=True)
+                r, done, info = Binder.step_environment(env, action)
                 next_state = env.tensorState()
                 self.memory.add(state, action, r, next_state, done)
                 state = next_state
@@ -389,10 +391,9 @@ class QRNAgent:
                 score = 0
                 steps, success, swaps, entangles, q_value_list = 0, 0, 0,0, []
 
-                if jitter and not e % jitter:
+                if jitter and not e % jitter: # REVIEW check the jitter logic
                     if curriculum:
-                        new_n = np.random.choice(self.get_curriculum_n_range(episode = e, 
-                                                                             total_episodes=episodes))
+                        new_n = np.random.choice(self.get_curriculum_n_range(episode = e, total_episodes=episodes))
                     else:
                         new_n = np.random.choice(n_range)
                     if new_n != n_nodes:
@@ -406,12 +407,12 @@ class QRNAgent:
 
                 for _ in range(max_steps):
                     action_idx = self.select_action(state, training=True)
-                    if action_idx % 2 == 0:
+                    if action_idx % 2 == 0: # HACK This has to be pulled to the Binder somehow
                         entangles += 1
                     else:
                         swaps +=1
                     
-                    reward, done, info = self.step_environment(env, action_idx)
+                    reward, done, info = Binder.step_environment(env, action_idx)
                     next_state = env.tensorState()
                     
                     self.memory.add(state=state, 
@@ -432,7 +433,7 @@ class QRNAgent:
                         break
 
                 total_steps += steps
-                if not fine_tune:
+                if not fine_tune: # QUESTION Is there a better choice here?
                     self.epsilon = eps_fin + 0.5 * (eps_init - eps_fin) * (1 + math.cos(math.pi * e / episodes))
                 elif fine_tune:
                     self.epsilon = 0.2 * np.exp(-10 * e / episodes)
@@ -447,7 +448,7 @@ class QRNAgent:
                 if use_wandb:
                     wandb.log({
                         "Performance/Reward": score,
-                        "Performance/Success_Rate": success, # W&B can smooth this for you
+                        "Performance/Success_Rate": success, # W&B can smooth this
                         "Performance/Terminal_Fidelity": info.get('fidelity', 0),
                         "Performance/Episode_Length": steps,
                         "Policy/Swap_Ratio": swap_ratio,
@@ -486,44 +487,39 @@ class QRNAgent:
                     n_nodes=4, 
                     p_e=1.0, 
                     p_s=1.0,
-                    tau=1000,
+                    tau=1000, # NOTE tau
                     cutoff=None, 
                     logging=True,
                     plot_actions=True,
                     savefig=True):
             
             """
-        ## The main testing loop
+            The main testing loop
             The agent is tested for its performance (avg steps) and (avg fidelity) on a 
             quantum repeater network from the `RepeaterNetwork` class
 
-        ### Args:
-        #### dict_fir
-            The directory of the trained model dict to be used for validation.
-        #### n_episodes 
-            The number of testing episodes. It terminates if either the end-to-end
+        Args:
+            dict_fir:
+                The directory of the trained model dict to be used for validation.
+            n_episodes: 
+                The number of testing episodes. It terminates if either the end-to-end
             state is reached or if `max_steps` is reached.
-        #### n_nodes
-            The number of testing nodes. This can be different than the number of 
+            n_nodes:
+                The number of testing nodes. This can be different than the number of 
             nodes used in the training loop.
-        #### p_e 
-            The entanglement probability to be tested on (avg if `homogenous=False`). 
-        #### p_s
-            The entanglement probability to be tested on (avg if `homogenous=False`).
-        #### tau
-            The tau parameter to be trained on (avg if `homogenous=False`).
-        #### cutoff 
-            The cutoff to be trained on (avg if `homogenous=False`).
-        #### loging
-            If true, logs the results of the validation (avg/std steps, avg/std fidelity).
-        #### plot_actions
-            If true plots the actions of the **first episode** of the validation run. This
-            is used to interpret the agents actions. Colored blocks are utilized to differentiate
-            the actions of the agent (and the strategies) used.
-        #### savefig
-            Only used in conjunction with `plot_actions=True`. Saves the resulting plot
+            p_e, p_s, tau, cutoff: 
+                The testing parameters. 
+            loging:
+                If true, logs the results of the validation (avg/std steps, avg/std fidelity).
+            plot_actions:
+                If true plots the actions of the **first episode** of the validation run. This
+                is used to interpret the agents actions. Colored blocks are utilized to differentiate
+                the actions of the agent (and the strategies) used.
+                savefig. Only used in conjunction with `plot_actions=True`. Saves the resulting plot
         """
             
+            # REVIEW check this function again
+            # TODO Tidy this function up
 
             def log(msg):
                 """Used to print on STDOUT and log to file"""
@@ -532,115 +528,7 @@ class QRNAgent:
                     with open("./assets/validation_results/validation_results.txt", "a") as f:
                         f.write(msg + "\n")
             
-            # --- Helper: Action Parser for Plotting ---
-            def parse_action_label(action_raw, is_agent=False):
-                """Converts raw action (int or string) to shorthand label E(x) or S(x)."""
-                if action_raw is None: return "None"
-                
-                if is_agent:
-                    # Agent uses int index: even=Entangle, odd=Swap
-                    node = action_raw // 2
-                    op_type = action_raw % 2 
-                    if op_type == 0: return f"E({node})"
-                    return f"S({node})"
-                else:
-                    # Heuristics use strings
-                    if "entangle" in action_raw:
-                        # Extract first number from "self.entangle((X, Y))"
-                        match = re.search(r"\((\d+),", action_raw)
-                        if match: return f"E({match.group(1)})"
-                    elif "swapAT" in action_raw:
-                        # Extract number from "self.swapAT(X)"
-                        match = re.search(r"\((\d+)\)", action_raw)
-                        if match: return f"S({match.group(1)})"
-                    return "None"
 
-            # --- Helper: Plotting Function ---
-            def plot_action_timeline(action_history):
-                strategies = list(action_history.keys())
-                
-                # 1. Collect all unique labels
-                unique_labels = set()
-                for seq in action_history.values():
-                    for act in seq:
-                        if act != "Done": unique_labels.add(act)
-                
-                # Sort labels: Entangles first, then Swaps
-                sorted_labels = sorted(list(unique_labels), key=lambda x: (x[0], int(x[2:-1])))
-                
-                # 2. Create Color Map
-                colors = plt.cm.tab20(np.linspace(0, 1, len(sorted_labels)))
-                color_map = {label: colors[i] for i, label in enumerate(sorted_labels)}
-                color_map["Done"] = (0, 0, 0, 1) # Black for termination
-                
-                # 3. Build Grid for Colors
-                max_len = max(len(seq) for seq in action_history.values())
-                grid = np.zeros((len(strategies), max_len, 4)) # RGBA grid
-                grid.fill(1.0) # White background
-                
-                for i, strat in enumerate(strategies):
-                    seq = action_history[strat]
-                    for j, action in enumerate(seq):
-                        if action in color_map:
-                            grid[i, j] = color_map[action]
-
-                # 4. Plot
-                fig, ax = plt.subplots(figsize=(12, len(strategies) * 0.8))
-                
-                # A) Plot the colors
-                ax.imshow(grid, aspect='auto', interpolation='nearest')
-                
-                # B) Overlay Hatching for 'Swap' (S) operations
-                # We iterate through the grid and place a hatched rectangle over Swaps
-                for i, strat in enumerate(strategies):
-                    seq = action_history[strat]
-                    for j, action in enumerate(seq):
-                        if action.startswith("S"): # Identify Swaps
-                            # Create a rectangle centered at (j, i)
-                            # xy is bottom-left corner, so (j-0.5, i-0.5)
-                            rect = mpatches.Rectangle(
-                                (j - 0.5, i - 0.5), 1, 1, 
-                                fill=False,         # Transparent background
-                                hatch='///',         # Grid pattern
-                                edgecolor='black',  # Hatch color
-                                linewidth=0,        # No border around the cell
-                                alpha=0.5           # Make the hatch subtle
-                            )
-                            ax.add_patch(rect)
-
-                # Formatting
-                ax.set_yticks(np.arange(len(strategies)))
-                ax.set_yticklabels(strategies)
-                ax.set_xlabel("Time Step")
-                ax.set_title(f"Policy Action Timeline (N:{n_nodes}, Pe:{p_e}, Ps:{p_s}, T:{tau}, c:{cutoff})")
-                ax.grid(False) 
-                
-                # 5. Custom Legend
-                patches = []
-                for l in sorted_labels:
-                    # Check if action is a Swap to apply hatching
-                    is_swap = l.startswith("S")
-                    
-                    patches.append(mpatches.Patch(
-                        facecolor=color_map[l], 
-                        label=l,
-                        # Apply grid pattern '++' only for Swaps
-                        hatch='///' if is_swap else None,
-                        # Hatch color is controlled by edgecolor (must be distinct from facecolor)
-                        edgecolor='black' if is_swap else None 
-                    ))
-                
-                patches.append(mpatches.Patch(color='black', label='Terminated'))
-                
-                # Place legend outside
-                box = ax.get_position()
-                ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-                ax.legend(handles=patches, loc='center left', bbox_to_anchor=(1, 0.5), title="Actions")
-                save_dir =  dict_dir.rsplit('/', 1)[0] + '/'
-                plt.savefig(save_dir + 'validation.png') if savefig else None
-                plt.show()
-
-            # -----------------------------
 
             log(f"\n--- Validation (N:{n_nodes}, Pe:{p_e}, Ps:{p_s}, tau:{tau}, cutoff:{cutoff}) ---")
             log(f"--- Max_steps: {max_steps}, n_episodes:{n_episodes}, Model: {dict_dir.split('/')[-1][:-4]} ---")
@@ -651,7 +539,6 @@ class QRNAgent:
                 'FN_Swap': {'steps': [], 'fidelities': []},
                 'SN_Swap': {'steps': [], 'fidelities': []},
                 'SwapASAP': {'steps': [], 'fidelities': []},
-                # 'Doubling': {'steps': [], 'fidelities': []},
                 'Random': {'steps': [], 'fidelities': []},
             }
             
@@ -680,7 +567,7 @@ class QRNAgent:
                     
                     # RECORD ACTION (Only for first episode)
                     if plot_actions and i == 0:
-                        label = parse_action_label(action_idx, is_agent=True)
+                        label = TestHelpers.parse_action_label(action_idx, is_agent=True)
                         action_timeline['Agent'].append(label)
 
                     _, done, info = self.step_environment(env, action_idx)
@@ -694,16 +581,7 @@ class QRNAgent:
                 results['Agent']['steps'].append(steps if done else max_steps)
                 
             # --- Test Heuristics ---
-            heuristics_map = {
-                'Frontier': 'Frontier',
-                'FN_Swap': 'FN_swap',
-                'SN_Swap': 'SN_swap',
-                'SwapASAP': 'swap_asap', 
-                # 'Doubling': 'doubling',
-                'Random': 'stochastic_action',
-            }
-                 
-            pbar = tqdm(heuristics_map.items())
+            pbar = tqdm(results.keys())
             for name, method_name in pbar:
                 pbar.set_description(f"Agent VS {name}")
                 for i in range(n_episodes):
@@ -729,7 +607,7 @@ class QRNAgent:
                         # RECORD ACTION (Only for first episode)
                         if plot_actions and i == 0:
                             if action_str:
-                                label = parse_action_label(action_str, is_agent=False)
+                                label = TestHelpers.parse_action_label(action_str, is_agent=False)
                                 action_timeline[name].append(label)
 
                         try:
@@ -750,9 +628,9 @@ class QRNAgent:
                         steps += 1
                     results[name]['steps'].append(steps if done else max_steps)
 
-            # Generate Plot if requested
+            # Generate Plot if required
             if plot_actions:
-                plot_action_timeline(action_timeline)
+                TestHelpers.plot_action_timeline(action_timeline, n_nodes, p_e, p_s, tau, cutoff, dict_dir, savefig)
 
             # Calculate Baseline (Agent) Averages first
             agent_steps_avg = np.mean(results['Agent']['steps'])
@@ -789,3 +667,126 @@ class QRNAgent:
                 
                 pm = u"\u00B1"
                 log(f"{strategy:<12} | {avg_steps:<9.2f} ({pm}{std_steps:<6.2f}) | {avg_fid:<8.4f} ({pm}{std_fid:.4f}) | {f'{step_ratio:.0f}%':<4} | {f'{fid_ratio:.0f}%':<5}")
+
+
+
+class TestHelpers:
+    def __init__(self):
+        """
+        A plotting and an action parser function that aid in validation.
+        Separated here to keep the validation logic intact
+        """
+        pass
+
+
+    # --- Helper: Plotting Function ---
+    @staticmethod
+    def plot_action_timeline(action_history, n_nodes, p_e, p_s, tau, cutoff, dict_dir, savefig):
+        strategies = list(action_history.keys())
+        
+        # 1. Collect all unique labels
+        unique_labels = set()
+        for seq in action_history.values():
+            for act in seq:
+                if act != "Done": unique_labels.add(act)
+        
+        # Sort labels: Entangles first, then Swaps
+        sorted_labels = sorted(list(unique_labels), key=lambda x: (x[0], int(x[2:-1])))
+        
+        # 2. Create Color Map
+        colors = plt.cm.tab20(np.linspace(0, 1, len(sorted_labels)))
+        color_map = {label: colors[i] for i, label in enumerate(sorted_labels)}
+        color_map["Done"] = (0, 0, 0, 1) # Black for termination
+        
+        # 3. Build Grid for Colors
+        max_len = max(len(seq) for seq in action_history.values())
+        grid = np.zeros((len(strategies), max_len, 4)) # RGBA grid
+        grid.fill(1.0) # White background
+        
+        for i, strat in enumerate(strategies):
+            seq = action_history[strat]
+            for j, action in enumerate(seq):
+                if action in color_map:
+                    grid[i, j] = color_map[action]
+
+        # 4. Plot
+        fig, ax = plt.subplots(figsize=(12, len(strategies) * 0.8))
+        
+        # A) Plot the colors
+        ax.imshow(grid, aspect='auto', interpolation='nearest')
+        
+        # B) Overlay Hatching for 'Swap' (S) operations
+        # We iterate through the grid and place a hatched rectangle over Swaps
+        for i, strat in enumerate(strategies):
+            seq = action_history[strat]
+            for j, action in enumerate(seq):
+                if action.startswith("S"): # Identify Swaps
+                    # Create a rectangle centered at (j, i)
+                    # xy is bottom-left corner, so (j-0.5, i-0.5)
+                    rect = mpatches.Rectangle(
+                        (j - 0.5, i - 0.5), 1, 1, 
+                        fill=False,         # Transparent background
+                        hatch='///',         # Grid pattern
+                        edgecolor='black',  # Hatch color
+                        linewidth=0,        # No border around the cell
+                        alpha=0.5           # Make the hatch subtle
+                    )
+                    ax.add_patch(rect)
+
+        # Formatting
+        ax.set_yticks(np.arange(len(strategies)))
+        ax.set_yticklabels(strategies)
+        ax.set_xlabel("Time Step")
+        ax.set_title(f"Policy Action Timeline (N:{n_nodes}, Pe:{p_e}, Ps:{p_s}, T:{tau}, c:{cutoff})")
+        ax.grid(False) 
+        
+        # 5. Custom Legend
+        patches = []
+        for l in sorted_labels:
+            # Check if action is a Swap to apply hatching
+            is_swap = l.startswith("S")
+            
+            patches.append(mpatches.Patch(
+                facecolor=color_map[l], 
+                label=l,
+                # Apply grid pattern '++' only for Swaps
+                hatch='///' if is_swap else None,
+                # Hatch color is controlled by edgecolor (must be distinct from facecolor)
+                edgecolor='black' if is_swap else None 
+            ))
+        
+        patches.append(mpatches.Patch(color='black', label='Terminated'))
+        
+        # Place legend outside
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        ax.legend(handles=patches, loc='center left', bbox_to_anchor=(1, 0.5), title="Actions")
+        save_dir =  dict_dir.rsplit('/', 1)[0] + '/'
+        plt.savefig(save_dir + 'validation.png') if savefig else None
+        plt.show()
+
+
+    # --- Helper: Action Parser for Plotting ---
+    @staticmethod
+    def parse_action_label(action_raw, is_agent=False):
+        """Converts raw action (int or string) to shorthand label E(x) or S(x)."""
+        if action_raw is None: return "None"
+        
+        if is_agent:
+            # Agent uses int index: even=Entangle, odd=Swap
+            node = action_raw // 2
+            op_type = action_raw % 2 
+            if op_type == 0: return f"E({node})"
+            return f"S({node})"
+        else:
+            # Heuristics use strings
+            if "entangle" in action_raw:
+                # Extract first number from "self.entangle((X, Y))"
+                match = re.search(r"\((\d+),", action_raw)
+                if match: return f"E({match.group(1)})"
+            elif "swapAT" in action_raw:
+                # Extract number from "self.swapAT(X)"
+                match = re.search(r"\((\d+)\)", action_raw)
+                if match: return f"S({match.group(1)})"
+            return "None"
+
