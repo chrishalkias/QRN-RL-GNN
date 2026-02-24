@@ -11,8 +11,11 @@ This is a short list of the trained models alongside some descriptions:
  06 | d(11-2)l4u6e1000m300p80a95t100c80 | 4-6 | 0.80 | 0.95 |  100  |   80   | <300.000 |  1  |     |       | Train plot good but validation kinda bad
  07 | d(11-2)l4u4e4000m80p50a99t50c15   |  4  | 0.50 | 0.99 |   50  |   15   | <450.000 |  1  |     |       | Very interesting decision boundary! Rich PCA reflecting the low cutoff
  08 | Rd(12-2)l4u4e4000m80p50a99t50c15  |  4  | 0.50 | 0.99 |   50  |   15   | <996.000 |  1  | Yes |       | Fine-tuned model, DB approaches ground truth
- 09 | d(13-2)l4u4e10000m30p70a99t15c8   |  4  | 0.70 | 0.99 |   15  |    8   |  156.436 |  2  |  No |  Yes  |
+ 09 | d(13-2)l4u4e10000m30p70a99t15c8   |  4  | 0.70 | 0.99 |   15  |    8   |  156.436 |  2  |  No |  Yes  | ...
  10 | d(13-2)l4u4e25000m30p70a99t15c8   |  4  | 0.70 | 0.99 |   15  |    8   |  366.785 |  2  |  No |  Yes  | Better decision boundary
+ xx | d(23-2)l6u6e3000m100p85a95t50c20  |  6  | 0.85 | 0.95 |   50  |   20   |  133.208 |  1  |  No |  Yes  | niet goed..2 layer GNN
+
+ xxd(23-2)l6u6e3000m100p85a95t50c20.pth
 
 
 

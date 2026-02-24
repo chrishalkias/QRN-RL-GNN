@@ -79,6 +79,16 @@ class Binder:
             op_type = action_idx % 2 # 0 = Entangle, 1 = Swap
             return node, op_type
         
+        @staticmethod
+        def reward() -> float:
+            """
+            Defines the succsess reward and time penalty
+            """
+            step_cost = -1
+            success_reward = 100
+            info = {'fidelity': 0.0}
+            return step_cost, success_reward, info
+    
         @classmethod
         def step_environment(self, env: RepeaterNetwork, action_idx: int) -> tuple: 
             """
@@ -183,16 +193,6 @@ class QRNAgent:
                 action_idx = q_flat.argmax().item()
 
             return action_idx
-
-    
-    def reward(self) -> float:
-        """
-        Defines the succsess reward and time penalty
-        """
-        step_cost = -1
-        success_reward = 100
-        info = {'fidelity': 0.0}
-        return step_cost, success_reward, info
     
 
     def train_step(self):
@@ -259,6 +259,8 @@ class QRNAgent:
         if self.learn_step_counter % self.target_update_freq == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
+        return loss
+
     def get_curriculum_n_range(self, episode: int, total_episodes: int) -> list:
         """
         Progressive curriculum: start small, gradually increase size range.
@@ -291,7 +293,7 @@ class QRNAgent:
               fine_tune=False,
               p_e=1.0, 
               p_s=1.0,
-              tau=1000,
+              tau=1000, # TODO tau
               cutoff=1000,
               use_wandb=True,
               wandb_project = "QRN-RL"):
@@ -362,7 +364,7 @@ class QRNAgent:
 
         self.memory.clear() 
         
-        scores = []
+        scores, losses = [], []
         pbar = tqdm(range(episodes))
         n_nodes = random.choice(n_range)
         eps_init = 1.0 if not fine_tune else 0.2
@@ -425,7 +427,7 @@ class QRNAgent:
                     score += reward
                     steps += 1
                     
-                    self.train_step()
+                    loss = self.train_step()
                     
                     if done:
                         if info.get('fidelity', 0) > 0:
@@ -437,7 +439,9 @@ class QRNAgent:
                     self.epsilon = eps_fin + 0.5 * (eps_init - eps_fin) * (1 + math.cos(math.pi * e / episodes))
                 elif fine_tune:
                     self.epsilon = 0.2 * np.exp(-10 * e / episodes)
+
                 scores.append(score)
+                losses.append(0 if loss == None else loss.detach().item())
                 pbar.set_description(f"Ep {e+1} | Score: {score:.1f} | Eps: {self.epsilon:.2f}")
 
                 episode_time = time.time() - start_time
@@ -448,6 +452,7 @@ class QRNAgent:
                 if use_wandb:
                     wandb.log({
                         "Performance/Reward": score,
+                        "Performance/Loss": loss,
                         "Performance/Success_Rate": success, # W&B can smooth this
                         "Performance/Terminal_Fidelity": info.get('fidelity', 0),
                         "Performance/Episode_Length": steps,
@@ -465,17 +470,32 @@ class QRNAgent:
             os.makedirs(model_path, exist_ok=True)
             torch.save(self.policy_net.state_dict(), f'{model_path}/{model_name}.pth')
 
+
         if plot:
-            plt.plot(scores,ls='-', label='Average batch-reward')
-            plt.title(f'{"Training" if not fine_tune else "Fine-tuning"} metrics over {episodes} episodes')
-            plt.xlabel('Episode')
+            average_reward = TestHelpers.running_average(scores, 10)
+            average_loss = TestHelpers.running_average(losses, 10)
+
+            fig, (ax1, ax2) = plt.subplots(2, 1)
+            ax1.plot(scores, 'b', ls='-', label='Batch-reward', alpha=0.3)
+            ax1.plot(average_reward, 'b', ls='-', label='Running average')
+            ax1.set_title(f'Average batch reward')
+            ax1.set_xlabel('Episode')
             n_label = f'{n_range[0]}-{n_range[-1]}' if jitter else n_range[0]
-            label = f'Reward for {r'$n, p_E, p_S, T, c$'}= {n_label}, {p_e}, {p_s}, {tau}, {cutoff}'
-            plt.ylabel(label)
-            plt.legend()
-            os.makedirs(f'assets/trained_models/{model_name}/', exist_ok=True)
-            plt.savefig(f'assets/trained_models/{model_name}/train.png')
+            ax1.legend()
+
+            ax2.plot(losses, 'r', ls='-', label='Batch-loss', alpha=0.3)
+            ax2.plot(average_loss, 'r', ls='-', label='Running average')
+            ax2.set_xlabel('Episode')
+            ax2.set_title(f'Average Batch loss')
+            ax2.set_yscale('log')
+            # ax2.grid(axis='y', which='both', linewidth='0.5')
+            ax2.legend()
+            label = f'{"Training" if not fine_tune else "Fine-tuning"} metrics for {r'$n, p_E, p_S, T, c$'}= {n_label}, {p_e}, {p_s}, {tau}, {cutoff}'
+            fig.suptitle(label)
+            fig.tight_layout()
             plt.show()
+            os.makedirs(f'assets/trained_models/{model_name}/', exist_ok=True)
+            fig.savefig(f'assets/trained_models/{model_name}/train.svg')
 
         if use_wandb:
             wandb.finish()
@@ -570,7 +590,7 @@ class QRNAgent:
                         label = TestHelpers.parse_action_label(action_idx, is_agent=True)
                         action_timeline['Agent'].append(label)
 
-                    _, done, info = self.step_environment(env, action_idx)
+                    _, done, info = Binder.step_environment(env, action_idx)
                     
                     if done:
                         results['Agent']['fidelities'].append(info['fidelity'])
@@ -581,9 +601,10 @@ class QRNAgent:
                 results['Agent']['steps'].append(steps if done else max_steps)
                 
             # --- Test Heuristics ---
-            pbar = tqdm(results.keys())
-            for name, method_name in pbar:
-                pbar.set_description(f"Agent VS {name}")
+            heuristic_methods = [key for key in results.keys() if key != 'Agent']
+            pbar = tqdm(heuristic_methods)
+            for method_name in pbar:
+                pbar.set_description(f"Agent VS {method_name}")
                 for i in range(n_episodes):
                     env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
                     heuristic = Strategies(env) 
@@ -592,12 +613,12 @@ class QRNAgent:
                     
                     while not done and steps < max_steps:
                         if method_name == 'Frontier':
-                            action_str = heuristic.create_and_propagate()
-                        elif method_name == 'swap_asap':
+                            action_str = heuristic.frontier()
+                        elif method_name == 'SwapASAP':
                             action_str = heuristic.swap_asap()
-                        elif method_name == 'FN_swap':
+                        elif method_name == 'FN_Swap':
                             action_str = heuristic.FN_swap()
-                        elif method_name == 'SN_swap':
+                        elif method_name == 'SN_Swap':
                             action_str = heuristic.SN_swap()
                         elif method_name == 'doubling':
                             action_str = heuristic.doubling_swap()
@@ -608,25 +629,24 @@ class QRNAgent:
                         if plot_actions and i == 0:
                             if action_str:
                                 label = TestHelpers.parse_action_label(action_str, is_agent=False)
-                                action_timeline[name].append(label)
+                                action_timeline[method_name].append(label)
 
                         try:
                             if action_str:
-                                # HACK: execute heuristic string on local env
-                                exec(action_str.replace("self.", "env."))
+                                exec(action_str.replace("self.", "env.")) # HACK: execute heuristic string on local env
                             
                             is_success, current_fid = env.endToEndCheck(timeToWait=0)
 
                             if is_success:
                                 done = True
-                                results[name]['fidelities'].append(current_fid)
+                                results[method_name]['fidelities'].append(current_fid)
                                 if plot_actions and i == 0:
-                                    action_timeline[name].append("Done")
+                                    action_timeline[method_name].append("Done")
                         except:
                             raise RuntimeError(f's action execution went wrong')
                         
                         steps += 1
-                    results[name]['steps'].append(steps if done else max_steps)
+                    results[method_name]['steps'].append(steps if done else max_steps)
 
             # Generate Plot if required
             if plot_actions:
@@ -667,6 +687,14 @@ class QRNAgent:
                 
                 pm = u"\u00B1"
                 log(f"{strategy:<12} | {avg_steps:<9.2f} ({pm}{std_steps:<6.2f}) | {avg_fid:<8.4f} ({pm}{std_fid:.4f}) | {f'{step_ratio:.0f}%':<4} | {f'{fid_ratio:.0f}%':<5}")
+
+
+
+
+
+
+
+
 
 
 
@@ -789,4 +817,12 @@ class TestHelpers:
                 match = re.search(r"\((\d+)\)", action_raw)
                 if match: return f"S({match.group(1)})"
             return "None"
+        
+    # --- Helper: Running average calculator ---
+    @staticmethod
+    def running_average(list, window):
+            running_average = []
+            for ind in range(len(list) - window + 1):
+                running_average.append(np.mean(list[ind:ind+window]))
+            return running_average
 

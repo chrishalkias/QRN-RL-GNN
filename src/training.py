@@ -1,22 +1,22 @@
-from base.agent import QRNAgent
+from base.new_agent import QRNAgent
 import numpy
 numpy.set_printoptions(legacy='1.25')
 
 
 args = {
-	'episodes': 1_000,
+	'episodes': 2000,
 	'max_steps': 100,
 	'savemodel': True,
 	'plot': True,
 	'jitter': 0,
 	'curriculum': False,
 	'fine_tune': False,
-	'n_range': [4,6],
-	'p_e': 0.85,
-	'p_s': 0.95,
-	'tau': 500,
-	'cutoff': 200,
-	'use_wandb': True, 
+	'n_range': [4],
+	'p_e': 0.65,
+	'p_s': 0.90,
+	'tau': 50,
+	'cutoff': 15,
+	'use_wandb': False, 
 	}
 
 if __name__ == '__main__':

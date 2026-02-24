@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 
-class Strategies():
+class Strategies(): # TODO make simultaneous strategies
     def __init__(self, network):
         self.network = network
 
@@ -51,7 +51,7 @@ class Strategies():
             return random.choice(entangles)
         return RuntimeError('No actions')
 
-    def FN_swap(self):
+    def FN_swap(self): # TODO add CC costs
         """Farthest Neighbor Swap"""
         swaps = []
         priority_entangles = []
@@ -106,7 +106,7 @@ class Strategies():
         else:
             return RuntimeError('No actions')
 
-    def SN_swap(self):
+    def SN_swap(self): # TODO add CC costs
         """Strongest Neighbor Swap"""
         swaps = []
         priority_entangles = []

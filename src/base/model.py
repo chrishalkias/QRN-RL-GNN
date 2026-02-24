@@ -18,7 +18,7 @@ class GNN(nn.Module):
     """
     def __init__(self, 
                  node_dim=2,  
-                 edge_dim = 1,
+                 edge_dim=1,
                  embedding_dim=16, 
                  num_heads=2,    
                  hidden_dim=32,  
@@ -28,6 +28,9 @@ class GNN(nn.Module):
         # One layer GAT
         self.encoder = nn.Sequential(
             GATv2Conv(node_dim, embedding_dim, heads=num_heads, edge_dim=edge_dim),
+            #comment this line for older models
+            GATv2Conv(embedding_dim * num_heads, embedding_dim, heads=num_heads, edge_dim=edge_dim), 
+            # TODO expand the GNN with more layers
         )
         
         # 2 layer decoder
