@@ -1,4 +1,5 @@
-from torch_geometric.nn import GATv2Conv
+from torch_geometric.nn import GATv2Conv, global_max_pool
+import torch
 import torch.nn as nn
 
 '''
@@ -17,7 +18,7 @@ class GNN(nn.Module):
     Enhanced GNN model with more capacity for complex features.
     """
     def __init__(self, 
-                 node_dim=2,  
+                 node_dim,  
                  edge_dim=1,
                  embedding_dim=16, 
                  num_heads=2,    
@@ -25,13 +26,13 @@ class GNN(nn.Module):
                  output_dim=2):
         super().__init__()
         
-        # One layer GAT
-        self.encoder = nn.Sequential(
+        # # One layer GAT
+        # self.encoder = nn.SequentiaGATv2Conv(node_dim, embedding_dim, heads=num_heads, edge_dim=edge_dim)
+
+        self.encoder = nn.ModuleList([
             GATv2Conv(node_dim, embedding_dim, heads=num_heads, edge_dim=edge_dim),
-            #comment this line for older models
-            GATv2Conv(embedding_dim * num_heads, embedding_dim, heads=num_heads, edge_dim=edge_dim), 
-            # TODO expand the GNN with more layers
-        )
+            GATv2Conv(embedding_dim * num_heads, embedding_dim, heads=num_heads, edge_dim=edge_dim),
+])
         
         # 2 layer decoder
         self.decoder = nn.Sequential(
@@ -48,6 +49,14 @@ class GNN(nn.Module):
                 x = layer(x, edge_index, edge_attr=edge_attr)
             else:
                 x = layer(x)
+        # # uncomment for global pooling
+        # batch = data.batch if hasattr(data, 'batch') and data.batch is not None else torch.zeros(x.size(0), dtype=torch.long, device=x.device)
+        # # global graph embedding
+        # global_x = global_max_pool(x, batch)
+        # # broadcast global embedding back to all nodes
+        # global_x_expanded = global_x[batch]
+        # # concat local and global contexts
+        # combined_x = torch.cat([x, global_x_expanded], dim=-1)
         
         q_values = self.decoder(x)  # Shape: [num_nodes, 2]
         return q_values

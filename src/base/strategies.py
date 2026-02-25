@@ -49,7 +49,7 @@ class Strategies(): # TODO make simultaneous strategies
             return random.choice(priority_entangles)
         elif entangles:
             return random.choice(entangles)
-        return RuntimeError('No actions')
+        raise RuntimeError('No actions')
 
     def FN_swap(self): # TODO add CC costs
         """Farthest Neighbor Swap"""
@@ -85,9 +85,9 @@ class Strategies(): # TODO make simultaneous strategies
                     swaps.append((dist, f'self.swapAT({node})'))
 
             elif bool(leftlink) ^ bool(rightlink):
-                if leftlink and node != self.network.n - 1:
+                if not rightlink and node != self.network.n - 1:
                     priority_entangles.append(f'self.entangle(({node}, {node+1}))')
-                elif rightlink and node != 0:
+                elif not leftlink and node != 0:
                     priority_entangles.append(f'self.entangle(({node-1}, {node}))')
             
             elif not leftlink and not rightlink:
@@ -104,7 +104,7 @@ class Strategies(): # TODO make simultaneous strategies
         elif entangles:
             return random.choice(entangles)
         else:
-            return RuntimeError('No actions')
+            raise RuntimeError('No actions')
 
     def SN_swap(self): # TODO add CC costs
         """Strongest Neighbor Swap"""
@@ -138,9 +138,9 @@ class Strategies(): # TODO make simultaneous strategies
                     swaps.append((predicted_fidelity, f'self.swapAT({node})'))
 
             elif bool(leftlink) ^ bool(rightlink):
-                if leftlink and node != self.network.n - 1:
+                if not rightlink and node != self.network.n - 1:
                     priority_entangles.append(f'self.entangle(({node}, {node+1}))')
-                elif rightlink and node != 0:
+                elif not leftlink and node != 0:
                     priority_entangles.append(f'self.entangle(({node-1}, {node}))')
             
             elif not leftlink and not rightlink:

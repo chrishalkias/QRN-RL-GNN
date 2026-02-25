@@ -46,8 +46,3 @@ class Buffer():
     def clear(self) -> None:
          self.buffer_list = ReplayBuffer(storage=ListStorage(self.max_size), 
                            collate_fn=lambda x: x)
-
-
-
-
-

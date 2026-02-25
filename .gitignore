@@ -10,7 +10,8 @@ test_nb.ipynb
 .env
 .todo.txt
 wandb/
-todo.txt.
+todo.txt
+notes.txt
 
 
 # (Nice template collection here https://github.com/github/gitignore/tree/main)

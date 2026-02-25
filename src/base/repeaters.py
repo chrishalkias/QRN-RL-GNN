@@ -59,7 +59,9 @@ class RepeaterNetwork():
         Checks if node is already doubly entangled and therefore cannot be
         entangled with any more repeaters (used in self.entangle()).
         """
-        return 42 # Placeholder logic carried over from the original script
+        return 42 # Placeholder logic 
+        return int((self.fidelities[node, :] > 0).sum().item() +
+               (self.fidelities[:, node] > 0).sum().item())
 
     def tick(self, T: int) -> None: # TODO implement the correct fidelity according to the pauli noise model
         """Implements the time evolution of the system using vectorized math"""
@@ -166,10 +168,11 @@ class RepeaterNetwork():
         edge_attr = self.fidelities[edge_index[0], edge_index[1]].view(-1, 1)
         
         # --- Node Features ---
+        NODE_FEATURES = 2
         node_attr = torch.zeros((self.n, 2), dtype=torch.float)
         has_link = self.fidelities > 0
         
-        # Features 0-1: Connection indicators (original)
+        # Features 0-1: Connection indicators
         node_attr[:, 0] = has_link.triu(1).any(dim=0).float()  # has_left
         node_attr[:, 1] = has_link.triu(1).any(dim=1).float()  # has_right
         
@@ -180,4 +183,3 @@ class RepeaterNetwork():
         """Global entanglement generation attempt"""
         for repeater in range(self.n-1):
             self.entangle(edge=(repeater, repeater+1))
-        self.tick(1)

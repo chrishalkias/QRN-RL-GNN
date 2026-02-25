@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from datetime import datetime
 import os
+import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import re
@@ -26,15 +27,7 @@ from base.strategies import Strategies
 
 class Binder:
         def __init__(self):
-            """
-            Decouples the physical environment from the learner by 
-            handling the action interface between agent and repeaters.
-
-            Uses static  and class methods for:
-                - action masking
-                - action_decoding
-                - changing the env
-            """
+            """Decouples the physical environment from the agent."""
             ...
 
         @staticmethod
@@ -86,10 +79,18 @@ class Binder:
             op_type = action_idx % 2 # 0 = Entangle, 1 = Swap
             return node, op_type
         
-
+        @staticmethod
+        def reward() -> float:
+            """
+            Defines the succsess reward and time penalty
+            """
+            step_cost = -1
+            success_reward = 100
+            info = {'fidelity': 0.0}
+            return step_cost, success_reward, info
     
         @classmethod
-        def step_environment(self, env: RepeaterNetwork, action_idx: int, gamma:float) -> tuple: 
+        def step_environment(cls, env: RepeaterNetwork, action_idx: int) -> tuple: 
             """
             Executes the (integer) action on the environment.
             
@@ -100,46 +101,34 @@ class Binder:
             Returns:
                 tuple: (reward, done, info)
             """
+            node, op_type = cls._decode_action(action_idx)
+            step_cost, success_reward, info = cls.reward()
 
-            STEP_COST       = -1
-            SUCCESS_REWARD  = 100.0
-            SHAPING_SCALE   = 0.0    # NOTE(redundand) tune: larger = stronger shaping signal
-
-            node, op_type = action_idx // 2, action_idx % 2
-            info = {'fidelity': 0.0}
-
-
-
-
-            if op_type == 0:
-                env.entangle(edge=(node, node + 1))
-            else:
+            # Execute Action
+            if op_type == 0: 
+                env.entangle((node, node+1))
+            elif op_type == 1: 
                 env.swapAT(node)
 
-            is_success, fidelity = env.endToEndCheck(timeToWait=0)
+            # Check for success FIRST, which returns fidelity before zeroing
+            # (Requires modifying endToEndCheck to return fidelity - see repeaters fix)
+            is_success, current_fidelity = env.endToEndCheck(timeToWait=0)
 
             if is_success:
-                info['fidelity'] = fidelity
-                return SUCCESS_REWARD, True, info
-
-
-            return STEP_COST, False, info
+                info['fidelity'] = current_fidelity
+                return success_reward, True, info
+            
+            return step_cost, False, info
         
-
-
-
-
-
-
-
 
 class QRNAgent:
     def __init__(self, 
                  lr=5e-4, 
-                 gamma=0.99,
+                 gamma=0.95,
                  buffer_size=50_000,
                  epsilon=1.0,
-                 batch_size=128):
+                 batch_size=128,
+                 target_update_freq=500):
         
         #TODO decouple the agent from the action selection
         
@@ -150,11 +139,13 @@ class QRNAgent:
         self.epsilon = epsilon
         self.gamma = gamma
         self.batch_size = batch_size
+        self.target_update_freq = target_update_freq
+        self.learn_step_counter = 0
 
 
         # Models
-        self.policy_net = GNN(node_dim=2).to(self.device)
-        self.target_net = GNN(node_dim=2).to(self.device)
+        self.policy_net = GNN(node_dim=2, output_dim=2).to(self.device)
+        self.target_net = GNN(node_dim=2, output_dim=2).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
@@ -178,13 +169,17 @@ class QRNAgent:
                 The integer-encoded action via the `tensor.argmax()` function
             """
             mask = Binder.get_valid_actions_mask(state, self.device)
+            
+            self.policy_net.eval()
             with torch.no_grad():
                 state = state.to(self.device)
                 q_values = self.policy_net(state)
                 q_flat = q_values.view(-1).clone() 
+                
                 # Apply 1D mask
                 q_flat[~mask] = -float('inf')
                 # max_q = q_flat.max().item() #In case peeking into the q-val is needed
+            self.policy_net.train()
 
             if training and random.random() < self.epsilon:
                 valid_indices = torch.nonzero(mask).squeeze()
@@ -210,8 +205,8 @@ class QRNAgent:
             6. Copy the params to target net (if step condition matches)
             """
         if self.memory.size() < self.batch_size:
-            return None, 0
-        
+            return
+
         batch = self.memory.sample(self.batch_size)
 
         state_batch_list = [x['s'] for x in batch]
@@ -233,45 +228,38 @@ class QRNAgent:
         global_action_indices = action_batch + batch_offset
 
         current_q = q_values_flat[global_action_indices]
- 
 
         # --- Target Q Values ---
         with torch.no_grad():
+            next_q_values_flat = self.target_net(next_state_batch).view(-1)
+
+            # Returns a 1D mask of size [Total_Nodes * 2]
             mask = Binder.get_valid_actions_mask(next_state_batch, self.device)
 
-            # Policy net selects the best action
-            next_q_policy = self.policy_net(next_state_batch).view(-1)
-            next_q_policy[~mask] = -float('inf')
-            best_actions = next_q_policy.view(-1, 2).argmax(dim=1)   # [Total_Nodes]
+            # Apply 1D mask
+            next_q_values_flat[~mask] = -float('inf')
 
-            # Target net evaluates that action
-            next_q_target = self.target_net(next_state_batch).view(-1, 2)  # [Total_Nodes, 2]
-            max_q_per_node = next_q_target.gather(1, best_actions.unsqueeze(1)).squeeze(1)
+            # Extract the max action value per node. Shape: [Total_Nodes]
+            next_q_nodes = next_q_values_flat.view(-1, 2)
+            max_q_per_node = next_q_nodes.max(dim=1)[0] 
 
+            # Pool the maximum node value per graph to align with the batch. Shape: [batch_size]
             max_next_q = global_max_pool(max_q_per_node, next_state_batch.batch)
             
             # Mask the target Q value if the state is terminal
             target_q = reward_batch + (self.gamma * max_next_q * (1 - done_batch))
-            q_delta = (target_q - current_q).mean().item()
-
 
         loss = self.loss_fn(current_q, target_q)
 
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), max_norm=10.0)
         self.optimizer.step()
 
-        # Smooth updates
-        for param, target_param in zip(self.policy_net.parameters(),
-                                        self.target_net.parameters()):
-            target_param.data.copy_(0.005 * param.data +
-                                    (1 - 0.005) * target_param.data)
+        self.learn_step_counter += 1
+        if self.learn_step_counter % self.target_update_freq == 0:
+            self.target_net.load_state_dict(self.policy_net.state_dict())
 
-            # self.target_net.load_state_dict(self.policy_net.state_dict())
-
-
-        return loss, q_delta
+        return loss
 
     def get_curriculum_n_range(self, episode: int, total_episodes: int) -> list:
         """
@@ -376,7 +364,7 @@ class QRNAgent:
 
         self.memory.clear() 
         
-        scores, losses, q_deltas = [], [], []
+        scores, losses = [], []
         pbar = tqdm(range(episodes))
         n_nodes = random.choice(n_range)
         eps_init = 1.0 if not fine_tune else 0.2
@@ -388,7 +376,7 @@ class QRNAgent:
             state = env.tensorState()
             for _ in range(self.batch_size * 5):
                 action = self.select_action(state, training=True)
-                r, done, info = Binder.step_environment(env, action, self.gamma)
+                r, done, info = Binder.step_environment(env, action)
                 next_state = env.tensorState()
                 self.memory.add(state, action, r, next_state, done)
                 state = next_state
@@ -402,7 +390,7 @@ class QRNAgent:
                 start_time = time.time()
                 env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
                 state = env.tensorState()
-                score, loss = 0, None
+                score = 0
                 steps, success, swaps, entangles, q_value_list = 0, 0, 0,0, []
 
                 if jitter and not e % jitter: # REVIEW check the jitter logic
@@ -410,6 +398,8 @@ class QRNAgent:
                         new_n = np.random.choice(self.get_curriculum_n_range(episode = e, total_episodes=episodes))
                     else:
                         new_n = np.random.choice(n_range)
+                    if new_n != n_nodes:
+                        self.memory.clear()
                         if use_wandb:
                             wandb.log({"System/New_N": new_n})
                     new_env = RepeaterNetwork(n=new_n, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
@@ -418,13 +408,14 @@ class QRNAgent:
                     state = env.tensorState()
 
                 for _ in range(max_steps):
+                    env.entanglement_subroutine() #entangle on every step
                     action_idx = self.select_action(state, training=True)
                     if action_idx % 2 == 0: # HACK This has to be pulled to the Binder somehow
                         entangles += 1
                     else:
                         swaps +=1
                     
-                    reward, done, info = Binder.step_environment(env, action_idx, self.gamma)
+                    reward, done, info = Binder.step_environment(env, action_idx)
                     next_state = env.tensorState()
                     
                     self.memory.add(state=state, 
@@ -437,7 +428,7 @@ class QRNAgent:
                     score += reward
                     steps += 1
                     
-                    loss, q_delta = self.train_step()
+                    loss = self.train_step()
                     
                     if done:
                         if info.get('fidelity', 0) > 0:
@@ -451,9 +442,7 @@ class QRNAgent:
                     self.epsilon = 0.2 * np.exp(-10 * e / episodes)
 
                 scores.append(score)
-                q_deltas.append(q_delta)
-                loss_val = loss.detach().item() if loss is not None else 0.0
-                losses.append(loss_val)
+                losses.append(0 if loss == None else loss.detach().item())
                 pbar.set_description(f"Ep {e+1} | Score: {score:.1f} | Eps: {self.epsilon:.2f}")
 
                 episode_time = time.time() - start_time
@@ -464,7 +453,7 @@ class QRNAgent:
                 if use_wandb:
                     wandb.log({
                         "Performance/Reward": score,
-                        "Performance/Loss": loss_val,
+                        "Performance/Loss": loss,
                         "Performance/Success_Rate": success, # W&B can smooth this
                         "Performance/Terminal_Fidelity": info.get('fidelity', 0),
                         "Performance/Episode_Length": steps,
@@ -484,31 +473,24 @@ class QRNAgent:
 
 
         if plot:
-            average_rewards = TestHelpers.running_average(scores, 10)
-            average_losses = TestHelpers.running_average(losses, 10)
-            average_q_deltas = TestHelpers.running_average(q_deltas, 10)
+            average_reward = TestHelpers.running_average(scores, 10)
+            average_loss = TestHelpers.running_average(losses, 10)
 
-            fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
+            fig, (ax1, ax2) = plt.subplots(2, 1)
             ax1.plot(scores, 'b', ls='-', label='Batch-reward', alpha=0.3)
-            ax1.plot(average_rewards, 'b', ls='-', label='Running average')
+            ax1.plot(average_reward, 'b', ls='-', label='Running average')
             ax1.set_title(f'Average batch reward')
+            ax1.set_xlabel('Episode')
             n_label = f'{n_range[0]}-{n_range[-1]}' if jitter else n_range[0]
             ax1.legend()
 
             ax2.plot(losses, 'r', ls='-', label='Batch-loss', alpha=0.3)
-            ax2.plot(average_losses, 'r', ls='-', label='Running average')
+            ax2.plot(average_loss, 'r', ls='-', label='Running average')
+            ax2.set_xlabel('Episode')
             ax2.set_title(f'Average Batch loss')
             ax2.set_yscale('log')
             # ax2.grid(axis='y', which='both', linewidth='0.5')
             ax2.legend()
-
-            ax3.plot(q_deltas, 'c', ls='-', label=r'Batch-$\Delta Q$', alpha=0.3)
-            ax3.plot(average_q_deltas, 'c', ls='-', label='Running average')
-            ax3.set_title(r'Average batch ($Q_\text{target} - Q_\text{policy}$)')
-            ax3.set_xlabel('Episode')
-            n_label = f'{n_range[0]}-{n_range[-1]}' if jitter else n_range[0]
-            ax3.legend()
-
             label = f'{"Training" if not fine_tune else "Fine-tuning"} metrics for {r'$n, p_E, p_S, T, c$'}= {n_label}, {p_e}, {p_s}, {tau}, {cutoff}'
             fig.suptitle(label)
             fig.tight_layout()
@@ -586,10 +568,10 @@ class QRNAgent:
 
             # --- Load model ---
             if dict_dir == None:
-                raise ValueError(
+                raise RuntimeWarning(
                     ' No trained dic_dir. Pass a dictionary as kwarg `validate(trained_dict= ...)`')
             
-            trained_dict = torch.load(dict_dir, weights_only=True)
+            trained_dict = torch.load(dict_dir)
             self.policy_net.load_state_dict(trained_dict)
 
             # --- Test Agent ---
@@ -602,6 +584,7 @@ class QRNAgent:
                 
                 while not done and steps < max_steps:
                     state = env.tensorState()
+                    env.entanglement_subroutine()
                     action_idx = self.select_action(state, training=False)
                     
                     # RECORD ACTION (Only for first episode)
@@ -609,7 +592,7 @@ class QRNAgent:
                         label = TestHelpers.parse_action_label(action_idx, is_agent=True)
                         action_timeline['Agent'].append(label)
 
-                    _, done, info = Binder.step_environment(env, action_idx, self.gamma)
+                    _, done, info = Binder.step_environment(env, action_idx)
                     
                     if done:
                         results['Agent']['fidelities'].append(info['fidelity'])
@@ -626,6 +609,7 @@ class QRNAgent:
                 pbar.set_description(f"Agent VS {method_name}")
                 for i in range(n_episodes):
                     env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
+                    env.entanglement_subroutine()
                     heuristic = Strategies(env) 
                     steps = 0
                     done = False
@@ -651,9 +635,8 @@ class QRNAgent:
                                 action_timeline[method_name].append(label)
 
                         try:
-                            if action_str:
-                                exec(action_str.replace("self.", "env.")) # HACK: execute heuristic string on local env
-                            
+                            exec(action_str.replace("self.", "env.")) if action_str else None # HACK: execute heuristic string on local env
+   
                             is_success, current_fid = env.endToEndCheck(timeToWait=0)
 
                             if is_success:
