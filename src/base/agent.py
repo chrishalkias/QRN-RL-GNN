@@ -88,8 +88,8 @@ class Binder:
         
 
     
-        @classmethod
-        def step_environment(self, env: RepeaterNetwork, action_idx: int, gamma:float) -> tuple: 
+        @staticmethod
+        def step_environment(env: RepeaterNetwork, action_idx: int) -> tuple: 
             """
             Executes the (integer) action on the environment.
             
@@ -107,9 +107,6 @@ class Binder:
 
             node, op_type = action_idx // 2, action_idx % 2
             info = {'fidelity': 0.0}
-
-
-
 
             if op_type == 0:
                 env.entangle(edge=(node, node + 1))
@@ -248,6 +245,10 @@ class QRNAgent:
             next_q_target = self.target_net(next_state_batch).view(-1, 2)  # [Total_Nodes, 2]
             max_q_per_node = next_q_target.gather(1, best_actions.unsqueeze(1)).squeeze(1)
 
+            # Exclude nodes with no valid actions from the pool (node N)
+            any_valid = mask.view(-1, 2).any(dim=1)   # [Total_Nodes] bool
+            max_q_per_node = max_q_per_node.masked_fill(~any_valid, -float('inf'))
+
             max_next_q = global_max_pool(max_q_per_node, next_state_batch.batch)
             
             # Mask the target Q value if the state is terminal
@@ -277,21 +278,18 @@ class QRNAgent:
         """
         Progressive curriculum: start small, gradually increase size range.
         
-        Phase 1 (0-25%): Train on small networks (n=3,4)
-        Phase 2 (25-50%): Medium networks (n=4,5,6)
-        Phase 3 (50-75%): Larger networks (n=5,6,7,8)
-        Phase 4 (75-100%): Full range (n=4,5,6,7,8,9,10)
+        Phase 1 (0-10%): Train on small networks (n=3,4)
+        Phase 2 (10-60%): Medium networks (n=4,5,6)
+        Phase 3 (60-100%): Large networks (n=5,6,7,8)
         """
         progress = episode / total_episodes
         
-        if progress < 0.25:
+        if progress < 0.10:
             return [3, 4]
-        elif progress < 0.50:
+        elif progress < 0.60:
             return [4, 5, 6]
-        elif progress < 0.75:
-            return [5, 6, 7, 8]
         else:
-            return [4, 5, 6, 7, 8, 9, 10]
+            return [5, 6, 7, 8]
 
 
     def train(self, 
@@ -376,7 +374,7 @@ class QRNAgent:
 
         self.memory.clear() 
         
-        scores, losses, q_deltas = [], [], []
+        scores, losses, q_deltas, episode_q_deltas = [], [], [], []
         pbar = tqdm(range(episodes))
         n_nodes = random.choice(n_range)
         eps_init = 1.0 if not fine_tune else 0.2
@@ -400,21 +398,19 @@ class QRNAgent:
         try:
             for e in pbar:
                 start_time = time.time()
-                env = RepeaterNetwork(n=n_nodes, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
-                state = env.tensorState()
                 score, loss = 0, None
-                steps, success, swaps, entangles, q_value_list = 0, 0, 0,0, []
+                steps, success, swaps, entangles = 0, 0, 0,0
 
-                if jitter and not e % jitter: # REVIEW check the jitter logic
+                if jitter and not e % jitter: # REVIEW check the jitter logic (starts at e=0 also)
+                    new_n = np.random.choice(n_range)
                     if curriculum:
                         new_n = np.random.choice(self.get_curriculum_n_range(episode = e, total_episodes=episodes))
                     else:
                         new_n = np.random.choice(n_range)
-                        if use_wandb:
-                            wandb.log({"System/New_N": new_n})
-                    new_env = RepeaterNetwork(n=new_n, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
-                    env = new_env
-                    n_nodes = new_n
+                    if use_wandb:
+                        wandb.log({"System/New_N": new_n})
+
+                    env = RepeaterNetwork(n=new_n, p_entangle=p_e, p_swap=p_s, tau=tau, cutoff=cutoff)
                     state = env.tensorState()
 
                 for _ in range(max_steps):
@@ -424,7 +420,7 @@ class QRNAgent:
                     else:
                         swaps +=1
                     
-                    reward, done, info = Binder.step_environment(env, action_idx, self.gamma)
+                    reward, done, info = Binder.step_environment(env, action_idx)
                     next_state = env.tensorState()
                     
                     self.memory.add(state=state, 
@@ -438,6 +434,7 @@ class QRNAgent:
                     steps += 1
                     
                     loss, q_delta = self.train_step()
+                    episode_q_deltas.append(q_delta)
                     
                     if done:
                         if info.get('fidelity', 0) > 0:
@@ -451,7 +448,7 @@ class QRNAgent:
                     self.epsilon = 0.2 * np.exp(-10 * e / episodes)
 
                 scores.append(score)
-                q_deltas.append(q_delta)
+                q_deltas.append(np.mean(episode_q_deltas) if episode_q_deltas else 0.0)
                 loss_val = loss.detach().item() if loss is not None else 0.0
                 losses.append(loss_val)
                 pbar.set_description(f"Ep {e+1} | Score: {score:.1f} | Eps: {self.epsilon:.2f}")
@@ -470,6 +467,7 @@ class QRNAgent:
                         "Performance/Episode_Length": steps,
                         "Policy/Swap_Ratio": swap_ratio,
                         "System/total_steps": total_steps,
+                        "System/episode_time": episode_time,
                         "System/Steps_per_Second": steps_per_sec,
                         "System/Epsilon": self.epsilon})       
                 
@@ -609,7 +607,7 @@ class QRNAgent:
                         label = TestHelpers.parse_action_label(action_idx, is_agent=True)
                         action_timeline['Agent'].append(label)
 
-                    _, done, info = Binder.step_environment(env, action_idx, self.gamma)
+                    _, done, info = Binder.step_environment(env, action_idx)
                     
                     if done:
                         results['Agent']['fidelities'].append(info['fidelity'])

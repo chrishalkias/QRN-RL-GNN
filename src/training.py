@@ -4,19 +4,19 @@ numpy.set_printoptions(legacy='1.25')
 
 
 args = {
-	'episodes': 500,
+	'episodes': 8_000,
 	'max_steps': 30,
 	'savemodel': True,
 	'plot': True,
 	'jitter': 20,
-	'curriculum': False,
+	'curriculum': True,
 	'fine_tune': False,
-	'n_range': [4],
+	'n_range': [6],
 	'p_e': 0.65,
 	'p_s': 0.90,
 	'tau': 50,
-	'cutoff': 20,
-	'use_wandb': False, 
+	'cutoff': 30,
+	'use_wandb': True, 
 	}
 
 if __name__ == '__main__':

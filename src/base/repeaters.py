@@ -78,7 +78,7 @@ class RepeaterNetwork():
         """
         self.checkEdgeLink(edge=edge)
         getsEntangled = self.p_entangle > np.random.rand()
-        (left_node, right_node) = edge
+        left_node, right_node = edge
 
         if not getsEntangled:
             return

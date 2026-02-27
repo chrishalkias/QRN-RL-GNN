@@ -156,7 +156,8 @@ class Strategies(): # TODO make simultaneous strategies
             return random.choice(priority_entangles)
         elif entangles:
             return random.choice(entangles)
-        return None
+        else:
+            raise RuntimeError('No available actions')
 
     def doubling_swap(self):
         swaps = []
@@ -205,7 +206,9 @@ class Strategies(): # TODO make simultaneous strategies
         elif entangles:
             return random.choice(entangles)
         else:
-            raise RuntimeError('No available actions. SOmething broke')
+            raise RuntimeError('No available actions.')
+        
+        
         
     def frontier(self, cutoff: bool = False):
             """
